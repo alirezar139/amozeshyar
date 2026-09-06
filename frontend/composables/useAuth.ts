@@ -20,6 +20,7 @@ export function useAuth() {
     first_name: string
     last_name: string
     role: 'student' | 'instructor'
+    interests?: string
   }) {
     await request('/auth/register/', { method: 'POST', body: payload })
     await login(payload.email, payload.password)

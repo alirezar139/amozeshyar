@@ -8,6 +8,8 @@
 const props = defineProps<{
   videoId: number
   hasFullAccess: boolean
+  lessonId?: number
+  initialPosition?: number
 }>()
 
 const { request } = useApi()
@@ -32,20 +34,35 @@ async function loadSource() {
   }
 }
 
+let hlsInstance: import('hls.js').default | null = null
+
 function attachSource(url: string) {
   const video = videoEl.value
   if (!video) return
 
+  hlsInstance?.destroy()
+  hlsInstance = null
+
   if (url.endsWith('.m3u8') && video.canPlayType('application/vnd.apple.mpegurl') === '') {
     import('hls.js').then(({ default: Hls }) => {
       if (Hls.isSupported()) {
-        const hls = new Hls()
-        hls.loadSource(url)
-        hls.attachMedia(video)
+        hlsInstance = new Hls()
+        hlsInstance.loadSource(url)
+        hlsInstance.attachMedia(video)
       }
     })
   } else {
     video.src = url
+  }
+
+  if (props.hasFullAccess && props.initialPosition && props.initialPosition > 3) {
+    video.addEventListener(
+      'loadedmetadata',
+      () => {
+        video.currentTime = props.initialPosition!
+      },
+      { once: true }
+    )
   }
 }
 
@@ -53,9 +70,47 @@ function onEnded() {
   if (!props.hasFullAccess) {
     previewEnded.value = true
   }
+  reportProgress()
+}
+
+// Resume tracking: only meaningful for the full video, so the preview
+// clip (already capped at ~30s server-side) never bothers reporting.
+// Sent at most once every 10s of playback, plus once on pause/unmount so
+// a viewer who closes the tab mid-lesson doesn't lose their spot.
+let lastReportedAt = 0
+
+function reportProgress() {
+  const video = videoEl.value
+  if (!props.hasFullAccess || !props.lessonId || !video) return
+  const position = Math.floor(video.currentTime)
+  request('/progress/', {
+    method: 'POST',
+    body: { lesson_id: props.lessonId, position_seconds: position },
+  }).catch(() => {})
+}
+
+function onTimeUpdate() {
+  const now = Date.now()
+  if (now - lastReportedAt >= 10000) {
+    lastReportedAt = now
+    reportProgress()
+  }
 }
 
 onMounted(loadSource)
+onUnmounted(() => {
+  reportProgress()
+  hlsInstance?.destroy()
+})
+
+watch(
+  () => props.videoId,
+  () => {
+    previewEnded.value = false
+    lastReportedAt = 0
+    loadSource()
+  }
+)
 </script>
 
 <template>
@@ -66,6 +121,8 @@ onMounted(loadSource)
       controls
       class="h-full w-full"
       @ended="onEnded"
+      @pause="reportProgress"
+      @timeupdate="onTimeUpdate"
     />
     <div v-if="loading" class="absolute inset-0 flex items-center justify-center text-gray-300">
       در حال بارگذاری پخش‌کننده...

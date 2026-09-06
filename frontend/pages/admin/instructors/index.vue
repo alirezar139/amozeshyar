@@ -85,6 +85,16 @@ async function confirmReject(id: number) {
               </span>
             </div>
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ instructor.headline }}</p>
+            <a
+              v-if="instructor.resume"
+              :href="instructor.resume"
+              target="_blank"
+              rel="noopener"
+              class="mt-1 inline-flex items-center gap-1 text-sm text-primary-600 hover:underline dark:text-primary-400"
+            >
+              مشاهده رزومه
+            </a>
+            <p v-else class="mt-1 text-sm text-red-600">رزومه‌ای بارگذاری نشده است</p>
           </div>
           <div v-if="instructor.status === 'pending_review'" class="flex shrink-0 gap-2">
             <button

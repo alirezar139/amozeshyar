@@ -13,12 +13,14 @@ class LessonSerializer(serializers.ModelSerializer):
     has_video = serializers.SerializerMethodField()
     video_id = serializers.SerializerMethodField()
     video_status = serializers.SerializerMethodField()
+    progress_seconds = serializers.SerializerMethodField()
+    completed = serializers.SerializerMethodField()
 
     class Meta:
         model = Lesson
         fields = (
             "id", "course", "title", "order", "is_free_preview", "attachment",
-            "has_video", "video_id", "video_status",
+            "has_video", "video_id", "video_status", "progress_seconds", "completed",
         )
         read_only_fields = ("id",)
 
@@ -31,19 +33,46 @@ class LessonSerializer(serializers.ModelSerializer):
     def get_video_status(self, obj) -> str | None:
         return obj.video_asset.status if hasattr(obj, "video_asset") else None
 
+    def _progress(self, obj):
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+        if not user or not user.is_authenticated:
+            return None
+        from apps.enrollments.models import LessonProgress
+
+        return LessonProgress.objects.filter(student=user, lesson=obj).first()
+
+    def get_progress_seconds(self, obj) -> int:
+        progress = self._progress(obj)
+        return progress.position_seconds if progress else 0
+
+    def get_completed(self, obj) -> bool:
+        progress = self._progress(obj)
+        return bool(progress and progress.completed)
+
 
 class PublicCourseListSerializer(serializers.ModelSerializer):
     instructor_name = serializers.CharField(source="instructor.user.get_full_name", read_only=True)
     instructor_slug = serializers.CharField(source="instructor.slug", read_only=True)
     category_name = serializers.CharField(source="category.name", read_only=True)
+    is_enrolled = serializers.SerializerMethodField()
 
     class Meta:
         model = Course
         fields = (
             "id", "slug", "title", "subtitle", "category_name", "level", "price",
             "discount_price", "effective_price", "cover_image", "rating_avg",
-            "total_duration_seconds", "instructor_name", "instructor_slug",
+            "total_duration_seconds", "instructor_name", "instructor_slug", "is_enrolled",
         )
+
+    def get_is_enrolled(self, obj) -> bool:
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+        if not user or not user.is_authenticated:
+            return False
+        from apps.enrollments.models import Enrollment
+
+        return Enrollment.objects.filter(student=user, course=obj, is_active=True).exists()
 
 
 class PublicCourseDetailSerializer(PublicCourseListSerializer):
@@ -107,14 +136,15 @@ class AdminCourseWriteSerializer(serializers.ModelSerializer):
 
 class CourseModerationSerializer(serializers.ModelSerializer):
     instructor_name = serializers.CharField(source="instructor.user.get_full_name", read_only=True)
+    instructor_resume = serializers.FileField(source="instructor.resume", read_only=True)
 
     class Meta:
         model = Course
         fields = (
-            "id", "title", "subtitle", "price", "instructor_name",
+            "id", "title", "subtitle", "price", "instructor_name", "instructor_resume",
             "status", "rejection_reason",
         )
-        read_only_fields = ("title", "subtitle", "price", "instructor_name")
+        read_only_fields = ("title", "subtitle", "price", "instructor_name", "instructor_resume")
 
     def validate(self, attrs):
         if attrs.get("status") == Course.Status.REJECTED and not attrs.get("rejection_reason"):

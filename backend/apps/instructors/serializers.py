@@ -39,6 +39,7 @@ class InstructorProfileSerializer(serializers.ModelSerializer):
             "credentials",
             "cover_image",
             "social_links",
+            "resume",
             "status",
             "rejection_reason",
             "rating_avg",
@@ -54,8 +55,8 @@ class InstructorModerationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = InstructorProfile
-        fields = ("id", "display_name", "headline", "bio", "status", "rejection_reason")
-        read_only_fields = ("display_name", "headline", "bio")
+        fields = ("id", "display_name", "headline", "bio", "resume", "status", "rejection_reason")
+        read_only_fields = ("display_name", "headline", "bio", "resume")
 
     def get_display_name(self, obj) -> str:
         return obj.user.get_full_name() or obj.user.email.split("@")[0]

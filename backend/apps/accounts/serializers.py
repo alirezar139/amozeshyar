@@ -10,7 +10,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ("id", "email", "password", "first_name", "last_name", "role", "phone_number")
+        fields = ("id", "email", "password", "first_name", "last_name", "role", "phone_number", "interests")
         read_only_fields = ("id",)
 
     def validate_role(self, value):
@@ -27,8 +27,24 @@ class RegisterSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ("id", "email", "first_name", "last_name", "role", "phone_number", "avatar", "is_email_verified")
+        fields = (
+            "id", "email", "first_name", "last_name", "role", "phone_number",
+            "avatar", "is_email_verified", "interests",
+        )
         read_only_fields = ("id", "email", "role", "is_email_verified")
+
+
+class AdminUserSerializer(serializers.ModelSerializer):
+    """Admin's user directory row: only `role` and `is_active` are editable here.
+
+    Everything else (email, name...) is read-only from this screen — role
+    management is scoped to exactly what it says, not a general user editor.
+    """
+
+    class Meta:
+        model = User
+        fields = ("id", "email", "first_name", "last_name", "role", "is_active", "date_joined", "phone_number")
+        read_only_fields = ("id", "email", "first_name", "last_name", "date_joined", "phone_number")
 
 
 class RefreshResponseSerializer(serializers.Serializer):

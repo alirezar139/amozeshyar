@@ -1,6 +1,8 @@
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from drf_spectacular.utils import extend_schema
-from rest_framework import generics, permissions, status
+from rest_framework import filters, generics, permissions, status, viewsets
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import TokenError
@@ -8,10 +10,23 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 from .permissions import IsAdminRole
-from .serializers import EmailTokenObtainPairSerializer, RefreshResponseSerializer, RegisterSerializer, UserSerializer
+from .serializers import (
+    AdminUserSerializer,
+    EmailTokenObtainPairSerializer,
+    RefreshResponseSerializer,
+    RegisterSerializer,
+    UserSerializer,
+)
+
+User = get_user_model()
 
 REFRESH_COOKIE_NAME = "refresh_token"
-REFRESH_COOKIE_PATH = "/api/v1/auth/"
+# Must be "/" (not scoped to /api/v1/auth/): the Nuxt frontend forwards
+# this cookie by hand on every SSR request (see frontend/composables/useApi.ts)
+# so a page like /courses/<slug> can render the visitor's real is_enrolled/
+# progress state on first load — a narrower path means the browser never
+# even includes the cookie in the request the frontend server sees.
+REFRESH_COOKIE_PATH = "/"
 
 
 def _refresh_cookie_kwargs():
@@ -41,6 +56,32 @@ class AdminCreateUserView(generics.CreateAPIView):
 
     serializer_class = RegisterSerializer
     permission_classes = (permissions.IsAuthenticated, IsAdminRole)
+
+
+class AdminUserViewSet(viewsets.ModelViewSet):
+    """Admin's user directory: search everyone, change a role, activate/deactivate.
+
+    Read/patch only (no delete, no create — creation goes through
+    AdminCreateUserView) and an admin can never edit their own row through
+    here, so this endpoint can't be used to accidentally strip your own
+    admin role or deactivate yourself out of the panel.
+    """
+
+    serializer_class = AdminUserSerializer
+    permission_classes = (permissions.IsAuthenticated, IsAdminRole)
+    http_method_names = ("get", "patch", "head", "options")
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ("email", "first_name", "last_name")
+
+    def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return User.objects.none()
+        return User.objects.all().order_by("-date_joined")
+
+    def perform_update(self, serializer):
+        if serializer.instance.id == self.request.user.id:
+            raise PermissionDenied("Cannot change your own role or active status here.")
+        serializer.save()
 
 
 class LoginView(TokenObtainPairView):

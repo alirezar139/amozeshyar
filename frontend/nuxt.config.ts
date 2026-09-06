@@ -25,8 +25,13 @@ export default defineNuxtConfig({
   // SEO doesn't apply there and skipping SSR keeps them cheap to serve.
   routeRules: {
     '/': { prerender: true },
-    '/courses': { swr: 3600 },
-    '/courses/**': { swr: 3600 },
+    // Course pages embed the viewing student's own enrollment/progress
+    // (see courses/serializers.py `is_enrolled`, `progress_seconds`) —
+    // `swr` is a *shared* cache keyed by URL only, so caching these would
+    // leak one user's purchase/progress state into what another visitor's
+    // browser renders for the same course. Plain per-request SSR instead.
+    '/courses': {},
+    '/courses/**': {},
     '/instructors/**': { swr: 3600 },
     '/dashboard/**': { ssr: false },
     '/instructor-panel/**': { ssr: false },

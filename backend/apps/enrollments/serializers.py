@@ -2,7 +2,7 @@ from rest_framework import serializers
 
 from apps.courses.serializers import PublicCourseListSerializer
 
-from .models import Enrollment, WishlistItem
+from .models import Enrollment, LessonProgress, WishlistItem
 
 
 class EnrollmentSerializer(serializers.ModelSerializer):
@@ -25,3 +25,24 @@ class WishlistItemSerializer(serializers.ModelSerializer):
         validated_data["student"] = self.context["request"].user
         validated_data["course_id"] = validated_data.pop("course_id")
         return super().create(validated_data)
+
+
+class LessonProgressUpdateSerializer(serializers.Serializer):
+    lesson_id = serializers.IntegerField()
+    position_seconds = serializers.IntegerField(min_value=0)
+
+
+class LessonProgressResponseSerializer(serializers.ModelSerializer):
+    lesson_id = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = LessonProgress
+        fields = ("lesson_id", "position_seconds", "completed")
+
+
+class ContinueLearningSerializer(serializers.Serializer):
+    course_slug = serializers.CharField()
+    course_title = serializers.CharField()
+    lesson_id = serializers.IntegerField()
+    lesson_title = serializers.CharField()
+    position_seconds = serializers.IntegerField()

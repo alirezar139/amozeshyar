@@ -85,6 +85,16 @@ async function confirmReject(id: number) {
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
               مدرس: {{ course.instructor_name }} — قیمت: {{ course.price }} تومان
             </p>
+            <a
+              v-if="course.instructor_resume"
+              :href="course.instructor_resume"
+              target="_blank"
+              rel="noopener"
+              class="mt-1 inline-flex items-center gap-1 text-sm text-primary-600 hover:underline dark:text-primary-400"
+            >
+              مشاهده رزومه مدرس
+            </a>
+            <p v-else class="mt-1 text-sm text-red-600">رزومه مدرس بارگذاری نشده است</p>
           </div>
           <div class="flex shrink-0 gap-2">
             <button

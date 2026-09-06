@@ -1,6 +1,7 @@
 <script setup lang="ts">
 const { isOpen, mode, close } = useAuthModal()
 const { login, register } = useAuth()
+const { request } = useApi()
 const authStore = useAuthStore()
 
 const loginForm = reactive({ email: '', password: '' })
@@ -10,9 +11,15 @@ const registerForm = reactive({
   email: '',
   password: '',
   role: 'student' as 'student' | 'instructor',
+  interests: '',
 })
+const resumeFile = ref<File | null>(null)
 const error = ref('')
 const loading = ref(false)
+
+function onResumeChange(event: Event) {
+  resumeFile.value = (event.target as HTMLInputElement).files?.[0] ?? null
+}
 
 watch(isOpen, (open) => {
   if (open) error.value = ''
@@ -36,12 +43,25 @@ async function onLoginSubmit() {
 
 async function onRegisterSubmit() {
   error.value = ''
+  if (registerForm.role === 'instructor' && !resumeFile.value) {
+    error.value = 'برای ثبت‌نام به‌عنوان مدرس، بارگذاری رزومه الزامی است.'
+    return
+  }
   loading.value = true
   try {
     await register({ ...registerForm })
+    if (registerForm.role === 'instructor' && resumeFile.value) {
+      const formData = new FormData()
+      formData.append('resume', resumeFile.value)
+      // Best-effort: the account is already created at this point, so a
+      // failed upload here shouldn't strand the user outside their new
+      // account — they can still upload it later from the instructor panel.
+      await request('/instructors/me/', { method: 'PATCH', body: formData }).catch(() => {})
+    }
     close()
     const role = registerForm.role
-    Object.assign(registerForm, { first_name: '', last_name: '', email: '', password: '', role: 'student' })
+    Object.assign(registerForm, { first_name: '', last_name: '', email: '', password: '', role: 'student', interests: '' })
+    resumeFile.value = null
     await navigateTo(getRoleHome(role))
   } catch (err) {
     error.value = getErrorMessage(err, 'ثبت‌نام ناموفق بود. لطفاً اطلاعات را بررسی کنید.')
@@ -123,6 +143,25 @@ function onBackdropClick() {
                 <option value="student">دانشجو</option>
                 <option value="instructor">مدرس</option>
               </select>
+            </div>
+            <div v-if="registerForm.role === 'instructor'">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">رزومه (الزامی)</label>
+              <input
+                type="file"
+                accept=".pdf,.doc,.docx"
+                required
+                class="glass mt-1 block w-full rounded-md px-3 py-2 text-sm text-gray-900 dark:text-white"
+                @change="onResumeChange"
+              />
+              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">برای بررسی درخواست شما توسط ادمین لازم است.</p>
+            </div>
+            <div v-else>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">علایق و مهارت‌ها (اختیاری)</label>
+              <input
+                v-model="registerForm.interests"
+                placeholder="مثلاً: برنامه‌نویسی، طراحی، بازاریابی"
+                class="glass mt-1 block w-full rounded-md px-3 py-2 text-sm text-gray-900 dark:text-white"
+              />
             </div>
             <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
             <button

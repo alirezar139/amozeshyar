@@ -26,6 +26,11 @@ class User(AbstractUser):
     )
     is_email_verified = models.BooleanField(default=False)
     avatar = models.ImageField(upload_to="avatars/", blank=True, null=True)
+    # Self-reported at signup for non-instructor roles (instructors provide
+    # a resume instead — see InstructorProfile.resume). Free text rather
+    # than a fixed taxonomy since there's no course-tagging system to match
+    # it against yet; kept simple until that exists.
+    interests = models.TextField(blank=True)
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []

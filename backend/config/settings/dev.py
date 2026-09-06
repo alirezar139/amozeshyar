@@ -19,3 +19,14 @@ CORS_ALLOWED_ORIGINS = [
 # SimpleJWT refresh cookie isn't Secure-only in dev (no HTTPS on localhost).
 SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SECURE = False
+
+# The production rates in base.py are easy to exhaust while actively
+# developing/demoing from a single machine (every browser tab shares one
+# IP) — loosen them here so local testing doesn't get self-DoS'd.
+REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"] = {  # noqa: F405
+    "anon": "10000/hour",
+    "user": "10000/hour",
+    "auth": "1000/minute",
+    "payment_callback": "1000/minute",
+    "video_manifest": "1000/minute",
+}

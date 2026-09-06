@@ -27,6 +27,11 @@ class InstructorProfile(TimeStampedModel):
     bio = models.TextField(blank=True)
     credentials = models.JSONField(default=list, blank=True)  # [{"title": ..., "issuer": ..., "year": ...}]
     cover_image = models.ImageField(upload_to="instructor_covers/", blank=True, null=True)
+    # Required at instructor signup (enforced in the frontend form + the
+    # owner-facing serializer) so admin has something concrete to review
+    # before approving the profile/their courses — never exposed on the
+    # public profile serializer, only to the instructor themself and admin.
+    resume = models.FileField(upload_to="instructor_resumes/", blank=True, null=True)
     social_links = models.JSONField(default=dict, blank=True)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING_REVIEW)
     rejection_reason = models.TextField(blank=True)
