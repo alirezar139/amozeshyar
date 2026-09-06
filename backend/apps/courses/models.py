@@ -9,6 +9,9 @@ class Category(TimeStampedModel):
     name = models.CharField(max_length=100)
     slug = models.SlugField(unique=True, blank=True)
     parent = models.ForeignKey("self", null=True, blank=True, on_delete=models.SET_NULL, related_name="children")
+    # Large representative photo for the homepage's category grid (in the
+    # style of a big photo card per category, not a small icon).
+    image = models.ImageField(upload_to="category_images/", blank=True, null=True)
 
     class Meta:
         verbose_name_plural = "categories"

@@ -4,9 +4,11 @@ from .models import Category, Course, Lesson
 
 
 class CategorySerializer(serializers.ModelSerializer):
+    course_count = serializers.IntegerField(read_only=True)
+
     class Meta:
         model = Category
-        fields = ("id", "name", "slug", "parent")
+        fields = ("id", "name", "slug", "parent", "image", "course_count")
 
 
 class LessonSerializer(serializers.ModelSerializer):

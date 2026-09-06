@@ -1,20 +1,46 @@
 <script setup lang="ts">
 const { request } = useApi()
+const route = useRoute()
 
 useSeoMeta({
   title: 'دوره‌ها | آموزش‌یار',
   description: 'مرور همه‌ی دوره‌های آموزشی منتشرشده روی آموزش‌یار.',
 })
 
-const { data: courses, pending, error } = await useAsyncData('courses-list', async () => {
-  const page = await request<{ results: any[] }>('/courses/')
+const categorySlug = computed(() => (route.query.category as string) || '')
+
+const { data: categories } = await useAsyncData('courses-page-categories', async () => {
+  const page = await request<{ results: any[] }>('/categories/')
   return page.results
+})
+
+const activeCategory = computed(() => categories.value?.find((c) => c.slug === categorySlug.value))
+
+async function fetchCourses() {
+  const qs = categorySlug.value ? `?category=${encodeURIComponent(categorySlug.value)}` : ''
+  const page = await request<{ results: any[] }>(`/courses/${qs}`)
+  return page.results
+}
+
+const { data: courses, pending, error } = await useAsyncData('courses-list', fetchCourses, {
+  watch: [categorySlug],
 })
 </script>
 
 <template>
   <div class="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-    <h1 class="text-2xl font-bold text-gray-900 dark:text-white">دوره‌های آموزشی</h1>
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+        {{ activeCategory ? `دوره‌های ${activeCategory.name}` : 'دوره‌های آموزشی' }}
+      </h1>
+      <NuxtLink
+        v-if="categorySlug"
+        to="/courses"
+        class="glass rounded-md px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200"
+      >
+        حذف فیلتر ✕
+      </NuxtLink>
+    </div>
 
     <div v-if="pending" class="mt-8 text-center text-gray-500">در حال بارگذاری...</div>
     <div v-else-if="error" class="mt-8 text-center text-red-600">خطا در دریافت دوره‌ها.</div>

@@ -1,3 +1,4 @@
+from django.db.models import Count, Q
 from rest_framework import generics, permissions, viewsets
 
 from apps.accounts.permissions import IsAdminRole, IsInstructor
@@ -17,9 +18,17 @@ from .serializers import (
 
 
 class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Category.objects.all()
+    """Public category list — `course_count` only counts published courses, so an empty
+    or all-pending category still shows up (for future admin category management) but
+    the homepage grid can filter those out client-side to avoid dead-end links."""
+
     serializer_class = CategorySerializer
     permission_classes = (permissions.AllowAny,)
+
+    def get_queryset(self):
+        return Category.objects.annotate(
+            course_count=Count("courses", filter=Q(courses__status=Course.Status.PUBLISHED))
+        )
 
 
 class PublicCourseViewSet(viewsets.ReadOnlyModelViewSet):

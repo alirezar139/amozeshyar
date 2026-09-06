@@ -9,6 +9,13 @@ useSeoMeta({
   ogType: 'website',
 })
 
+const { data: categories } = await useAsyncData('home-categories', async () => {
+  const page = await request<{ results: any[] }>('/categories/')
+  // Skip categories with no published course yet — no point linking
+  // to a filtered course list that would just come back empty.
+  return page.results.filter((c) => c.course_count > 0).slice(0, 6)
+})
+
 const { data: featuredInstructors } = await useAsyncData('home-featured-instructors', async () => {
   const page = await request<{ results: any[] }>('/instructors/')
   return page.results.slice(0, 3)
@@ -55,6 +62,33 @@ const { data: featuredCourses } = await useAsyncData('home-featured-courses', as
 
         <!-- Teaching-scene illustration instead of a generic video-card mockup -->
         <IllustrationTeachingScene class="mx-auto aspect-[4/3] w-full max-w-md lg:mx-0 lg:ms-auto" />
+      </div>
+    </section>
+
+    <!-- Category grid — big photo cards, one click into a filtered course list -->
+    <section v-if="categories && categories.length" class="mt-12">
+      <h2 class="text-xl font-bold text-gray-900 dark:text-white">دسته‌بندی دوره‌ها</h2>
+      <div class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <NuxtLink
+          v-for="category in categories"
+          :key="category.slug"
+          :to="`/courses?category=${category.slug}`"
+          class="group relative flex aspect-[4/3] items-end overflow-hidden rounded-2xl"
+        >
+          <NuxtImg
+            v-if="category.image"
+            :src="category.image"
+            :alt="category.name"
+            class="absolute inset-0 h-full w-full object-cover transition duration-300 group-hover:scale-105"
+            loading="lazy"
+          />
+          <div v-else class="absolute inset-0 bg-gradient-to-br from-primary-700 to-primary-950" />
+          <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+          <div class="relative z-10 p-5 text-white">
+            <p class="text-lg font-bold">{{ category.name }}</p>
+            <p class="mt-1 text-sm text-white/80">{{ category.course_count }} دوره</p>
+          </div>
+        </NuxtLink>
       </div>
     </section>
 
