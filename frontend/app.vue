@@ -4,6 +4,6 @@
     <NuxtLayout>
       <NuxtPage />
     </NuxtLayout>
-    <AuthLoginModal />
+    <AuthModal />
   </div>
 </template>

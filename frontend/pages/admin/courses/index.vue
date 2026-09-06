@@ -7,6 +7,18 @@ const { data: courses, pending, refresh } = await useAsyncData('admin-pending-co
   return page.results
 })
 
+const { data: allCourses, pending: allPending } = await useAsyncData('admin-all-courses', async () => {
+  const page = await request<{ results: any[] }>('/courses/admin-all/')
+  return page.results
+})
+
+const statusLabels: Record<string, string> = {
+  draft: 'پیش‌نویس',
+  pending_review: 'در انتظار تایید',
+  published: 'منتشرشده',
+  rejected: 'ردشده',
+}
+
 const busyId = ref<number | null>(null)
 const rejectingId = ref<number | null>(null)
 const rejectionReason = ref('')
@@ -116,6 +128,37 @@ async function confirmReject(id: number) {
           </div>
         </div>
       </div>
+    </div>
+
+    <h2 class="mt-10 text-lg font-bold text-gray-900 dark:text-white">همه‌ی دوره‌ها</h2>
+    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+      برای افزودن سرفصل و آپلود ویدیو به هر دوره (از جمله دوره‌هایی که خودتان مستقیم ساخته‌اید) از اینجا وارد شوید.
+    </p>
+    <div v-if="allPending" class="mt-4 text-gray-500">در حال بارگذاری...</div>
+    <div v-else class="glass mt-4 overflow-x-auto rounded-xl p-2">
+      <table class="w-full min-w-[560px] text-sm">
+        <thead>
+          <tr class="text-start text-gray-600 dark:text-gray-400">
+            <th class="px-3 py-2">عنوان</th>
+            <th class="px-3 py-2">مدرس</th>
+            <th class="px-3 py-2">وضعیت</th>
+            <th class="px-3 py-2" />
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="course in allCourses" :key="course.id" class="border-t border-white/30 dark:border-white/10">
+            <td class="px-3 py-2 text-gray-900 dark:text-white">{{ course.title }}</td>
+            <td class="px-3 py-2 text-gray-600 dark:text-gray-400">{{ course.instructor_name }}</td>
+            <td class="px-3 py-2 text-gray-600 dark:text-gray-400">{{ statusLabels[course.status] }}</td>
+            <td class="px-3 py-2">
+              <NuxtLink :to="`/admin/courses/${course.id}/lessons`" class="text-sm font-medium text-primary-600 hover:underline dark:text-primary-400">
+                مدیریت سرفصل‌ها و ویدیو
+              </NuxtLink>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p v-if="allCourses && allCourses.length === 0" class="p-4 text-gray-600 dark:text-gray-400">هنوز دوره‌ای ثبت نشده است.</p>
     </div>
   </div>
 </template>

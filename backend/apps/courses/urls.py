@@ -6,6 +6,7 @@ from . import views
 router = DefaultRouter()
 router.register("categories", views.CategoryViewSet, basename="category")
 router.register("courses/moderation", views.CourseModerationViewSet, basename="course-moderation")
+router.register("courses/admin-all", views.AdminAllCoursesViewSet, basename="course-admin-all")
 router.register("courses/mine", views.MyCoursesViewSet, basename="course-mine")
 router.register("lessons", views.LessonViewSet, basename="lesson")
 router.register("courses", views.PublicCourseViewSet, basename="course-public")

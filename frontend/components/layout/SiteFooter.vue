@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const { open: openLoginModal } = useLoginModal()
+const { openLogin, openRegister } = useAuthModal()
 </script>
 
 <template>
@@ -24,8 +24,8 @@ const { open: openLoginModal } = useLoginModal()
       <div>
         <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100">حساب کاربری</h3>
         <ul class="mt-3 space-y-2 text-sm text-gray-600 dark:text-gray-400">
-          <li><button type="button" @click="openLoginModal">ورود</button></li>
-          <li><NuxtLink to="/auth/register">ثبت‌نام</NuxtLink></li>
+          <li><button type="button" @click="openLogin">ورود</button></li>
+          <li><button type="button" @click="openRegister">ثبت‌نام</button></li>
         </ul>
       </div>
     </div>

@@ -1,10 +1,22 @@
 <script setup lang="ts">
+const { request } = useApi()
+
 useSeoMeta({
   title: 'آموزش‌یار | یادگیری آنلاین از بهترین مدرس‌ها',
   description: 'دوره‌های آموزشی تخصصی با پیش‌نمایش رایگان. مدرس‌های برتر را کشف کنید و همین امروز یادگیری را شروع کنید.',
   ogTitle: 'آموزش‌یار',
   ogDescription: 'دوره‌های آموزشی تخصصی با پیش‌نمایش رایگان.',
   ogType: 'website',
+})
+
+const { data: featuredInstructors } = await useAsyncData('home-featured-instructors', async () => {
+  const page = await request<{ results: any[] }>('/instructors/')
+  return page.results.slice(0, 3)
+})
+
+const { data: featuredCourses } = await useAsyncData('home-featured-courses', async () => {
+  const page = await request<{ results: any[] }>('/courses/')
+  return page.results.slice(0, 4)
 })
 </script>
 
@@ -74,6 +86,78 @@ useSeoMeta({
         </div>
         <p class="mt-3 font-semibold text-gray-900 dark:text-white">دسترسی همیشگی</p>
         <p class="mt-1 text-sm text-gray-700 dark:text-gray-300">بعد از خرید، دوره برای همیشه در حساب شما باقی می‌ماند.</p>
+      </div>
+    </section>
+
+    <!-- Featured courses — real data, with a play-icon hint that a video preview exists -->
+    <section v-if="featuredCourses && featuredCourses.length" class="mt-12">
+      <div class="flex items-center justify-between">
+        <h2 class="text-xl font-bold text-gray-900 dark:text-white">دوره‌های پیشنهادی</h2>
+        <NuxtLink to="/courses" class="text-sm font-medium text-primary-600 hover:underline dark:text-primary-400">
+          مشاهده‌ی همه
+        </NuxtLink>
+      </div>
+      <div class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <NuxtLink
+          v-for="course in featuredCourses"
+          :key="course.slug"
+          :to="`/courses/${course.slug}`"
+          class="glass group flex flex-col overflow-hidden rounded-xl transition hover:-translate-y-0.5 hover:shadow-lg"
+        >
+          <div class="relative aspect-video w-full overflow-hidden bg-black/10">
+            <NuxtImg
+              v-if="course.cover_image"
+              :src="course.cover_image"
+              :alt="course.title"
+              class="h-full w-full object-cover transition group-hover:scale-105"
+              loading="lazy"
+            />
+            <div class="absolute inset-0 flex items-center justify-center">
+              <span class="glass flex h-10 w-10 items-center justify-center rounded-full">
+                <svg class="h-4 w-4 text-primary-700 dark:text-primary-300" fill="currentColor" viewBox="0 0 20 20"><path d="M6 4l10 6-10 6V4z" /></svg>
+              </span>
+            </div>
+          </div>
+          <div class="flex flex-1 flex-col p-4">
+            <h3 class="line-clamp-2 text-sm font-semibold text-gray-900 dark:text-white">{{ course.title }}</h3>
+            <p v-if="course.instructor_name" class="mt-1 text-xs text-gray-600 dark:text-gray-400">{{ course.instructor_name }}</p>
+            <div class="mt-auto pt-3 text-sm font-bold text-accent-600 dark:text-accent-400">
+              {{ Number(course.effective_price) === 0 ? 'رایگان' : `${Number(course.effective_price).toLocaleString('fa-IR')} تومان` }}
+            </div>
+          </div>
+        </NuxtLink>
+      </div>
+    </section>
+
+    <!-- Featured instructors — photo + short bio -->
+    <section v-if="featuredInstructors && featuredInstructors.length" class="mt-12">
+      <div class="flex items-center justify-between">
+        <h2 class="text-xl font-bold text-gray-900 dark:text-white">مدرس‌های ما</h2>
+        <NuxtLink to="/instructors" class="text-sm font-medium text-primary-600 hover:underline dark:text-primary-400">
+          مشاهده‌ی همه
+        </NuxtLink>
+      </div>
+      <div class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <NuxtLink
+          v-for="instructor in featuredInstructors"
+          :key="instructor.slug"
+          :to="`/instructors/${instructor.slug}`"
+          class="glass flex items-center gap-4 rounded-2xl p-5 transition hover:-translate-y-0.5 hover:shadow-lg"
+        >
+          <NuxtImg
+            v-if="instructor.cover_image"
+            :src="instructor.cover_image"
+            :alt="instructor.display_name"
+            class="h-16 w-16 shrink-0 rounded-full object-cover"
+          />
+          <div v-else class="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-primary-100 text-lg font-bold text-primary-700 dark:bg-primary-900/40 dark:text-primary-300">
+            {{ instructor.display_name?.[0] }}
+          </div>
+          <div class="min-w-0">
+            <p class="font-semibold text-gray-900 dark:text-white">{{ instructor.display_name }}</p>
+            <p class="mt-1 line-clamp-2 text-sm text-gray-600 dark:text-gray-400">{{ instructor.headline }}</p>
+          </div>
+        </NuxtLink>
       </div>
     </section>
 

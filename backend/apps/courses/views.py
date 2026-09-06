@@ -64,6 +64,16 @@ class CourseModerationViewSet(viewsets.ModelViewSet):
     queryset = Course.objects.filter(status=Course.Status.PENDING_REVIEW)
 
 
+class AdminAllCoursesViewSet(viewsets.ReadOnlyModelViewSet):
+    """Admin-only: every course regardless of status, so the admin can jump into
+    lesson/video management for a course they just authored (which — being
+    published immediately — never appears in the moderation queue above)."""
+
+    serializer_class = CourseModerationSerializer
+    permission_classes = (permissions.IsAuthenticated, IsAdminRole)
+    queryset = Course.objects.all().select_related("instructor__user")
+
+
 class LessonViewSet(viewsets.ModelViewSet):
     serializer_class = LessonSerializer
     permission_classes = (permissions.IsAuthenticated,)

@@ -19,7 +19,7 @@ const { data: instructors, pending } = await useAsyncData('instructors-list', as
         v-for="instructor in instructors"
         :key="instructor.slug"
         :to="`/instructors/${instructor.slug}`"
-        class="rounded-lg border border-gray-200 p-4 text-center hover:shadow-lg dark:border-gray-800"
+        class="glass rounded-lg p-4 text-center transition hover:-translate-y-0.5 hover:shadow-lg"
       >
         <NuxtImg
           v-if="instructor.cover_image"

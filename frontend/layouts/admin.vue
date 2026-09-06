@@ -4,7 +4,7 @@ const { logout } = useAuth()
 
 async function onLogout() {
   await logout()
-  await navigateTo('/auth/login')
+  await navigateTo('/')
 }
 </script>
 

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 const authStore = useAuthStore()
-const { open: openLoginModal } = useLoginModal()
+const { openLogin, openRegister } = useAuthModal()
 const mobileMenuOpen = ref(false)
 
 function toggleMenu() {
@@ -9,7 +9,12 @@ function toggleMenu() {
 
 function onLoginClick() {
   mobileMenuOpen.value = false
-  openLoginModal()
+  openLogin()
+}
+
+function onRegisterClick() {
+  mobileMenuOpen.value = false
+  openRegister()
 }
 </script>
 
@@ -47,12 +52,13 @@ function onLoginClick() {
           >
             ورود
           </button>
-          <NuxtLink
-            to="/auth/register"
+          <button
+            type="button"
             class="rounded-md bg-accent-500 px-4 py-2 text-sm font-medium text-white hover:bg-accent-400"
+            @click="onRegisterClick"
           >
             ثبت‌نام
-          </NuxtLink>
+          </button>
         </template>
       </div>
 
@@ -63,7 +69,7 @@ function onLoginClick() {
       </button>
     </div>
 
-    <div v-if="mobileMenuOpen" class="border-t border-gray-200 px-4 py-4 md:hidden dark:border-gray-800">
+    <div v-if="mobileMenuOpen" class="border-t border-white/30 px-4 py-4 md:hidden dark:border-white/10">
       <nav class="flex flex-col gap-4">
         <NuxtLink to="/courses" @click="mobileMenuOpen = false">دوره‌ها</NuxtLink>
         <NuxtLink to="/instructors" @click="mobileMenuOpen = false">مدرس‌ها</NuxtLink>
@@ -76,7 +82,7 @@ function onLoginClick() {
         </NuxtLink>
         <template v-else>
           <button type="button" class="text-start" @click="onLoginClick">ورود</button>
-          <NuxtLink to="/auth/register" @click="mobileMenuOpen = false">ثبت‌نام</NuxtLink>
+          <button type="button" class="text-start" @click="onRegisterClick">ثبت‌نام</button>
         </template>
       </nav>
     </div>

@@ -71,7 +71,7 @@ async function buyNow() {
         <p class="mt-6 whitespace-pre-line text-gray-700 dark:text-gray-200">{{ course.description }}</p>
 
         <h2 class="mt-8 text-lg font-semibold text-gray-900 dark:text-white">سرفصل‌ها</h2>
-        <ul class="mt-3 divide-y divide-gray-200 rounded-md border border-gray-200 dark:divide-gray-800 dark:border-gray-800">
+        <ul class="glass mt-3 divide-y divide-white/30 rounded-md dark:divide-white/10">
           <li
             v-for="lesson in course.lessons"
             :key="lesson.id"
@@ -84,7 +84,7 @@ async function buyNow() {
       </div>
 
       <div class="lg:col-span-1">
-        <div class="rounded-lg border border-gray-200 p-4 dark:border-gray-800">
+        <div class="glass rounded-lg p-4">
           <ClientOnly v-if="firstVideoId">
             <PlayerVideoPlayer :video-id="firstVideoId" :has-full-access="false">
               <template #cta>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ layout: 'instructor' })
+definePageMeta({ layout: 'admin' })
 const route = useRoute()
 const courseId = Number(route.params.id)
 </script>
