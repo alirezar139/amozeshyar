@@ -104,3 +104,30 @@ class Lesson(TimeStampedModel):
 
     def __str__(self):
         return f"{self.course.title} - {self.title}"
+
+
+class ClassSession(TimeStampedModel):
+    """A scheduled (live) class time for a course — separate from Lesson.
+
+    A course's recorded lessons don't need a clock; this exists purely for
+    courses that also run live sessions (webinars, live Q&A, cohort-based
+    classes) that a student needs to show up for at a specific time. Not
+    tied 1:1 to a Lesson since a live session may not map to any single
+    recorded video.
+    """
+
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="sessions")
+    title = models.CharField(max_length=255)
+    starts_at = models.DateTimeField()
+    ends_at = models.DateTimeField(null=True, blank=True)
+    is_online = models.BooleanField(default=True)
+    # Meeting link when online, or a physical address/room when not —
+    # deliberately a single free-text field rather than two, since only
+    # one of them is ever relevant for a given session.
+    location_note = models.CharField(max_length=500, blank=True)
+
+    class Meta:
+        ordering = ("starts_at",)
+
+    def __str__(self):
+        return f"{self.course.title} — {self.title} ({self.starts_at:%Y-%m-%d %H:%M})"

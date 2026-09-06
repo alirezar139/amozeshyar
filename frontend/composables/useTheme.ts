@@ -1,10 +1,13 @@
-export type Palette = 'teal' | 'blue' | 'purple' | 'mono'
+export type Palette = 'teal' | 'blue' | 'purple' | 'mono' | 'green' | 'red' | 'orange'
 
 export const PALETTE_LABELS: Record<Palette, string> = {
   teal: 'تیل و کهربایی',
   blue: 'آبی و صورتی',
   purple: 'بنفش و طلایی',
   mono: 'خاکستری چندمنظوره',
+  green: 'سبز و کهربایی',
+  red: 'قرمز و طلایی',
+  orange: 'نارنجی و آبی',
 }
 
 /**

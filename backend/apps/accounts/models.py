@@ -37,6 +37,9 @@ class User(AbstractUser):
         BLUE = "blue", "Blue & Rose"
         PURPLE = "purple", "Purple & Gold"
         MONO = "mono", "Monochrome & Amber"
+        GREEN = "green", "Green & Amber"
+        RED = "red", "Red & Gold"
+        ORANGE = "orange", "Orange & Blue"
 
     # Per-account accent palette (frontend maps this to a `data-palette`
     # attribute driving CSS custom properties — see useTheme.ts). Persisted

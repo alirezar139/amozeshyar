@@ -1,19 +1,23 @@
 from django.db.models import Count, Q
+from django.utils import timezone
 from rest_framework import generics, permissions, viewsets
+from rest_framework.exceptions import PermissionDenied
 
 from apps.accounts.permissions import IsAdminRole, IsInstructor
 
 from .filters import CourseFilter
-from .models import Category, Course, Lesson
+from .models import Category, ClassSession, Course, Lesson
 from .permissions import IsCourseOwner
 from .serializers import (
     AdminCourseWriteSerializer,
     CategorySerializer,
+    ClassSessionSerializer,
     CourseModerationSerializer,
     CourseWriteSerializer,
     LessonSerializer,
     PublicCourseDetailSerializer,
     PublicCourseListSerializer,
+    StudentScheduleSerializer,
 )
 
 
@@ -98,7 +102,49 @@ class LessonViewSet(viewsets.ModelViewSet):
         course = serializer.validated_data["course"]
         is_owner = course.instructor.user_id == self.request.user.id
         if not (is_owner or self.request.user.role == "admin"):
-            from rest_framework.exceptions import PermissionDenied
-
             raise PermissionDenied("You do not own this course.")
         serializer.save()
+
+
+class ClassSessionViewSet(viewsets.ModelViewSet):
+    """Instructor/admin CRUD for a course's scheduled (live) sessions — same
+    ownership shape as LessonViewSet: an instructor only ever sees/edits
+    sessions for their own courses, admin sees everything."""
+
+    serializer_class = ClassSessionSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return ClassSession.objects.none()
+        if self.request.user.role == "admin":
+            return ClassSession.objects.all()
+        return ClassSession.objects.filter(course__instructor__user=self.request.user)
+
+    def perform_create(self, serializer):
+        course = serializer.validated_data["course"]
+        is_owner = course.instructor.user_id == self.request.user.id
+        if not (is_owner or self.request.user.role == "admin"):
+            raise PermissionDenied("You do not own this course.")
+        serializer.save()
+
+
+class MyScheduleView(generics.ListAPIView):
+    """The logged-in student's calendar: every upcoming session across all
+    courses they're enrolled in, soonest first."""
+
+    serializer_class = StudentScheduleSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return ClassSession.objects.none()
+        return (
+            ClassSession.objects.filter(
+                course__enrollments__student=self.request.user,
+                course__enrollments__is_active=True,
+                starts_at__gte=timezone.now(),
+            )
+            .select_related("course", "course__instructor__user")
+            .order_by("starts_at")
+        )

@@ -50,12 +50,15 @@ async function saveProfile() {
   }
 }
 
-const palettes: Palette[] = ['teal', 'blue', 'purple', 'mono']
+const palettes: Palette[] = ['teal', 'blue', 'purple', 'mono', 'green', 'red', 'orange']
 const paletteSwatches: Record<Palette, [string, string]> = {
   teal: ['#157e6c', '#f98307'],
   blue: ['#2563eb', '#db2777'],
   purple: ['#7c3aed', '#ca8a04'],
   mono: ['#475569', '#f98307'],
+  green: ['#16a34a', '#f98307'],
+  red: ['#dc2626', '#ca8a04'],
+  orange: ['#ea580c', '#2563eb'],
 }
 </script>
 

@@ -12,7 +12,7 @@ async function onLogout() {
   <div class="relative flex min-h-screen flex-col md:flex-row">
     <LayoutAmbientBackground />
     <aside class="glass w-full shrink-0 border-x-0 border-t-0 md:w-64 md:border-y-0 md:border-e">
-      <div class="flex items-center justify-between px-4 py-4 md:block">
+      <div class="flex items-center justify-between px-4 py-4">
         <NuxtLink to="/" class="text-lg font-bold text-primary-600">آموزش‌یار</NuxtLink>
         <div class="flex items-center gap-2">
           <LayoutThemeToggle />
@@ -28,6 +28,9 @@ async function onLogout() {
         </NuxtLink>
         <NuxtLink to="/dashboard/orders" class="rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-white/40 dark:text-gray-200 dark:hover:bg-white/10">
           سفارش‌ها
+        </NuxtLink>
+        <NuxtLink to="/dashboard/calendar" class="rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-white/40 dark:text-gray-200 dark:hover:bg-white/10">
+          تقویم کلاس‌ها
         </NuxtLink>
         <NuxtLink to="/profile" class="rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-white/40 dark:text-gray-200 dark:hover:bg-white/10">
           پروفایل من

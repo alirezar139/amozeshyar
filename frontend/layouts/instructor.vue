@@ -12,7 +12,7 @@ async function onLogout() {
   <div class="relative flex min-h-screen flex-col md:flex-row">
     <LayoutAmbientBackground />
     <aside class="glass w-full shrink-0 border-x-0 border-t-0 md:w-64 md:border-y-0 md:border-e">
-      <div class="flex items-center justify-between px-4 py-4 md:block">
+      <div class="flex items-center justify-between px-4 py-4">
         <NuxtLink to="/" class="text-lg font-bold text-primary-600">پنل مدرس</NuxtLink>
         <div class="flex items-center gap-2">
           <LayoutThemeToggle />

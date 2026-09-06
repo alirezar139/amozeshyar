@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Category, Course, Lesson
+from .models import Category, ClassSession, Course, Lesson
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -159,3 +159,28 @@ class CourseModerationSerializer(serializers.ModelSerializer):
         if self.validated_data.get("status") == Course.Status.PUBLISHED:
             kwargs["published_at"] = timezone.now()
         return super().save(**kwargs)
+
+
+class ClassSessionSerializer(serializers.ModelSerializer):
+    """Instructor/admin-facing CRUD for a course's scheduled sessions."""
+
+    class Meta:
+        model = ClassSession
+        fields = ("id", "course", "title", "starts_at", "ends_at", "is_online", "location_note")
+        read_only_fields = ("id",)
+
+
+class StudentScheduleSerializer(serializers.ModelSerializer):
+    """Read-only shape for a student's own calendar — bundles just enough
+    course context to render the session without a second lookup."""
+
+    course_title = serializers.CharField(source="course.title", read_only=True)
+    course_slug = serializers.CharField(source="course.slug", read_only=True)
+    instructor_name = serializers.CharField(source="course.instructor.user.get_full_name", read_only=True)
+
+    class Meta:
+        model = ClassSession
+        fields = (
+            "id", "title", "starts_at", "ends_at", "is_online", "location_note",
+            "course_title", "course_slug", "instructor_name",
+        )
