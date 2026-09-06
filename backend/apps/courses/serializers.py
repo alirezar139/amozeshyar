@@ -162,11 +162,23 @@ class CourseModerationSerializer(serializers.ModelSerializer):
 
 
 class ClassSessionSerializer(serializers.ModelSerializer):
-    """Instructor/admin-facing CRUD for a course's scheduled sessions."""
+    """Instructor/admin-facing CRUD for a course's scheduled sessions.
+
+    `course` stays a writable id (needed to create/move a session), while
+    `course_title`/`instructor_name` are read-only conveniences so a
+    calendar view (e.g. the admin's, spanning every course) doesn't need a
+    second lookup per session just to label it.
+    """
+
+    course_title = serializers.CharField(source="course.title", read_only=True)
+    instructor_name = serializers.CharField(source="course.instructor.user.get_full_name", read_only=True)
 
     class Meta:
         model = ClassSession
-        fields = ("id", "course", "title", "starts_at", "ends_at", "is_online", "location_note")
+        fields = (
+            "id", "course", "course_title", "instructor_name",
+            "title", "starts_at", "ends_at", "is_online", "location_note",
+        )
         read_only_fields = ("id",)
 
 

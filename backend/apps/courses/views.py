@@ -69,12 +69,15 @@ class AdminCourseCreateView(generics.CreateAPIView):
 
 
 class CourseModerationViewSet(viewsets.ModelViewSet):
-    """Admin-only approve/reject queue for courses awaiting review."""
+    """Admin-only approve/reject queue for courses — also backs the Kanban board,
+    which needs to move a card between any of the three post-draft statuses (not
+    just out of pending_review once), so the queryset covers all of them; a
+    still-unsubmitted draft isn't the admin's to move around."""
 
     serializer_class = CourseModerationSerializer
     permission_classes = (permissions.IsAuthenticated, IsAdminRole)
     http_method_names = ("get", "patch", "head", "options")
-    queryset = Course.objects.filter(status=Course.Status.PENDING_REVIEW)
+    queryset = Course.objects.exclude(status=Course.Status.DRAFT)
 
 
 class AdminAllCoursesViewSet(viewsets.ReadOnlyModelViewSet):
