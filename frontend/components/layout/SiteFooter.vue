@@ -1,5 +1,6 @@
 <script setup lang="ts">
 const { openLogin, openRegister } = useAuthModal()
+const currentYear = new Date().getFullYear()
 </script>
 
 <template>
@@ -28,6 +29,9 @@ const { openLogin, openRegister } = useAuthModal()
           <li><button type="button" @click="openRegister">ثبت‌نام</button></li>
         </ul>
       </div>
+    </div>
+    <div class="mx-auto mt-8 max-w-7xl border-t border-white/30 px-4 pt-6 text-center text-sm text-gray-500 sm:px-6 lg:px-8 dark:border-white/10 dark:text-gray-400">
+      © {{ currentYear }} آموزش‌یار. تمامی حقوق محفوظ است.
     </div>
   </footer>
 </template>
