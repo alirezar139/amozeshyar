@@ -24,7 +24,12 @@ export default defineNuxtConfig({
   // and social-share previews; authenticated dashboards are pure SPA since
   // SEO doesn't apply there and skipping SSR keeps them cheap to serve.
   routeRules: {
-    '/': { prerender: true },
+    // Not statically prerendered: the homepage fetches live featured
+    // courses/instructors (short-lived presigned image URLs, and course
+    // data that now carries the viewing user's own `is_enrolled`) — a
+    // build-time-frozen page would go stale exactly like the two cases
+    // below, just less obviously since it still looks "done".
+    '/': {},
     // Course pages embed the viewing student's own enrollment/progress
     // (see courses/serializers.py `is_enrolled`, `progress_seconds`) —
     // `swr` is a *shared* cache keyed by URL only, so caching these would
@@ -32,7 +37,12 @@ export default defineNuxtConfig({
     // browser renders for the same course. Plain per-request SSR instead.
     '/courses': {},
     '/courses/**': {},
-    '/instructors/**': { swr: 3600 },
+    // Not personalized, but also not cacheable for long: instructor
+    // photos are served via short-lived (10 min) presigned MinIO URLs
+    // (see backend AWS_QUERYSTRING_EXPIRE), and an SWR-cached page would
+    // keep serving an already-expired image URL baked into its HTML long
+    // after the underlying signed link stopped working.
+    '/instructors/**': {},
     '/dashboard/**': { ssr: false },
     '/instructor-panel/**': { ssr: false },
     '/admin/**': { ssr: false },
