@@ -26,6 +26,9 @@ async function onLogout() {
         <NuxtLink to="/instructor-panel/courses/create" class="rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-white/40 dark:text-gray-200 dark:hover:bg-white/10">
           دوره‌ی جدید
         </NuxtLink>
+        <NuxtLink to="/profile" class="rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-white/40 dark:text-gray-200 dark:hover:bg-white/10">
+          پروفایل من
+        </NuxtLink>
         <button
           class="mt-2 rounded-md px-3 py-2 text-start text-sm text-red-600 hover:bg-red-50/50 dark:hover:bg-red-950/40"
           @click="onLogout"

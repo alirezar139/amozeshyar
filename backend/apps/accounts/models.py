@@ -32,6 +32,18 @@ class User(AbstractUser):
     # it against yet; kept simple until that exists.
     interests = models.TextField(blank=True)
 
+    class ColorTheme(models.TextChoices):
+        TEAL = "teal", "Teal & Amber"
+        BLUE = "blue", "Blue & Rose"
+        PURPLE = "purple", "Purple & Gold"
+        MONO = "mono", "Monochrome & Amber"
+
+    # Per-account accent palette (frontend maps this to a `data-palette`
+    # attribute driving CSS custom properties — see useTheme.ts). Persisted
+    # server-side, not just localStorage, so it follows the user across
+    # devices once logged in.
+    color_theme = models.CharField(max_length=20, choices=ColorTheme.choices, default=ColorTheme.TEAL)
+
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
 

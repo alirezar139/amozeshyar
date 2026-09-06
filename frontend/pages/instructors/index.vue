@@ -18,7 +18,7 @@ const { data: instructors, pending } = await useAsyncData('instructors-list', as
       <div
         v-for="instructor in instructors"
         :key="instructor.slug"
-        class="glass flex flex-col items-center rounded-lg p-4 text-center"
+        class="glass flex h-full flex-col items-center rounded-lg p-4 text-center"
       >
         <InstructorRatingStars :rating="instructor.rating_avg" />
         <NuxtImg
@@ -42,7 +42,7 @@ const { data: instructors, pending } = await useAsyncData('instructors-list', as
         </a>
         <NuxtLink
           :to="`/instructors/${instructor.slug}`"
-          class="mt-4 w-full rounded-md bg-primary-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary-500"
+          class="mt-auto w-full rounded-md bg-primary-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary-500"
         >
           مشاهده پروفایل مدرس
         </NuxtLink>

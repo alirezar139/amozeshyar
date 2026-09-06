@@ -69,7 +69,7 @@ export default defineNuxtConfig({
       // must run before anything else.
       script: [
         {
-          innerHTML: `(function(){try{var t=localStorage.getItem('theme');if(!t){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}if(t==='dark')document.documentElement.classList.add('dark')}catch(e){}})()`,
+          innerHTML: `(function(){try{var t=localStorage.getItem('theme');if(!t){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}if(t==='dark')document.documentElement.classList.add('dark');var p=localStorage.getItem('palette');if(p&&p!=='teal')document.documentElement.setAttribute('data-palette',p)}catch(e){}})()`,
         },
       ],
     },
