@@ -41,9 +41,18 @@ useHead(() => ({
         <div>
           <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{{ instructor.display_name }}</h1>
           <p class="mt-1 text-gray-600 dark:text-gray-300">{{ instructor.headline }}</p>
-          <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
-            {{ instructor.total_students }} دانشجو &middot; امتیاز {{ instructor.rating_avg }}
-          </p>
+          <div class="mt-2 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 sm:justify-start">
+            <InstructorRatingStars :rating="instructor.rating_avg" />
+            <span class="text-sm text-gray-500 dark:text-gray-400">{{ instructor.total_students }} دانشجو</span>
+          </div>
+          <a
+            v-if="instructor.phone_number"
+            :href="`tel:${instructor.phone_number}`"
+            class="mt-2 flex items-center justify-center gap-1.5 text-sm text-primary-600 hover:underline dark:text-primary-400 sm:justify-start"
+          >
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+            {{ instructor.phone_number }}
+          </a>
         </div>
       </div>
 

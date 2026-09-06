@@ -53,6 +53,15 @@ export default defineNuxtConfig({
           href: 'https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap',
         },
       ],
+      // Applies the saved theme (or the OS preference) before Vue even
+      // hydrates, so there's no flash of the wrong theme on load. Kept as
+      // a raw inline script (not a composable) specifically because it
+      // must run before anything else.
+      script: [
+        {
+          innerHTML: `(function(){try{var t=localStorage.getItem('theme');if(!t){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}if(t==='dark')document.documentElement.classList.add('dark')}catch(e){}})()`,
+        },
+      ],
     },
   },
 })

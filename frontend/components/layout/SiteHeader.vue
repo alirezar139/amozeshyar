@@ -36,6 +36,7 @@ function onRegisterClick() {
       </nav>
 
       <div class="hidden items-center gap-3 md:flex">
+        <LayoutThemeToggle />
         <template v-if="authStore.isAuthenticated">
           <NuxtLink
             :to="authStore.isAdmin ? '/admin' : authStore.isInstructor ? '/instructor-panel/courses' : '/dashboard'"
@@ -62,6 +63,7 @@ function onRegisterClick() {
         </template>
       </div>
 
+      <LayoutThemeToggle class="md:hidden" />
       <button class="md:hidden" aria-label="Toggle menu" @click="toggleMenu">
         <span class="block h-0.5 w-6 bg-gray-800 dark:bg-gray-100" />
         <span class="mt-1.5 block h-0.5 w-6 bg-gray-800 dark:bg-gray-100" />

@@ -1,16 +1,18 @@
-# ADR 0004: ZarinPal as the payment gateway
+# ADR ۰۰۰۴: زرین‌پال به‌عنوان درگاه پرداخت
 
-## Status
-Accepted
+## وضعیت
+پذیرفته‌شده
 
-## Context
-The platform's user base is Iranian; international processors (Stripe, PayPal) are not viable in this market. The client confirmed ZarinPal as the preferred gateway.
+## زمینه (چرا این تصمیم لازم بود؟)
+کاربران این پلتفرم ایرانی هستند؛ درگاه‌های بین‌المللی مثل Stripe یا PayPal اصلاً در این بازار قابل استفاده نیستند. کارفرما زرین‌پال را به‌عنوان درگاه اصلی تایید کرد.
 
-## Decision
-Implement `apps.payments.gateways.base.PaymentGateway` as a narrow interface (`create_payment_request`, `verify`) and `apps.payments.gateways.zarinpal.ZarinPalGateway` as the concrete implementation, switched via `ZARINPAL_SANDBOX`. `apps.payments.views.get_gateway()` is the single place that decides which gateway implementation is active, so adding a second gateway later (Zibal, IDPay, a direct bank IPG) does not require touching `Order`/`Enrollment` logic anywhere else.
+## تصمیم
+یک لایه‌ی انتزاعی (interface) کوچک به نام `apps.payments.gateways.base.PaymentGateway` تعریف شده که فقط دو متد دارد: `create_payment_request` (ساخت درخواست پرداخت) و `verify` (تایید نهایی پرداخت). پیاده‌سازی واقعی زرین‌پال در `apps.payments.gateways.zarinpal.ZarinPalGateway` قرار دارد و از طریق تنظیم `ZARINPAL_SANDBOX` بین محیط تست و واقعی سوییچ می‌شود.
 
-The callback endpoint (`PaymentCallbackView`) is written to be idempotent (checks `Payment.status` before re-processing, uses `select_for_update` inside an atomic transaction) since ZarinPal — and users hitting back/refresh — can call it more than once for the same authority.
+تابع `apps.payments.views.get_gateway()` تنها جایی در کل پروژه است که تصمیم می‌گیرد کدام درگاه فعال است. فایده‌ی این طراحی: اگر روزی بخواهیم درگاه دومی اضافه کنیم (مثلاً زیبال، آیدی‌پی، یا اتصال مستقیم به یک بانک)، لازم نیست هیچ‌جای دیگری از منطق `Order` (سفارش) یا `Enrollment` (ثبت‌نام در دوره) را تغییر بدهیم — فقط یک پیاده‌سازی جدید از همان interface اضافه می‌شود.
 
-## Consequences
-- Amounts are handled as Toman integers (`DecimalField(decimal_places=0)`), matching ZarinPal's API rather than assuming a currency with subunits.
-- Storage bucket/CDN choice (ADR pending) is independent of this decision but shares the same "Iranian-market-first" reasoning.
+نقطه‌ی بازگشت از درگاه (`PaymentCallbackView`) طوری نوشته شده که «ایمن در برابر تکرار» (idempotent) باشد: قبل از هر پردازش، وضعیت فعلی `Payment` را چک می‌کند و از قفل پایگاه‌داده (`select_for_update`) داخل یک تراکنش اتمیک استفاده می‌کند. این لازم است چون هم زرین‌پال و هم کاربری که دکمه‌ی بازگشت مرورگر یا رفرش را بزند، ممکن است این آدرس را بیش از یک‌بار برای همان تراکنش صدا بزنند — بدون این محافظت، ممکن بود یک پرداخت دوبار پردازش شود.
+
+## پیامدها
+- مبلغ‌ها به‌صورت عدد صحیح تومان ذخیره می‌شوند (`DecimalField` بدون رقم اعشار)، چون زرین‌پال هم همین‌طور کار می‌کند — به‌جای این‌که فرض کنیم ارزی با اعشار (مثل دلار با سنت) داریم.
+- انتخاب سرویس ذخیره‌سازی/CDN (که یک تصمیم جداست) هم با همین منطق «اولویت با بازار ایران» انتخاب شده، هرچند مستقل از این تصمیم است.

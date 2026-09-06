@@ -17,7 +17,10 @@ async function onLogout() {
           <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-primary-600 text-xs font-extrabold text-white">آ</span>
           پنل ادمین
         </NuxtLink>
-        <button class="md:hidden" aria-label="Toggle sidebar" @click="sidebarOpen = !sidebarOpen">☰</button>
+        <div class="flex items-center gap-2">
+          <LayoutThemeToggle />
+          <button class="md:hidden" aria-label="Toggle sidebar" @click="sidebarOpen = !sidebarOpen">☰</button>
+        </div>
       </div>
       <nav :class="['flex-col gap-1 px-2 pb-4', sidebarOpen ? 'flex' : 'hidden md:flex']">
         <NuxtLink

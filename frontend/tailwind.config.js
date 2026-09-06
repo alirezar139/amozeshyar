@@ -8,7 +8,9 @@ export default {
     './app.vue',
     './error.vue',
   ],
-  darkMode: 'media',
+  // 'class' (not 'media') so the theme is a user choice, not just the OS
+  // setting — see components/layout/ThemeToggle.vue and useTheme.ts.
+  darkMode: 'class',
   theme: {
     extend: {
       fontFamily: {

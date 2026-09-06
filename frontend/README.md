@@ -1,29 +1,30 @@
-# Frontend (Nuxt 3 / Vue.js)
+# فرانت‌اند (Nuxt 3 / بر پایه‌ی Vue.js)
 
-## Rendering strategy
+## استراتژی رندر
 
-Defined per route group in `nuxt.config.ts` -> `routeRules`:
+در `nuxt.config.ts` زیر کلید `routeRules`، برای هر گروه از صفحات جداگانه تعریف شده:
 
-- `/` — prerendered at build time
-- `/courses/**`, `/instructors/**` — SWR (stale-while-revalidate), so public/marketing pages stay crawlable and fast without a full rebuild per content change
-- `/dashboard/**`, `/instructor-panel/**` — pure SPA (`ssr: false`), since these are authenticated, non-indexed screens
+- `/` — در زمان build از پیش رندر می‌شود (prerender)
+- `/courses/**` — رندر سمت سرور در همان لحظه‌ی درخواست، بدون کش مشترک بین کاربرها. این عمداً کش نشده، چون این صفحات حالا وضعیت شخصیِ هر کاربر (ثبت‌نام‌شده در دوره یا نه، میزان پیشرفت) را هم نشان می‌دهند — یک کش مشترک باعث می‌شد اطلاعات یک کاربر برای کاربر دیگر نمایش داده شود.
+- `/instructors/**` — کش SWR (stale-while-revalidate)، چون این صفحات شخصی‌سازی‌شده نیستند و صرفاً معرفی عمومی مدرس‌اند.
+- `/dashboard/**`، `/instructor-panel/**`، `/admin/**` — کاملاً SPA (`ssr: false`)، چون این صفحات نیاز به لاگین دارند، اصلاً قرار نیست در گوگل ایندکس شوند، و رندر سمت سرور برایشان فقط هزینه‌ی اضافه است.
 
-## Structure
+## ساختار پوشه‌ها
 
 ```
-pages/              # file-based routing
+pages/               # مسیریابی بر اساس ساختار فایل‌ها
 components/
-├── ui/               # design-system primitives
-├── course/, instructor/, player/, layout/
-composables/         # useApi (auth-aware fetch wrapper), useAuth
-stores/              # Pinia (auth, cart, player)
-middleware/          # auth.global.ts route guard
-layouts/             # default (public), dashboard, instructor
+├── ui/                # اجزای پایه‌ی طراحی
+├── course/, instructor/, player/, layout/, auth/, illustration/
+composables/          # useApi (fetch با پشتیبانی از توکن)، useAuth، useTheme، useAuthModal و...
+stores/               # Pinia — فعلاً فقط استور احراز هویت (auth.ts)
+middleware/           # auth.global.ts — محافظت از مسیرهای نیازمند ورود
+layouts/              # default (عمومی)، dashboard (دانشجو)، instructor (مدرس)، admin (ادمین)
 ```
 
-Note: files live at the project root (`pages/`, `components/`, ...), not under an `app/` subdirectory — this project pins Nuxt 3 (not 4), whose default convention doesn't use the `app/` srcDir.
+نکته: فایل‌ها در ریشه‌ی پروژه هستند (`pages/`, `components/`, ...)، نه زیر یک پوشه‌ی `app/` — این پروژه روی Nuxt 3 (نه Nuxt 4) قفل شده و قرارداد پیش‌فرض Nuxt 3 از `app/` به‌عنوان srcDir استفاده نمی‌کند.
 
-## Local development
+## راه‌اندازی توسعه‌ی لوکال
 
 ```bash
 cp .env.example .env
@@ -31,10 +32,18 @@ npm install
 npm run dev
 ```
 
-## Language
+> نکته‌ی مخصوص ویندوز: اگر بعد از هر `npm install` با خطای مربوط به native binding پکیج `rolldown` مواجه شدید (یک باگ شناخته‌شده‌ی npm با وابستگی‌های اختیاریِ مخصوص هر پلتفرم)، قبل از نصب دوباره حتماً سرور توسعه را کاملاً ببندید و این‌ها را پاک کنید: `node_modules`، `package-lock.json`، `.nuxt`، سپس `npm cache clean --force` و دوباره `npm install`.
 
-Persian only for now (RTL, `Vazirmatn` font). An earlier attempt at bilingual (fa/en) support via `@nuxtjs/i18n` was reverted — the module version compatible with our Nuxt 3.21/unhead v2 stack turned out not to exist (every `@nuxtjs/i18n` release past 8.5.6 requires `unhead@^3`, which Nuxt 3 doesn't ship), and 8.5.6 itself called a `unhead` v1-only API that crashed the whole app at runtime. Revisit this once the ecosystem lines up, or via a lighter hand-rolled approach if bilingual support is needed sooner.
+## زبان
 
-## Auth
+فعلاً فقط فارسی (راست‌به‌چپ، فونت Vazirmatn). یک تلاش قبلی برای دوزبانه‌شدن (فارسی/انگلیسی) با ماژول `@nuxtjs/i18n` برگردانده شد — نسخه‌ای از این ماژول که هم با Nuxt 3.21 و هم با نسخه‌ی ۲ کتابخانه‌ی `unhead` (که Nuxt 3 از آن استفاده می‌کند) سازگار باشد وجود نداشت (نسخه‌های بعد از ۸.۵.۶ نیاز به `unhead@^3` دارند که Nuxt 3 آن را ندارد؛ و خودِ نسخه‌ی ۸.۵.۶ هم از یک API مخصوص نسخه‌ی ۱ استفاده می‌کرد که کل اپ را در زمان اجرا کرش می‌داد). اگر در آینده نیاز به دوزبانه‌شدن بود، بهتر است یا صبر کرد تا این ناسازگاری رفع شود، یا یک راه‌حل دستی و سبک‌تر پیاده‌سازی کرد.
 
-The access token lives only in the Pinia `auth` store (memory, not `localStorage`) to limit XSS blast radius; the refresh token is an httpOnly cookie the browser sends automatically. `useApi()` retries once through `/auth/refresh/` on a 401 before giving up.
+## احراز هویت
+
+توکن دسترسی فقط داخل استور Pinia (`stores/auth.ts`، یعنی در حافظه، نه `localStorage`) نگه داشته می‌شود تا آسیب یک حمله‌ی XSS احتمالی محدود بماند؛ توکن رفرش یک کوکی httpOnly است که مرورگر خودش می‌فرستد. `useApi()` وقتی به خطای ۴۰۱ برسد، یک‌بار به‌صورت خودکار از `/auth/refresh/` تلاش می‌کند نشست را تازه کند، قبل از این‌که خطا را نهایی اعلام کند.
+
+نکته‌ی مهم درباره‌ی رندر سمت سرور: چون کوکی رفرش برای مرورگر در کل سایت (مسیر `/`) قابل‌دسترسی است، `useApi()` هنگام اجرا روی سرور (SSR) همین کوکی را از درخواست ورودی می‌خواند و به بک‌اند فوروارد می‌کند — این‌طوری صفحاتی مثل صفحه‌ی دوره از همان بار اول وضعیت واقعی کاربر (ثبت‌نام‌شده یا نه) را نشان می‌دهند. چون این توکن با هر استفاده چرخانده (rotate) می‌شود، کوکیِ تازه‌ی برگشتی از این فراخوانی داخلی هم روی پاسخِ خودِ سرور به مرورگر «بازپخش» می‌شود — جزئیات کامل در [docs/adr/0002-jwt-cookie-auth.md](../docs/adr/0002-jwt-cookie-auth.md).
+
+## تم روشن/تاریک
+
+برخلاف قبل که تم فقط از تنظیم سیستم‌عامل کاربر (`prefers-color-scheme`) پیروی می‌کرد، الان یک دکمه‌ی تعویض تم (`components/layout/ThemeToggle.vue`) در همه‌ی چیدمان‌ها (عمومی، داشبورد، پنل مدرس، پنل ادمین) وجود دارد — یعنی هر کاربر با هر نقشی می‌تواند مستقل از تنظیمات سیستم‌عامل، بین روشن و تاریک انتخاب کند. انتخاب کاربر در `localStorage` ذخیره می‌شود و یک اسکریپت کوچک و مسدودکننده در `nuxt.config.ts` (`app.head.script`) آن را پیش از رندر شدن هر چیزی روی صفحه اعمال می‌کند، تا هنگام بارگذاری صفحه، چشمک‌زدنِ کوتاهِ تمِ اشتباه (flash) دیده نشود.

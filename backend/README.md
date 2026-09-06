@@ -1,47 +1,53 @@
-# Backend (Django + DRF)
+# بک‌اند (Django + DRF)
 
-## App layout
+## نقشه‌ی اپ‌ها
 
-| App | Responsibility |
+| اپ | مسئولیت |
 |---|---|
-| `apps.accounts` | Custom email-based `User`, roles (student/instructor/admin), JWT auth (access token in body, refresh in httpOnly cookie) |
-| `apps.instructors` | Public instructor marketing profile; admin approval gate before a profile is public |
-| `apps.courses` | Categories, courses, lessons; admin approval gate before a course is published |
-| `apps.videos` | Video upload, ffmpeg transcoding (Celery), the preview/paywall gating engine, owner-only download |
-| `apps.enrollments` | Enrollment + wishlist |
-| `apps.payments` | Orders, ZarinPal integration, idempotent payment callback |
-| `apps.common` | Shared base models, pagination, exception handler, file-type validators |
+| `apps.accounts` | مدل `User` سفارشی (ورود با ایمیل)، نقش‌ها (دانشجو/مدرس/ادمین)، احراز هویت JWT (توکن دسترسی در بدنه‌ی پاسخ، توکن رفرش در کوکی httpOnly)، و مدیریت دسترسی کاربران توسط ادمین (تغییر نقش/فعال‌سازی از `/admin/users/`) |
+| `apps.instructors` | پروفایل عمومیِ تبلیغاتیِ مدرس (عکس، بیوگرافی، رزومه، امتیاز)؛ نیازمند تایید ادمین قبل از دیده‌شدن در صفحات عمومی |
+| `apps.courses` | دسته‌بندی‌ها، دوره‌ها، سرفصل‌ها (درس‌ها)؛ نیازمند تایید ادمین قبل از انتشار دوره |
+| `apps.videos` | آپلود ویدیو، ترنسکود با ffmpeg (در پس‌زمینه با Celery)، موتور پیش‌نمایش/پی‌وال (paywall)، دانلود مخصوص مالک دوره |
+| `apps.enrollments` | ثبت‌نام دانشجو در دوره، لیست علاقه‌مندی‌ها (wishlist)، و پیگیری پیشرفت تماشای هر درس (`LessonProgress`) برای قابلیت «ادامه‌ی یادگیری» |
+| `apps.payments` | سفارش‌ها، اتصال به زرین‌پال، بازگشت از درگاه به‌صورت ایمن در برابر تکرار (idempotent) |
+| `apps.common` | مدل‌های پایه‌ی مشترک، صفحه‌بندی (pagination)، هندلر خطای مشترک، اعتبارسنجی نوع فایل |
 
-## Local development
+## راه‌اندازی توسعه‌ی لوکال
 
 ```bash
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements/dev.txt
-cp .env.example .env   # fill in real values
+cp .env.example .env   # مقادیر واقعی را در آن پر کنید
 python manage.py migrate
 python manage.py createsuperuser
 python manage.py runserver
 ```
 
-Settings are split by environment (`config/settings/{base,dev,prod,test}.py`); `manage.py` defaults to `dev`.
+تنظیمات بر اساس محیط اجرا جدا شده‌اند (`config/settings/{base,dev,prod,test}.py`)؛ `manage.py` به‌صورت پیش‌فرض از `dev` استفاده می‌کند.
 
-## Tests
+> نکته: تنظیمات محیط `dev` عمداً سقف Rate Limiting (محدودیت تعداد درخواست) را خیلی بالاتر از `base.py` قرار داده — چون در توسعه‌ی محلی همه‌ی تب‌های مرورگر و تست‌های خودکار از یک IP واحد می‌زنند و به‌راحتی محدودیت پیش‌فرض تمام می‌شود. مقادیر واقعی و سخت‌گیرانه‌تر برای production در `base.py` تعریف شده‌اند.
+
+## تست‌ها
 
 ```bash
 pytest
 ```
 
-## Code style
+## استاندارد کد
 
-- `ruff check .` — lint (includes pydocstyle rules; public functions/classes need a docstring)
-- `mypy .` — type checking (django-stubs enabled)
-- `pip-audit` — dependency vulnerability scan
+- `ruff check .` — لینت (شامل قوانین pydocstyle؛ توابع/کلاس‌های عمومی باید docstring داشته باشند)
+- `mypy .` — بررسی نوع (type checking) با `django-stubs`
+- `pip-audit` — بررسی آسیب‌پذیری امنیتی در وابستگی‌ها
 
-## API docs
+## مستندات API
 
-Once the server is running: `/api/docs/` (Swagger UI), `/api/redoc/`, raw schema at `/api/schema/`.
+با بالا بودن سرور: `/api/docs/` (رابط Swagger)، `/api/redoc/` (رابط ReDoc)، و اسکیمای خام در `/api/schema/`.
 
-## Video preview/paywall mechanism
+## مکانیزم پیش‌نمایش ویدیو / پی‌وال
 
-See [docs/adr/0003-video-preview-gating.md](../docs/adr/0003-video-preview-gating.md) — the short version: non-purchasers are only ever handed a URL to a *physically truncated* preview file produced at upload time, never the full file behind a client-side timer.
+نگاه کنید به [docs/adr/0003-video-preview-gating.md](../docs/adr/0003-video-preview-gating.md) — خلاصه‌اش: کاربرانی که دوره را نخریده‌اند، همیشه فقط یک فایل *فیزیکاً کوتاه‌شده* (تولیدشده در لحظه‌ی آپلود) دریافت می‌کنند، هرگز فایل کامل پشت یک تایمر سمت کلاینت که قابل دور زدن باشد.
+
+## نکته‌ی مهم امنیتی درباره‌ی کوکی نشست (session)
+
+کوکی رفرش (`refresh_token`) با مسیر (`path`) برابر `/` تنظیم می‌شود، نه فقط `/api/v1/auth/` — این عمداً است: فرانت‌اند برای رندر سمت سرورِ صفحاتی مثل صفحه‌ی دوره (که باید وضعیت واقعی ثبت‌نام/پیشرفت کاربر را نشان بدهند) این کوکی را دستی فوروارد می‌کند، و اگر مسیر محدودتر بود، مرورگر اصلاً این کوکی را برای درخواست‌های غیر-API نمی‌فرستاد. جزئیات کامل در [docs/adr/0002-jwt-cookie-auth.md](../docs/adr/0002-jwt-cookie-auth.md).

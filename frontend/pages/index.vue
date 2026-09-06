@@ -155,6 +155,7 @@ const { data: featuredCourses } = await useAsyncData('home-featured-courses', as
           </div>
           <div class="min-w-0">
             <p class="font-semibold text-gray-900 dark:text-white">{{ instructor.display_name }}</p>
+            <InstructorRatingStars :rating="instructor.rating_avg" class="mt-0.5" />
             <p class="mt-1 line-clamp-2 text-sm text-gray-600 dark:text-gray-400">{{ instructor.headline }}</p>
           </div>
         </NuxtLink>

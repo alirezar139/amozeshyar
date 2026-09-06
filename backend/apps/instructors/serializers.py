@@ -7,6 +7,7 @@ class PublicInstructorSerializer(serializers.ModelSerializer):
     """Read-only shape exposed on public marketing pages — no PII beyond what the instructor chose to publish."""
 
     display_name = serializers.SerializerMethodField()
+    phone_number = serializers.CharField(source="user.phone_number", read_only=True)
 
     class Meta:
         model = InstructorProfile
@@ -20,6 +21,7 @@ class PublicInstructorSerializer(serializers.ModelSerializer):
             "social_links",
             "rating_avg",
             "total_students",
+            "phone_number",
         )
 
     def get_display_name(self, obj) -> str:

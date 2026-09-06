@@ -1,21 +1,25 @@
-# ADR 0003: Physically-truncated preview clip instead of a client-side watch-time limit
+# ADR ۰۰۰۳: کلیپ پیش‌نمایشِ فیزیکاً کوتاه‌شده، به‌جای محدودیت زمانی سمت کلاینت
 
-## Status
-Accepted
+## وضعیت
+پذیرفته‌شده
 
-## Context
-The product requires: anyone can watch a free preview of a lesson video (default 30 seconds, configurable via `videos.PreviewPolicy` and per-course override), then must purchase the course to keep watching. The naive implementation — serve the full video file and stop playback client-side after N seconds via JavaScript — is trivially bypassed (devtools, disabling JS, or hitting the underlying file URL directly), which would undermine the entire commercial model.
+## زمینه (چرا این تصمیم لازم بود؟)
+نیاز محصول این است: هر کسی بتواند یک پیش‌نمایش رایگان از ویدیوی هر درس ببیند (پیش‌فرض ۳۰ ثانیه، قابل تنظیم سراسری از `videos.PreviewPolicy` یا اختصاصی برای هر دوره)، و بعد از آن برای ادامه‌ی تماشا باید دوره را بخرد.
 
-## Decision
-On upload, a Celery task (`apps.videos.services.transcoder`) uses ffmpeg to produce two *separate* artifacts:
-1. `hls_master_key` — the full transcoded HLS rendition, stored privately, reachable only via a signed URL issued by `ManifestView`, which re-checks `Enrollment` on every call.
-2. `preview_clip_key` — a physically truncated clip containing no more than the configured preview length, stored privately, reachable via a signed URL issued by `PreviewStreamView` (no auth/enrollment check needed, because the object itself cannot expose more than the free portion).
+ساده‌ترین (و نادرست‌ترین) پیاده‌سازی این است: کل فایل ویدیو را به مرورگر بفرستیم و با جاوااسکریپت بعد از N ثانیه پخش را متوقف کنیم. این روش به‌سادگی دور زده می‌شود — کافی است کاربر ابزار توسعه‌دهنده‌ی مرورگر (DevTools) را باز کند، جاوااسکریپت را غیرفعال کند، یا مستقیماً آدرس فایل اصلی را پیدا و دانلود کند. چنین حفره‌ای کل مدل درآمدی پلتفرم را بی‌اثر می‌کند.
 
-Non-enrolled viewers are only ever handed a signed URL to the preview object. There is no scenario where the bytes of the full lesson are reachable by an anonymous or non-enrolled request — the gate is enforced by what exists on disk, not by trusting the client to stop.
+## تصمیم
+هنگام آپلود هر ویدیو، یک تسک Celery (در `apps.videos.services.transcoder`) با استفاده از ffmpeg دو فایل *کاملاً جدا* تولید می‌کند:
 
-`WatchSession` records are still created on every preview/manifest fetch, primarily for audit/analytics and as a hook for future concurrent-session limits — they are not the security boundary.
+۱. **`hls_master_key`** — نسخه‌ی کامل و ترنسکودشده (فرمت HLS)، به‌صورت خصوصی ذخیره می‌شود و فقط از طریق یک URL امضاشده (signed URL) که `ManifestView` صادر می‌کند در دسترس است؛ این ویو در هر بار درخواست، دوباره بررسی می‌کند که کاربر واقعاً در دوره ثبت‌نام کرده (`Enrollment`) — یا این‌که آن درسِ خاص از ابتدا رایگان/آزاد بوده (`is_free_preview=True`)، که در این حالت حتی بدون خرید دوره هم نسخه‌ی کامل همان یک درس در اختیار همه قرار می‌گیرد (دقیقاً مثل «پیش‌نمایش رایگان یک جلسه‌ی کامل» در Udemy).
 
-## Consequences
-- Doubles storage for the preview-eligible portion of each video (negligible — previews are short) and adds one extra ffmpeg pass per upload.
-- Changing a course's preview length after upload requires re-running the transcode task for existing lessons (not automatic) — acceptable for MVP since this changes rarely.
-- Signed URLs (`AWS_QUERYSTRING_EXPIRE`, 10 min) still expire quickly as defense-in-depth, so even a leaked manifest link stops working shortly after.
+۲. **`preview_clip_key`** — یک کلیپ که واقعاً و فیزیکاً بریده شده و بیشتر از طول پیش‌نمایش تنظیم‌شده چیزی در آن نیست، به‌صورت خصوصی ذخیره می‌شود و از طریق URL امضاشده‌ای که `PreviewStreamView` صادر می‌کند در دسترس است — این ویو نیازی به بررسی احراز هویت/ثبت‌نام ندارد، چون خودِ فایل، فیزیکاً چیزی بیش از بخش رایگان را در خود ندارد تا لو برود.
+
+کاربرانی که دوره را نخریده‌اند، همیشه فقط به URL کلیپ کوتاه‌شده دسترسی پیدا می‌کنند. هیچ مسیری وجود ندارد که بایت‌های نسخه‌ی کامل درس، برای یک درخواست ناشناس یا غیرثبت‌نامی در دسترس باشد — مرز امنیتی همان چیزی است که واقعاً روی دیسک/فضای ذخیره‌سازی وجود دارد، نه اعتماد به این‌که کلاینت (مرورگر) خودش پخش را متوقف کند.
+
+رکوردهای `WatchSession` در هر بار دریافت پیش‌نمایش یا نسخه‌ی کامل ساخته می‌شوند؛ این‌ها بیشتر برای ثبت/تحلیل و زمینه‌سازی محدودیت‌های آینده (مثلاً جلوگیری از پخش هم‌زمان روی چند دستگاه) هستند، نه این‌که خودشان مرز امنیتی باشند.
+
+## پیامدها
+- فضای ذخیره‌سازی برای بخش قابل‌پیش‌نمایش هر ویدیو دوبرابر می‌شود (ناچیز است، چون پیش‌نمایش‌ها کوتاه‌اند) و هر آپلود یک پاس اضافه‌ی ffmpeg می‌گیرد.
+- اگر طول پیش‌نمایش یک دوره بعد از آپلود ویدیوها تغییر کند، باید تسک ترنسکود دوباره برای درس‌های موجود اجرا شود (این کار خودکار نیست) — برای نسخه‌ی اولیه‌ی محصول قابل قبول است چون این تغییر به‌ندرت اتفاق می‌افتد.
+- URLهای امضاشده (تنظیم `AWS_QUERYSTRING_EXPIRE`، ۱۰ دقیقه) به‌عنوان یک لایه‌ی امنیتی اضافه، به‌سرعت منقضی می‌شوند؛ یعنی حتی اگر یک لینک منیفست هم لو برود، بعد از مدت کوتاهی از کار می‌افتد.
