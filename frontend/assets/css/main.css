@@ -51,42 +51,6 @@ html.dark .glass {
     0 8px 30px -12px rgb(0 0 0 / 0.55);
 }
 
-.glass::before {
-  content: '';
-  position: absolute;
-  inset: -50%;
-  background: linear-gradient(
-    115deg,
-    transparent 40%,
-    rgb(255 255 255 / 0.35) 48%,
-    rgb(255 255 255 / 0.5) 50%,
-    rgb(255 255 255 / 0.35) 52%,
-    transparent 60%
-  );
-  animation: glass-sheen 7s ease-in-out infinite;
-  pointer-events: none;
-}
-
-html.dark .glass::before {
-  background: linear-gradient(
-    115deg,
-    transparent 40%,
-    rgb(255 255 255 / 0.06) 48%,
-    rgb(255 255 255 / 0.1) 50%,
-    rgb(255 255 255 / 0.06) 52%,
-    transparent 60%
-  );
-}
-
-@keyframes glass-sheen {
-  0%, 100% { transform: translateX(-60%) translateY(-60%); }
-  50% { transform: translateX(60%) translateY(60%); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .glass::before { animation: none; }
-}
-
 /* Soft colored "crystal" glow under solid primary/accent buttons — a
    bright inner top edge plus a diffused glow, applied globally via the
    Tailwind background-color classes themselves so every button using
