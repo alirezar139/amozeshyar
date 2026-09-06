@@ -5,8 +5,6 @@ from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
-from apps.accounts.permissions import IsInstructor
-
 from .models import VideoAsset, WatchSession
 from .permissions import IsVideoOwnerOrAdmin
 from .serializers import SignedUrlResponseSerializer, VideoUploadSerializer
@@ -17,14 +15,15 @@ def _client_ip(request) -> str | None:
 
 
 class VideoUploadView(generics.CreateAPIView):
-    """Instructor uploads a video for one of their own lesson slots."""
+    """Instructor uploads a video for one of their own lesson slots (or admin, for any lesson)."""
 
     serializer_class = VideoUploadSerializer
-    permission_classes = (permissions.IsAuthenticated, IsInstructor)
+    permission_classes = (permissions.IsAuthenticated,)
 
     def perform_create(self, serializer):
         lesson = serializer.validated_data["lesson"]
-        if lesson.course.instructor.user_id != self.request.user.id:
+        is_owner = lesson.course.instructor.user_id == self.request.user.id
+        if not (is_owner or self.request.user.role == "admin"):
             raise PermissionDenied("You do not own this course.")
         serializer.save()
 

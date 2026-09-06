@@ -40,8 +40,8 @@ useHead(() => ({
     : [],
 }))
 
-const firstVideoLessonId = computed(() =>
-  course.value?.lessons?.find((l: any) => l.has_video)?.id
+const firstVideoId = computed(() =>
+  course.value?.lessons?.find((l: any) => l.has_video)?.video_id
 )
 
 async function buyNow() {
@@ -85,8 +85,8 @@ async function buyNow() {
 
       <div class="lg:col-span-1">
         <div class="rounded-lg border border-gray-200 p-4 dark:border-gray-800">
-          <ClientOnly v-if="firstVideoLessonId">
-            <VideoPlayer :video-id="firstVideoLessonId" :has-full-access="false">
+          <ClientOnly v-if="firstVideoId">
+            <PlayerVideoPlayer :video-id="firstVideoId" :has-full-access="false">
               <template #cta>
                 <button
                   class="rounded-md bg-accent-500 px-5 py-2 text-sm font-semibold text-white hover:bg-accent-400"
@@ -95,7 +95,7 @@ async function buyNow() {
                   ثبت‌نام در دوره
                 </button>
               </template>
-            </VideoPlayer>
+            </PlayerVideoPlayer>
           </ClientOnly>
 
           <div class="mt-4 text-xl font-bold text-gray-900 dark:text-white">

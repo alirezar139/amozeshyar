@@ -11,14 +11,25 @@ class CategorySerializer(serializers.ModelSerializer):
 
 class LessonSerializer(serializers.ModelSerializer):
     has_video = serializers.SerializerMethodField()
+    video_id = serializers.SerializerMethodField()
+    video_status = serializers.SerializerMethodField()
 
     class Meta:
         model = Lesson
-        fields = ("id", "course", "title", "order", "is_free_preview", "attachment", "has_video")
+        fields = (
+            "id", "course", "title", "order", "is_free_preview", "attachment",
+            "has_video", "video_id", "video_status",
+        )
         read_only_fields = ("id",)
 
     def get_has_video(self, obj) -> bool:
         return hasattr(obj, "video_asset")
+
+    def get_video_id(self, obj) -> int | None:
+        return obj.video_asset.id if hasattr(obj, "video_asset") else None
+
+    def get_video_status(self, obj) -> str | None:
+        return obj.video_asset.status if hasattr(obj, "video_asset") else None
 
 
 class PublicCourseListSerializer(serializers.ModelSerializer):
@@ -67,6 +78,31 @@ class CourseWriteSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         validated_data["status"] = Course.Status.PENDING_REVIEW
         return super().update(instance, validated_data)
+
+
+class AdminCourseWriteSerializer(serializers.ModelSerializer):
+    """Admin-only: create a course directly, on behalf of any instructor.
+
+    Unlike CourseWriteSerializer, the admin picks the instructor explicitly
+    and the course is published immediately — the admin creating it *is*
+    the review, so there's no point routing it back through the moderation
+    queue the admin would just approve themselves.
+    """
+
+    class Meta:
+        model = Course
+        fields = (
+            "id", "instructor", "category", "title", "subtitle", "description", "level",
+            "price", "discount_price", "cover_image", "preview_seconds_override", "status",
+        )
+        read_only_fields = ("id", "status")
+
+    def create(self, validated_data):
+        from django.utils import timezone
+
+        validated_data["status"] = Course.Status.PUBLISHED
+        validated_data["published_at"] = timezone.now()
+        return super().create(validated_data)
 
 
 class CourseModerationSerializer(serializers.ModelSerializer):

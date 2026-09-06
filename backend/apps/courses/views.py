@@ -1,4 +1,4 @@
-from rest_framework import permissions, viewsets
+from rest_framework import generics, permissions, viewsets
 
 from apps.accounts.permissions import IsAdminRole, IsInstructor
 
@@ -6,6 +6,7 @@ from .filters import CourseFilter
 from .models import Category, Course, Lesson
 from .permissions import IsCourseOwner
 from .serializers import (
+    AdminCourseWriteSerializer,
     CategorySerializer,
     CourseModerationSerializer,
     CourseWriteSerializer,
@@ -47,6 +48,13 @@ class MyCoursesViewSet(viewsets.ModelViewSet):
         return Course.objects.filter(instructor__user=self.request.user)
 
 
+class AdminCourseCreateView(generics.CreateAPIView):
+    """Admin-only: author a course directly on behalf of any instructor, published immediately."""
+
+    serializer_class = AdminCourseWriteSerializer
+    permission_classes = (permissions.IsAuthenticated, IsAdminRole)
+
+
 class CourseModerationViewSet(viewsets.ModelViewSet):
     """Admin-only approve/reject queue for courses awaiting review."""
 
@@ -58,16 +66,19 @@ class CourseModerationViewSet(viewsets.ModelViewSet):
 
 class LessonViewSet(viewsets.ModelViewSet):
     serializer_class = LessonSerializer
-    permission_classes = (permissions.IsAuthenticated, IsInstructor)
+    permission_classes = (permissions.IsAuthenticated,)
 
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False):
             return Lesson.objects.none()
+        if self.request.user.role == "admin":
+            return Lesson.objects.all()
         return Lesson.objects.filter(course__instructor__user=self.request.user)
 
     def perform_create(self, serializer):
         course = serializer.validated_data["course"]
-        if course.instructor.user_id != self.request.user.id:
+        is_owner = course.instructor.user_id == self.request.user.id
+        if not (is_owner or self.request.user.role == "admin"):
             from rest_framework.exceptions import PermissionDenied
 
             raise PermissionDenied("You do not own this course.")

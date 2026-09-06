@@ -28,24 +28,30 @@ const statusLabels: Record<string, string> = {
     </div>
 
     <div v-if="pending" class="mt-6 text-gray-500">در حال بارگذاری...</div>
-    <div v-else class="mt-6 overflow-x-auto">
-      <table class="w-full min-w-[500px] divide-y divide-gray-200 text-sm dark:divide-gray-800">
+    <div v-else class="glass mt-6 overflow-x-auto rounded-xl p-2">
+      <table class="w-full min-w-[560px] text-sm">
         <thead>
-          <tr class="text-start text-gray-500 dark:text-gray-400">
-            <th class="py-2">عنوان</th>
-            <th class="py-2">وضعیت</th>
-            <th class="py-2">قیمت</th>
+          <tr class="text-start text-gray-600 dark:text-gray-400">
+            <th class="px-3 py-2">عنوان</th>
+            <th class="px-3 py-2">وضعیت</th>
+            <th class="px-3 py-2">قیمت</th>
+            <th class="px-3 py-2" />
           </tr>
         </thead>
-        <tbody class="divide-y divide-gray-200 dark:divide-gray-800">
-          <tr v-for="course in courses" :key="course.id">
-            <td class="py-2 text-gray-900 dark:text-white">{{ course.title }}</td>
-            <td class="py-2 text-gray-600 dark:text-gray-400">{{ statusLabels[course.status] }}</td>
-            <td class="py-2 text-gray-600 dark:text-gray-400">{{ course.price }}</td>
+        <tbody>
+          <tr v-for="course in courses" :key="course.id" class="border-t border-white/30 dark:border-white/10">
+            <td class="px-3 py-2 text-gray-900 dark:text-white">{{ course.title }}</td>
+            <td class="px-3 py-2 text-gray-600 dark:text-gray-400">{{ statusLabels[course.status] }}</td>
+            <td class="px-3 py-2 text-gray-600 dark:text-gray-400">{{ Number(course.price).toLocaleString('fa-IR') }}</td>
+            <td class="px-3 py-2">
+              <NuxtLink :to="`/instructor-panel/courses/${course.id}/lessons`" class="text-sm font-medium text-primary-600 hover:underline dark:text-primary-400">
+                مدیریت سرفصل‌ها و ویدیو
+              </NuxtLink>
+            </td>
           </tr>
         </tbody>
       </table>
-      <p v-if="courses && courses.length === 0" class="mt-4 text-gray-500">هنوز دوره‌ای نساخته‌اید.</p>
+      <p v-if="courses && courses.length === 0" class="p-4 text-gray-600 dark:text-gray-400">هنوز دوره‌ای نساخته‌اید.</p>
     </div>
   </div>
 </template>

@@ -7,6 +7,7 @@ from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 
+from .permissions import IsAdminRole
 from .serializers import EmailTokenObtainPairSerializer, RefreshResponseSerializer, RegisterSerializer, UserSerializer
 
 REFRESH_COOKIE_NAME = "refresh_token"
@@ -27,6 +28,19 @@ def _refresh_cookie_kwargs():
 class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
     permission_classes = (permissions.AllowAny,)
+
+
+class AdminCreateUserView(generics.CreateAPIView):
+    """Admin-only: provision an instructor (or student) account directly.
+
+    Reuses RegisterSerializer as-is — it already blocks self-selecting the
+    admin role, and instructor accounts still get their InstructorProfile
+    auto-created (pending_review) via the existing signal, so the admin can
+    approve/edit it afterward like any other instructor profile.
+    """
+
+    serializer_class = RegisterSerializer
+    permission_classes = (permissions.IsAuthenticated, IsAdminRole)
 
 
 class LoginView(TokenObtainPairView):

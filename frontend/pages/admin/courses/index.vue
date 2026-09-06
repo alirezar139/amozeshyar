@@ -43,7 +43,15 @@ async function confirmReject(id: number) {
 
 <template>
   <div>
-    <h1 class="text-xl font-bold text-gray-900 dark:text-white">دوره‌های در انتظار تایید</h1>
+    <div class="flex items-center justify-between">
+      <h1 class="text-xl font-bold text-gray-900 dark:text-white">دوره‌های در انتظار تایید</h1>
+      <NuxtLink
+        to="/admin/courses/create"
+        class="rounded-md bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-500"
+      >
+        ثبت مستقیم دوره
+      </NuxtLink>
+    </div>
     <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
       این دوره‌ها تا تایید یا رد شدن، در سایت عمومی نمایش داده نمی‌شوند.
     </p>

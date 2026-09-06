@@ -49,7 +49,15 @@ async function confirmReject(id: number) {
 
 <template>
   <div>
-    <h1 class="text-xl font-bold text-gray-900 dark:text-white">تایید مدرس‌ها</h1>
+    <div class="flex items-center justify-between">
+      <h1 class="text-xl font-bold text-gray-900 dark:text-white">مدرس‌ها</h1>
+      <NuxtLink
+        to="/admin/instructors/create"
+        class="rounded-md bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-500"
+      >
+        افزودن مدرس جدید
+      </NuxtLink>
+    </div>
 
     <div v-if="pending" class="mt-6 text-gray-500">در حال بارگذاری...</div>
     <p v-else-if="instructors && instructors.length === 0" class="mt-6 text-gray-500">
