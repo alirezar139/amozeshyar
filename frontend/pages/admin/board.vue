@@ -83,6 +83,7 @@ const columnStyles: Record<string, string> = {
       <div
         v-for="col in columns"
         :key="col.status"
+        :data-tour="`board-column-${col.status}`"
         class="glass rounded-2xl p-4"
         :class="columnStyles[col.status]"
         @dragover.prevent
@@ -98,6 +99,7 @@ const columnStyles: Record<string, string> = {
             v-for="course in columnCourses(col.status)"
             :key="course.id"
             draggable="true"
+            data-tour="board-card"
             class="glass cursor-move rounded-lg p-3 transition"
             :class="draggedId === course.id ? 'opacity-40' : ''"
             @dragstart="onDragStart(course.id)"

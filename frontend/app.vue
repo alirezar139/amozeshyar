@@ -5,5 +5,8 @@
       <NuxtPage />
     </NuxtLayout>
     <AuthModal />
+    <GuideButton />
+    <GuidePanel />
+    <GuideTourOverlay />
   </div>
 </template>

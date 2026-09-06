@@ -47,6 +47,7 @@ const { data: featuredCourses } = await useAsyncData('home-featured-courses', as
           <div class="mt-8 flex flex-col gap-3 sm:flex-row">
             <NuxtLink
               to="/courses"
+              data-tour="hero-cta"
               class="rounded-lg bg-primary-600 px-7 py-3 text-center text-sm font-semibold text-white shadow-lg shadow-primary-600/30 transition hover:bg-primary-500"
             >
               مشاهده‌ی دوره‌ها
@@ -66,7 +67,7 @@ const { data: featuredCourses } = await useAsyncData('home-featured-courses', as
     </section>
 
     <!-- Category grid — big photo cards, one click into a filtered course list -->
-    <section v-if="categories && categories.length" class="mt-12">
+    <section v-if="categories && categories.length" data-tour="categories" class="mt-12">
       <h2 class="text-xl font-bold text-gray-900 dark:text-white">دسته‌بندی دوره‌ها</h2>
       <div class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
         <NuxtLink
@@ -164,7 +165,7 @@ const { data: featuredCourses } = await useAsyncData('home-featured-courses', as
     </section>
 
     <!-- Featured instructors — photo + short bio -->
-    <section v-if="featuredInstructors && featuredInstructors.length" class="mt-12">
+    <section v-if="featuredInstructors && featuredInstructors.length" data-tour="featured-instructors" class="mt-12">
       <div class="flex items-center justify-between">
         <h2 class="text-xl font-bold text-gray-900 dark:text-white">مدرس‌های ما</h2>
         <NuxtLink to="/instructors" class="text-sm font-medium text-primary-600 hover:underline dark:text-primary-400">

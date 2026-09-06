@@ -8,7 +8,7 @@ const currentYear = new Date().getFullYear()
     <div class="mx-auto grid max-w-7xl grid-cols-1 gap-8 px-4 sm:grid-cols-2 sm:px-6 lg:grid-cols-4 lg:px-8">
       <div>
         <p class="text-lg font-bold text-primary-600">آموزش‌یار</p>
-        <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">پلتفرم آموزش آنلاین و ویترین مدرس‌ها</p>
+        <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">پلتفرم یادگیری آنلاین که مدرس‌های برتر را به شما معرفی می‌کند</p>
       </div>
       <div>
         <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100">دوره‌ها</h3>

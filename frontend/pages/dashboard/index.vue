@@ -18,6 +18,7 @@ const { data: continueLearning } = await useAsyncData('dashboard-continue', () =
     <NuxtLink
       v-if="continueLearning"
       :to="`/courses/${continueLearning.course_slug}`"
+      data-tour="continue-learning"
       class="glass mt-6 flex items-center justify-between gap-4 rounded-2xl p-6 transition hover:-translate-y-0.5 hover:shadow-lg"
     >
       <div>

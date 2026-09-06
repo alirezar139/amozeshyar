@@ -21,6 +21,7 @@ const statusLabels: Record<string, string> = {
       <h1 class="text-xl font-bold text-gray-900 dark:text-white">دوره‌های من</h1>
       <NuxtLink
         to="/instructor-panel/courses/create"
+        data-tour="new-course"
         class="rounded-md bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-500"
       >
         دوره‌ی جدید
@@ -44,7 +45,7 @@ const statusLabels: Record<string, string> = {
             <td class="px-3 py-2 text-gray-600 dark:text-gray-400">{{ statusLabels[course.status] }}</td>
             <td class="px-3 py-2 text-gray-600 dark:text-gray-400">{{ Number(course.price).toLocaleString('fa-IR') }}</td>
             <td class="px-3 py-2">
-              <NuxtLink :to="`/instructor-panel/courses/${course.id}/lessons`" class="text-sm font-medium text-primary-600 hover:underline dark:text-primary-400">
+              <NuxtLink :to="`/instructor-panel/courses/${course.id}/lessons`" data-tour="manage-lessons-link" class="text-sm font-medium text-primary-600 hover:underline dark:text-primary-400">
                 مدیریت سرفصل‌ها و ویدیو
               </NuxtLink>
             </td>

@@ -48,6 +48,7 @@ function onRegisterClick() {
         <template v-else>
           <button
             type="button"
+            data-tour="header-login"
             class="text-sm font-medium text-gray-700 hover:text-primary-600 dark:text-gray-200"
             @click="onLoginClick"
           >
