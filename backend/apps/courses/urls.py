@@ -1,0 +1,12 @@
+from rest_framework.routers import DefaultRouter
+
+from . import views
+
+router = DefaultRouter()
+router.register("categories", views.CategoryViewSet, basename="category")
+router.register("courses/moderation", views.CourseModerationViewSet, basename="course-moderation")
+router.register("courses/mine", views.MyCoursesViewSet, basename="course-mine")
+router.register("lessons", views.LessonViewSet, basename="lesson")
+router.register("courses", views.PublicCourseViewSet, basename="course-public")
+
+urlpatterns = router.urls
