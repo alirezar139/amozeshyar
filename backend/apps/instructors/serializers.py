@@ -42,6 +42,7 @@ class InstructorProfileSerializer(serializers.ModelSerializer):
             "cover_image",
             "social_links",
             "resume",
+            "intro_video",
             "status",
             "rejection_reason",
             "rating_avg",
@@ -51,19 +52,26 @@ class InstructorProfileSerializer(serializers.ModelSerializer):
 
 
 class InstructorModerationSerializer(serializers.ModelSerializer):
-    """Admin-only serializer for approving/rejecting an instructor profile."""
+    """Admin-only serializer for reviewing (resume + intro video), scoring,
+    and approving/rejecting an instructor profile."""
 
     display_name = serializers.SerializerMethodField()
 
     class Meta:
         model = InstructorProfile
-        fields = ("id", "display_name", "headline", "bio", "resume", "status", "rejection_reason")
-        read_only_fields = ("display_name", "headline", "bio", "resume")
+        fields = (
+            "id", "display_name", "headline", "bio", "resume", "intro_video",
+            "status", "rejection_reason", "admin_quality_score",
+        )
+        read_only_fields = ("display_name", "headline", "bio", "resume", "intro_video")
 
     def get_display_name(self, obj) -> str:
         return obj.user.get_full_name() or obj.user.email.split("@")[0]
 
     def validate(self, attrs):
-        if attrs.get("status") == InstructorProfile.Status.REJECTED and not attrs.get("rejection_reason"):
+        status = attrs.get("status")
+        if status == InstructorProfile.Status.REJECTED and not attrs.get("rejection_reason"):
             raise serializers.ValidationError({"rejection_reason": "Required when rejecting a profile."})
+        if status == InstructorProfile.Status.APPROVED and not (attrs.get("admin_quality_score") or self.instance and self.instance.admin_quality_score):
+            raise serializers.ValidationError({"admin_quality_score": "Required when approving a profile."})
         return attrs

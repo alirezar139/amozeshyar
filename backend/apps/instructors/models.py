@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.utils.text import slugify
 
@@ -32,9 +33,19 @@ class InstructorProfile(TimeStampedModel):
     # before approving the profile/their courses — never exposed on the
     # public profile serializer, only to the instructor themself and admin.
     resume = models.FileField(upload_to="instructor_resumes/", blank=True, null=True)
+    # A short self-introduction/teaching-sample video — same reasoning as
+    # the resume: required so admin has something to actually judge
+    # teaching quality from, not just credentials on paper.
+    intro_video = models.FileField(upload_to="instructor_intro_videos/", blank=True, null=True)
     social_links = models.JSONField(default=dict, blank=True)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING_REVIEW)
     rejection_reason = models.TextField(blank=True)
+    # Admin's own 1-5 judgment of the intro video/resume at review time —
+    # distinct from `rating_avg`, which is students' post-course rating and
+    # only exists once they've actually taken a course from this instructor.
+    admin_quality_score = models.PositiveSmallIntegerField(
+        null=True, blank=True, validators=[MinValueValidator(1), MaxValueValidator(5)]
+    )
     rating_avg = models.DecimalField(max_digits=3, decimal_places=2, default=0)
     total_students = models.PositiveIntegerField(default=0)
 

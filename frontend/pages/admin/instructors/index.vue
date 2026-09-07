@@ -16,11 +16,19 @@ const statusLabels: Record<string, string> = {
 const busyId = ref<number | null>(null)
 const rejectingId = ref<number | null>(null)
 const rejectionReason = ref('')
+// Keyed by instructor id so scoring one card while others are also open
+// (e.g. after a refresh) doesn't cross-contaminate.
+const qualityScores = reactive<Record<number, number>>({})
 
 async function approve(id: number) {
+  const score = qualityScores[id]
+  if (!score) return
   busyId.value = id
   try {
-    await request(`/instructors/moderation/${id}/`, { method: 'PATCH', body: { status: 'approved' } })
+    await request(`/instructors/moderation/${id}/`, {
+      method: 'PATCH',
+      body: { status: 'approved', admin_quality_score: score },
+    })
     await refresh()
   } finally {
     busyId.value = null
@@ -95,22 +103,46 @@ async function confirmReject(id: number) {
               مشاهده رزومه
             </a>
             <p v-else class="mt-1 text-sm text-red-600">رزومه‌ای بارگذاری نشده است</p>
+
+            <video
+              v-if="instructor.intro_video"
+              :src="instructor.intro_video"
+              controls
+              preload="none"
+              class="mt-2 w-full max-w-sm rounded-lg"
+            />
+            <p v-else class="mt-1 text-sm text-red-600">ویدیوی معرفی بارگذاری نشده است</p>
           </div>
-          <div v-if="instructor.status === 'pending_review'" class="flex shrink-0 gap-2">
-            <button
-              :disabled="busyId === instructor.id"
-              class="rounded-md bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-500 disabled:opacity-50"
-              @click="approve(instructor.id)"
-            >
-              تایید
-            </button>
-            <button
-              :disabled="busyId === instructor.id"
-              class="rounded-md border border-red-300 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50 dark:border-red-800 dark:hover:bg-red-950/40"
-              @click="startReject(instructor.id)"
-            >
-              رد کردن
-            </button>
+          <div v-if="instructor.status === 'pending_review'" class="flex shrink-0 flex-col items-end gap-2">
+            <div class="flex items-center gap-1">
+              <span class="me-1 text-xs text-gray-500 dark:text-gray-400">امتیاز کیفیت:</span>
+              <button
+                v-for="star in 5"
+                :key="star"
+                type="button"
+                class="text-lg leading-none"
+                :class="(qualityScores[instructor.id] ?? 0) >= star ? 'text-amber-500' : 'text-gray-300 dark:text-gray-600'"
+                @click="qualityScores[instructor.id] = star"
+              >
+                ★
+              </button>
+            </div>
+            <div class="flex gap-2">
+              <button
+                :disabled="busyId === instructor.id || !qualityScores[instructor.id]"
+                class="rounded-md bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-500 disabled:opacity-50"
+                @click="approve(instructor.id)"
+              >
+                تایید
+              </button>
+              <button
+                :disabled="busyId === instructor.id"
+                class="rounded-md border border-red-300 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50 dark:border-red-800 dark:hover:bg-red-950/40"
+                @click="startReject(instructor.id)"
+              >
+                رد کردن
+              </button>
+            </div>
           </div>
         </div>
 
