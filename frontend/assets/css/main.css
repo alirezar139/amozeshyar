@@ -215,7 +215,14 @@ html.dark body {
    this is the one rule every glass panel site-wide inherits the
    "crystal" look from. */
 .glass {
-  position: relative;
+  /* No `position` here on purpose: it used to be `relative` (needed for
+     a sheen ::before that's since been removed) but that fought any
+     element that also needs `absolute`/`fixed` from Tailwind — same
+     specificity, so whichever rule happened to load last in the
+     cascade won, silently breaking positioning wherever the two
+     combined (e.g. a `.glass absolute` button rendering in-flow instead
+     of floating). Elements that need a positioning context now declare
+     `relative` themselves alongside `.glass` where it's actually needed. */
   background-color: rgb(255 255 255 / 0.6);
   backdrop-filter: blur(18px) saturate(140%);
   -webkit-backdrop-filter: blur(18px) saturate(140%);
