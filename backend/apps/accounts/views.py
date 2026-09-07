@@ -9,9 +9,13 @@ from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 
+from . import captcha
 from .permissions import IsAdminRole
 from .serializers import (
     AdminUserSerializer,
+    CaptchaChallengeSerializer,
+    CaptchaVerifyRequestSerializer,
+    CaptchaVerifyResponseSerializer,
     EmailTokenObtainPairSerializer,
     RefreshResponseSerializer,
     RegisterSerializer,
@@ -41,8 +45,30 @@ def _refresh_cookie_kwargs():
 
 
 class RegisterView(generics.CreateAPIView):
+    """Also logs the new account straight in (same token/cookie shape as
+    LoginView) so the frontend doesn't need a second round-trip.
+
+    Deliberately does NOT require the captcha — that gate is specifically
+    for the login *form*, where credential-stuffing bots would otherwise
+    hammer known email/password pairs; a fresh registration doesn't have
+    that risk profile the same way.
+    """
+
     serializer_class = RegisterSerializer
     permission_classes = (permissions.AllowAny,)
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+
+        refresh = RefreshToken.for_user(user)
+        response = Response(
+            {"access": str(refresh.access_token), **serializer.data},
+            status=status.HTTP_201_CREATED,
+        )
+        response.set_cookie(REFRESH_COOKIE_NAME, str(refresh), **_refresh_cookie_kwargs())
+        return response
 
 
 class AdminCreateUserView(generics.CreateAPIView):
@@ -95,11 +121,41 @@ class LoginView(TokenObtainPairView):
     permission_classes = (permissions.AllowAny,)
 
     def post(self, request, *args, **kwargs):
+        if not captcha.consume_pass(request.data.get("captcha_pass_token")):
+            return Response({"detail": "لطفاً پازل امنیتی را کامل کنید."}, status=status.HTTP_400_BAD_REQUEST)
         response = super().post(request, *args, **kwargs)
         refresh = response.data.pop("refresh", None)
         if refresh:
             response.set_cookie(REFRESH_COOKIE_NAME, refresh, **_refresh_cookie_kwargs())
         return response
+
+
+class CaptchaChallengeView(APIView):
+    """Public: hands out a fresh drag-the-gem puzzle. Not rate-limited beyond
+    the shared `anon` throttle — each challenge is single-use and expires in
+    2 minutes either way, so there's no benefit to requesting many at once."""
+
+    permission_classes = (permissions.AllowAny,)
+    serializer_class = CaptchaChallengeSerializer
+
+    @extend_schema(responses=CaptchaChallengeSerializer)
+    def get(self, request):
+        return Response(captcha.generate_challenge())
+
+
+class CaptchaVerifyView(APIView):
+    """Public: checks a drag attempt against the secret target and, on
+    success, issues a short-lived one-time pass that LoginView requires."""
+
+    permission_classes = (permissions.AllowAny,)
+    serializer_class = CaptchaVerifyResponseSerializer
+
+    @extend_schema(request=CaptchaVerifyRequestSerializer, responses=CaptchaVerifyResponseSerializer)
+    def post(self, request):
+        pass_token = captcha.verify_and_issue_pass(request.data.get("token"), request.data.get("x"))
+        if not pass_token:
+            return Response({"detail": "جای‌گذاری درست نبود، دوباره تلاش کنید."}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"pass_token": pass_token})
 
 
 class RefreshView(APIView):

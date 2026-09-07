@@ -69,7 +69,7 @@ onUnmounted(stopAuto)
     <button
       type="button"
       aria-label="دسته‌بندی قبلی"
-      class="glass absolute start-3 top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-white"
+      class="glass absolute right-3 top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-white"
       @click.prevent="prev"
     >
       ‹

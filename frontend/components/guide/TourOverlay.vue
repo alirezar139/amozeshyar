@@ -1,5 +1,7 @@
 <script setup lang="ts">
-const { isTouring, stepIndex, stepsForRoute, next, prev, endTour } = useGuide()
+const { isTouring, stepIndex, stepsForRoute, isAutoPlaying, next, prev, endTour, toggleAutoPlay } = useGuide()
+
+const AUTO_ADVANCE_MS = 5000
 
 const rect = ref<DOMRect | null>(null)
 const tooltipStyle = ref<Record<string, string>>({})
@@ -22,13 +24,17 @@ function locateTarget() {
     rect.value = null
     return
   }
-  // Measure immediately (covers the common case where the element is
-  // already in view, no scroll needed) and then keep measuring on every
-  // scroll tick — smooth-scroll animations don't resolve on a fixed
-  // timer, so a one-shot delayed measurement can catch the element
-  // mid-flight and draw the box at the wrong spot.
+  // Instant scroll, not smooth: a smooth-scroll animation has no fixed
+  // duration to wait out, and re-measuring on every scroll tick to track
+  // it just made the highlight box chase a moving target and re-trigger
+  // its transition dozens of times a second — pure jitter, no time to
+  // actually read the tooltip. Jumping straight there and measuring once
+  // (plus one rAF later, in case the browser defers layout a frame) is
+  // both simpler and calmer; the CSS transition still animates the single
+  // move from the previous step's box to this one.
+  el.scrollIntoView({ block: 'center', behavior: 'auto' })
   measure()
-  el.scrollIntoView({ block: 'center', behavior: 'smooth' })
+  requestAnimationFrame(measure)
 }
 
 function positionTooltip() {
@@ -41,17 +47,36 @@ function positionTooltip() {
   }
 }
 
+// Auto-advance: the tour narrates itself by default. Keyed on stepIndex
+// so both an automatic and a manual (prev/next click) step change reset
+// the countdown the same way — no special-casing which kind of change
+// it was.
+let autoTimer: ReturnType<typeof setTimeout> | null = null
+function clearAutoTimer() {
+  if (autoTimer) clearTimeout(autoTimer)
+  autoTimer = null
+}
+function scheduleAuto() {
+  clearAutoTimer()
+  if (!isAutoPlaying.value || !isTouring.value) return
+  autoTimer = setTimeout(next, AUTO_ADVANCE_MS)
+}
+
 watch([stepIndex, isTouring], () => {
   if (isTouring.value) locateTarget()
 })
+watch([stepIndex, isTouring, isAutoPlaying], scheduleAuto)
+
 onMounted(() => {
-  if (isTouring.value) locateTarget()
+  if (isTouring.value) {
+    locateTarget()
+    scheduleAuto()
+  }
   window.addEventListener('resize', measure)
-  window.addEventListener('scroll', measure, { passive: true, capture: true })
 })
 onUnmounted(() => {
+  clearAutoTimer()
   window.removeEventListener('resize', measure)
-  window.removeEventListener('scroll', measure, true)
 })
 </script>
 
@@ -73,10 +98,32 @@ onUnmounted(() => {
       />
       <div v-else class="absolute inset-0 bg-black/60" />
 
-      <div class="glass absolute w-80 max-w-[90vw] rounded-xl p-4" :style="tooltipStyle">
-        <p class="text-xs font-medium text-primary-600 dark:text-primary-400">
-          مرحله {{ stepIndex + 1 }} از {{ stepsForRoute.length }}
-        </p>
+      <div class="glass absolute w-80 max-w-[90vw] overflow-hidden rounded-xl p-4" :style="tooltipStyle">
+        <!-- Progress bar: keyed on stepIndex so the fill animation restarts
+             fresh every step; paused visually alongside the real timer. -->
+        <div class="absolute inset-x-0 top-0 h-1 bg-black/10 dark:bg-white/10">
+          <div
+            :key="stepIndex"
+            class="h-full bg-accent-500"
+            :class="isAutoPlaying ? 'animate-tour-progress' : ''"
+            :style="!isAutoPlaying ? { width: '100%' } : {}"
+          />
+        </div>
+
+        <div class="flex items-center justify-between pt-1">
+          <p class="text-xs font-medium text-primary-600 dark:text-primary-400">
+            مرحله {{ stepIndex + 1 }} از {{ stepsForRoute.length }}
+          </p>
+          <button
+            type="button"
+            :aria-label="isAutoPlaying ? 'توقف پخش خودکار' : 'ادامه‌ی پخش خودکار'"
+            class="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white"
+            @click="toggleAutoPlay"
+          >
+            <svg v-if="isAutoPlaying" class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20"><path d="M5 4h3v12H5V4zm7 0h3v12h-3V4z" /></svg>
+            <svg v-else class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20"><path d="M6 4l10 6-10 6V4z" /></svg>
+          </button>
+        </div>
         <h3 class="mt-1 font-semibold text-gray-900 dark:text-white">{{ currentStep.title }}</h3>
         <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">{{ currentStep.text }}</p>
         <div class="mt-3 flex items-center justify-between">
@@ -105,3 +152,16 @@ onUnmounted(() => {
     </div>
   </Teleport>
 </template>
+
+<style scoped>
+@keyframes tour-progress {
+  from { width: 0%; }
+  to { width: 100%; }
+}
+.animate-tour-progress {
+  animation: tour-progress 5s linear;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-tour-progress { animation: none; width: 100%; }
+}
+</style>

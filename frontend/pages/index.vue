@@ -73,7 +73,7 @@ const { data: featuredCourses } = await useAsyncData('home-featured-courses', as
     </section>
 
     <!-- Feature panels — glass cards, varied sizes -->
-    <section class="mt-8 grid grid-cols-1 gap-5 md:grid-cols-3">
+    <section data-tour="features" class="mt-8 grid grid-cols-1 gap-5 md:grid-cols-3">
       <div class="glass rounded-2xl p-8 md:col-span-2">
         <p class="text-sm font-semibold text-primary-700 dark:text-primary-300">پیش‌نمایش رایگان</p>
         <p class="mt-3 max-w-md text-xl font-bold leading-relaxed text-gray-900 dark:text-white">
@@ -104,7 +104,7 @@ const { data: featuredCourses } = await useAsyncData('home-featured-courses', as
     </section>
 
     <!-- Featured courses — real data, with a play-icon hint that a video preview exists -->
-    <section v-if="featuredCourses && featuredCourses.length" class="mt-12">
+    <section v-if="featuredCourses && featuredCourses.length" data-tour="featured-courses" class="mt-12">
       <div class="flex items-center justify-between">
         <h2 class="text-xl font-bold text-gray-900 dark:text-white">دوره‌های پیشنهادی</h2>
         <NuxtLink to="/courses" class="text-sm font-medium text-primary-600 hover:underline dark:text-primary-400">

@@ -9,10 +9,12 @@ export interface TourStep {
 // GuidePanel is always available regardless.
 export const TOUR_STEPS: Record<string, TourStep[]> = {
   '/': [
+    { selector: '[data-tour="header-login"]', title: 'ورود یا ثبت‌نام', text: 'برای خرید دوره یا تدریس، اول باید وارد حساب خودتون بشید — یه پاپ‌آپ سبک باز می‌شه، نه یه صفحه‌ی جدا.' },
     { selector: '[data-tour="hero-cta"]', title: 'مشاهده‌ی دوره‌ها', text: 'با این دکمه به فهرست کامل دوره‌های سایت می‌رسید.' },
     { selector: '[data-tour="categories"]', title: 'دسته‌بندی دوره‌ها', text: 'روی هر دسته کلیک کنید تا فقط دوره‌های همون موضوع رو ببینید.' },
+    { selector: '[data-tour="features"]', title: 'چرا آموزش‌یار؟', text: 'پیش‌نمایش رایگان، مدرس‌های تاییدشده، پرداخت امن و دسترسی همیشگی به دوره‌ی خریداری‌شده.' },
+    { selector: '[data-tour="featured-courses"]', title: 'دوره‌های پیشنهادی', text: 'چند نمونه از دوره‌های تازه؛ روی هرکدوم بزنید تا پیش‌نمایش رایگانش رو ببینید.' },
     { selector: '[data-tour="featured-instructors"]', title: 'مدرس‌های ما', text: 'پروفایل کامل هر مدرس، امتیاز و شماره تماسش از همین‌جا در دسترسه.' },
-    { selector: '[data-tour="header-login"]', title: 'ورود یا ثبت‌نام', text: 'برای خرید دوره یا تدریس، اول باید وارد حساب خودتون بشید.' },
   ],
   '/instructor-panel/courses': [
     { selector: '[data-tour="new-course"]', title: 'ساخت دوره‌ی جدید', text: 'دوره‌ی جدید از همین دکمه ساخته می‌شه و برای تایید به صف ادمین می‌ره.' },
@@ -31,6 +33,11 @@ export function useGuide() {
   const isOpen = useState('guide-open', () => false)
   const isTouring = useState('guide-touring', () => false)
   const stepIndex = useState('guide-step', () => 0)
+  // The tour narrates itself by default (auto-advancing through every
+  // step) — this just toggles whether it's currently doing that; the
+  // step list and position stay the same either way, so pausing never
+  // loses your place.
+  const isAutoPlaying = useState('guide-autoplay', () => true)
 
   const route = useRoute()
   const stepsForRoute = computed(() => TOUR_STEPS[route.path] ?? [])
@@ -44,6 +51,7 @@ export function useGuide() {
   function startTour() {
     if (!stepsForRoute.value.length) return
     stepIndex.value = 0
+    isAutoPlaying.value = true
     isTouring.value = true
     isOpen.value = false
   }
@@ -57,6 +65,12 @@ export function useGuide() {
   function prev() {
     if (stepIndex.value > 0) stepIndex.value--
   }
+  function toggleAutoPlay() {
+    isAutoPlaying.value = !isAutoPlaying.value
+  }
 
-  return { isOpen, isTouring, stepIndex, stepsForRoute, open, close, startTour, endTour, next, prev }
+  return {
+    isOpen, isTouring, stepIndex, stepsForRoute, isAutoPlaying,
+    open, close, startTour, endTour, next, prev, toggleAutoPlay,
+  }
 }

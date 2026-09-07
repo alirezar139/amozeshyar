@@ -16,6 +16,8 @@ const registerForm = reactive({
 const resumeFile = ref<File | null>(null)
 const error = ref('')
 const loading = ref(false)
+const captchaPassToken = ref('')
+const captchaRef = ref<{ reload: () => void } | null>(null)
 
 function onResumeChange(event: Event) {
   resumeFile.value = (event.target as HTMLInputElement).files?.[0] ?? null
@@ -27,15 +29,25 @@ watch(isOpen, (open) => {
 
 async function onLoginSubmit() {
   error.value = ''
+  if (!captchaPassToken.value) {
+    error.value = 'لطفاً اول پازل امنیتی را کامل کنید.'
+    return
+  }
   loading.value = true
   try {
-    await login(loginForm.email, loginForm.password)
+    await login(loginForm.email, loginForm.password, captchaPassToken.value)
     close()
     loginForm.email = ''
     loginForm.password = ''
+    captchaPassToken.value = ''
     await navigateTo(getRoleHome(authStore.user?.role))
   } catch (err) {
     error.value = getErrorMessage(err, 'ایمیل یا رمز عبور نادرست است.')
+    // The pass token is one-time-use on the backend regardless of whether
+    // the login itself succeeds, so a failed login (bad password) needs a
+    // fresh puzzle, not just a fresh password field.
+    captchaPassToken.value = ''
+    captchaRef.value?.reload()
   } finally {
     loading.value = false
   }
@@ -102,10 +114,11 @@ function onBackdropClick() {
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">رمز عبور</label>
               <input v-model="loginForm.password" type="password" required class="glass mt-1 block w-full rounded-md px-3 py-2 text-sm text-gray-900 dark:text-white">
             </div>
+            <AuthCaptchaPuzzle ref="captchaRef" @passed="(t) => (captchaPassToken = t)" @reset="captchaPassToken = ''" />
             <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
             <button
               type="submit"
-              :disabled="loading"
+              :disabled="loading || !captchaPassToken"
               class="w-full rounded-md bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-500 disabled:opacity-50"
             >
               {{ loading ? 'در حال ورود...' : 'ورود' }}

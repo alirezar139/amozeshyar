@@ -47,6 +47,25 @@ class AdminUserSerializer(serializers.ModelSerializer):
         read_only_fields = ("id", "email", "first_name", "last_name", "date_joined", "phone_number")
 
 
+class CaptchaChallengeSerializer(serializers.Serializer):
+    token = serializers.CharField()
+    background = serializers.CharField(help_text="data: URL, JPEG")
+    piece = serializers.CharField(help_text="data: URL, PNG with alpha")
+    piece_y = serializers.IntegerField()
+    width = serializers.IntegerField()
+    height = serializers.IntegerField()
+    piece_size = serializers.IntegerField()
+
+
+class CaptchaVerifyRequestSerializer(serializers.Serializer):
+    token = serializers.CharField()
+    x = serializers.FloatField()
+
+
+class CaptchaVerifyResponseSerializer(serializers.Serializer):
+    pass_token = serializers.CharField()
+
+
 class RefreshResponseSerializer(serializers.Serializer):
     access = serializers.CharField()
 
