@@ -41,11 +41,11 @@ function clearFilter() {
 
     <div v-if="pending" class="mt-6 text-gray-500">در حال بارگذاری...</div>
     <div v-else class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[320px_1fr]">
-      <div class="glass rounded-2xl p-5">
+      <div data-tour="student-calendar" class="glass rounded-2xl p-5">
         <ScheduleMonthCalendar :marked-dates="markedDates" @select-day="(d) => (selectedDay = d)" />
       </div>
 
-      <div>
+      <div data-tour="upcoming-sessions">
         <h2 class="text-sm font-semibold text-gray-900 dark:text-white">
           {{ selectedDay ? 'جلسات این روز' : 'جلسات پیش رو' }}
         </h2>

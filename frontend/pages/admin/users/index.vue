@@ -36,6 +36,7 @@ async function updateUser(user: any, patch: Record<string, any>) {
       <input
         v-model="search"
         type="search"
+        data-tour="user-search"
         placeholder="جست‌وجو بر اساس ایمیل یا نام..."
         class="glass w-64 rounded-md px-3 py-2 text-sm text-gray-900 placeholder:text-gray-500 dark:text-white"
       />
@@ -44,7 +45,7 @@ async function updateUser(user: any, patch: Record<string, any>) {
     <div v-if="pending" class="mt-6 text-gray-500">در حال بارگذاری...</div>
     <p v-else-if="users && users.length === 0" class="mt-6 text-gray-500">کاربری پیدا نشد.</p>
 
-    <div v-else class="glass mt-6 overflow-x-auto rounded-lg">
+    <div v-else data-tour="user-table" class="glass mt-6 overflow-x-auto rounded-lg">
       <table class="w-full min-w-[640px] text-start text-sm">
         <thead>
           <tr class="border-b border-white/30 text-xs text-gray-500 dark:border-white/10 dark:text-gray-400">

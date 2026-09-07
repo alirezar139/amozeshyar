@@ -39,7 +39,7 @@ async function onSubmit() {
       دوره‌ی شما پس از ثبت، در صف تایید ادمین قرار می‌گیرد و تا تایید نشود عمومی نخواهد شد.
     </p>
 
-    <form class="mt-6 space-y-4" @submit.prevent="onSubmit">
+    <form data-tour="course-create-form" class="mt-6 space-y-4" @submit.prevent="onSubmit">
       <div>
         <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">عنوان دوره</label>
         <input

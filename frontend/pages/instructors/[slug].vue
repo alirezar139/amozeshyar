@@ -30,7 +30,7 @@ useHead(() => ({
 
 <template>
   <div v-if="instructor" class="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
-    <div class="glass rounded-2xl p-6 sm:p-8">
+    <div data-tour="instructor-header" class="glass rounded-2xl p-6 sm:p-8">
       <div class="flex flex-col items-center gap-4 text-center sm:flex-row sm:items-start sm:gap-6 sm:text-start">
         <NuxtImg
           v-if="instructor.cover_image"

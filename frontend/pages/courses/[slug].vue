@@ -95,7 +95,7 @@ async function buyNow() {
         <p class="mt-6 whitespace-pre-line text-gray-700 dark:text-gray-200">{{ course.description }}</p>
 
         <h2 class="mt-8 text-lg font-semibold text-gray-900 dark:text-white">سرفصل‌ها</h2>
-        <ul class="glass mt-3 divide-y divide-white/30 rounded-md dark:divide-white/10">
+        <ul data-tour="lesson-list" class="glass mt-3 divide-y divide-white/30 rounded-md dark:divide-white/10">
           <li
             v-for="lesson in course.lessons"
             :key="lesson.id"
@@ -145,6 +145,7 @@ async function buyNow() {
           </p>
           <button
             v-else
+            data-tour="course-buy-cta"
             class="mt-4 w-full rounded-md bg-accent-500 px-4 py-2 text-sm font-semibold text-white hover:bg-accent-400"
             @click="buyNow"
           >

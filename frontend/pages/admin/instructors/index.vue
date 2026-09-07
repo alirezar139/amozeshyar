@@ -63,7 +63,7 @@ async function confirmReject(id: number) {
     <p v-else-if="instructors && instructors.length === 0" class="mt-6 text-gray-500">
       مدرسی برای بررسی نیست.
     </p>
-    <div v-else class="mt-6 space-y-4">
+    <div v-else data-tour="instructor-approval-list" class="mt-6 space-y-4">
       <div
         v-for="instructor in instructors"
         :key="instructor.id"

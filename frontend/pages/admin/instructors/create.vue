@@ -40,7 +40,7 @@ async function onSubmit() {
       حساب مدرس مستقیماً ساخته می‌شود؛ مدرس می‌تواند بعداً با همین ایمیل و رمز عبور وارد شود و پروفایل خود را تکمیل کند.
     </p>
 
-    <form class="glass mt-6 space-y-4 rounded-2xl p-6" @submit.prevent="onSubmit">
+    <form data-tour="instructor-create-form" class="glass mt-6 space-y-4 rounded-2xl p-6" @submit.prevent="onSubmit">
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">نام</label>

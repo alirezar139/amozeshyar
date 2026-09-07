@@ -72,7 +72,7 @@ async function confirmReject(id: number) {
     <p v-else-if="courses && courses.length === 0" class="mt-6 text-gray-500">
       دوره‌ای در انتظار تایید نیست.
     </p>
-    <div v-else class="mt-6 space-y-4">
+    <div v-else data-tour="course-approval-list" class="mt-6 space-y-4">
       <div
         v-for="course in courses"
         :key="course.id"
@@ -145,7 +145,7 @@ async function confirmReject(id: number) {
       برای افزودن سرفصل و آپلود ویدیو به هر دوره (از جمله دوره‌هایی که خودتان مستقیم ساخته‌اید) از اینجا وارد شوید.
     </p>
     <div v-if="allPending" class="mt-4 text-gray-500">در حال بارگذاری...</div>
-    <div v-else class="glass mt-4 overflow-x-auto rounded-xl p-2">
+    <div v-else data-tour="all-courses-table" class="glass mt-4 overflow-x-auto rounded-xl p-2">
       <table class="w-full min-w-[560px] text-sm">
         <thead>
           <tr class="text-start text-gray-600 dark:text-gray-400">

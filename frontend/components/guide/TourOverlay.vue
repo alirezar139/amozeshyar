@@ -2,10 +2,20 @@
 const { isTouring, stepIndex, stepsForRoute, isAutoPlaying, next, prev, endTour, toggleAutoPlay } = useGuide()
 const { enabled: speechEnabled, supported: speechSupported, speak, stop: stopSpeech, toggle: toggleSpeech, hasPersianVoice } = useSpeech()
 
-const AUTO_ADVANCE_MS = 6000
+// How long to linger on a step before auto-advancing. Scaled to how much
+// there is to read/hear (at the slowed-down 0.8x speech rate) instead of a
+// flat duration — a one-line step and a five-line step shouldn't get the
+// same amount of time.
+const MIN_STEP_MS = 9000
+const MS_PER_CHAR = 90
 
 const rect = ref<DOMRect | null>(null)
 const currentStep = computed(() => stepsForRoute.value[stepIndex.value])
+const currentDurationMs = computed(() => {
+  const step = currentStep.value
+  if (!step) return MIN_STEP_MS
+  return Math.max(MIN_STEP_MS, (step.title.length + step.text.length) * MS_PER_CHAR)
+})
 const noPersianVoice = ref(false)
 
 let targetEl: Element | null = null
@@ -47,7 +57,7 @@ function clearAutoTimer() {
 function scheduleAuto() {
   clearAutoTimer()
   if (!isAutoPlaying.value || !isTouring.value) return
-  autoTimer = setTimeout(next, AUTO_ADVANCE_MS)
+  autoTimer = setTimeout(next, currentDurationMs.value)
 }
 
 function narrateCurrentStep() {
@@ -116,7 +126,7 @@ onUnmounted(() => {
             :key="stepIndex"
             class="h-full bg-accent-500"
             :class="isAutoPlaying ? 'animate-tour-progress' : ''"
-            :style="!isAutoPlaying ? { width: '100%' } : {}"
+            :style="isAutoPlaying ? { animationDuration: `${currentDurationMs}ms` } : { width: '100%' }"
           />
         </div>
 
@@ -184,7 +194,9 @@ onUnmounted(() => {
   to { width: 100%; }
 }
 .animate-tour-progress {
-  animation: tour-progress 6s linear;
+  animation-name: tour-progress;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
 }
 @media (prefers-reduced-motion: reduce) {
   .animate-tour-progress { animation: none; width: 100%; }

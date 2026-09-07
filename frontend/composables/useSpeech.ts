@@ -33,7 +33,9 @@ export function useSpeech() {
     if (!supported || !enabled.value || !text) return
     window.speechSynthesis.cancel()
     const utterance = new SpeechSynthesisUtterance(text)
-    utterance.rate = 0.95
+    // Slower and calmer than the default rate, per explicit request that
+    // the narration read at an easier-to-follow pace.
+    utterance.rate = 0.8
     const voice = pickVoice()
     if (voice) {
       utterance.voice = voice

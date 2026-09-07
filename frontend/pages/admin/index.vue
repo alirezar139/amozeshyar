@@ -24,6 +24,7 @@ const { data: pendingInstructors } = await useAsyncData('admin-overview-instruct
     <div class="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2">
       <NuxtLink
         to="/admin/courses"
+        data-tour="admin-pending-courses-stat"
         class="glass group flex items-center gap-4 rounded-2xl p-6 transition hover:-translate-y-0.5 hover:shadow-lg"
       >
         <div class="glass flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-primary-700 dark:text-primary-300">
@@ -38,6 +39,7 @@ const { data: pendingInstructors } = await useAsyncData('admin-overview-instruct
       </NuxtLink>
       <NuxtLink
         to="/admin/instructors"
+        data-tour="admin-pending-instructors-stat"
         class="glass group flex items-center gap-4 rounded-2xl p-6 transition hover:-translate-y-0.5 hover:shadow-lg"
       >
         <div class="glass flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-accent-700 dark:text-accent-300">

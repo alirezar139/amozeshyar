@@ -45,7 +45,7 @@ async function onSubmit() {
       دوره‌ای که ادمین می‌سازد بدون نیاز به تایید، بلافاصله منتشر می‌شود.
     </p>
 
-    <form class="glass mt-6 space-y-4 rounded-2xl p-6" @submit.prevent="onSubmit">
+    <form data-tour="admin-course-create-form" class="glass mt-6 space-y-4 rounded-2xl p-6" @submit.prevent="onSubmit">
       <div>
         <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">مدرس</label>
         <select v-model="form.instructor" required class="glass mt-1 block w-full rounded-md px-3 py-2 text-sm text-gray-900 dark:text-white">

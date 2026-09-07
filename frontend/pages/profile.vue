@@ -69,7 +69,7 @@ const paletteSwatches: Record<Palette, [string, string]> = {
 
       <section class="glass mt-6 rounded-2xl p-6">
         <h2 class="text-sm font-semibold text-gray-900 dark:text-white">اطلاعات حساب</h2>
-        <div class="mt-4 flex items-center gap-4">
+        <div data-tour="avatar-upload" class="mt-4 flex items-center gap-4">
           <div class="relative h-20 w-20 shrink-0">
             <img
               v-if="avatarPreview || authStore.user?.avatar"
@@ -113,6 +113,7 @@ const paletteSwatches: Record<Palette, [string, string]> = {
         <div class="mt-3 flex items-center gap-3">
           <button
             type="button"
+            data-tour="theme-toggle"
             class="glass flex items-center gap-2 rounded-md px-4 py-2 text-sm text-gray-700 dark:text-gray-200"
             @click="toggleTheme"
           >
@@ -124,7 +125,7 @@ const paletteSwatches: Record<Palette, [string, string]> = {
       <section class="glass mt-6 rounded-2xl p-6">
         <h2 class="text-sm font-semibold text-gray-900 dark:text-white">پالت رنگی</h2>
         <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">این انتخاب برای حساب شما ذخیره می‌شود و در همه‌ی دستگاه‌ها اعمال می‌شود.</p>
-        <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div data-tour="palette-picker" class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <button
             v-for="p in palettes"
             :key="p"
