@@ -27,6 +27,16 @@ watch(isOpen, (open) => {
   if (open) error.value = ''
 })
 
+function onCaptchaPassed(token: string) {
+  captchaPassToken.value = token
+  // The puzzle is already a "confirm" gesture on its own (dragging into
+  // place and releasing) — if email/password are already filled in,
+  // there's nothing left for a separate "ورود" click to add, so just log
+  // them in. The button stays as a fallback for whichever field wasn't
+  // filled in yet when the puzzle finished.
+  if (loginForm.email && loginForm.password) onLoginSubmit()
+}
+
 async function onLoginSubmit() {
   error.value = ''
   if (!captchaPassToken.value) {
@@ -114,14 +124,19 @@ function onBackdropClick() {
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">رمز عبور</label>
               <input v-model="loginForm.password" type="password" required class="glass mt-1 block w-full rounded-md px-3 py-2 text-sm text-gray-900 dark:text-white">
             </div>
-            <AuthCaptchaPuzzle ref="captchaRef" @passed="(t) => (captchaPassToken = t)" @reset="captchaPassToken = ''" />
+            <AuthCaptchaPuzzle ref="captchaRef" @passed="onCaptchaPassed" @reset="captchaPassToken = ''" />
             <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
+            <!-- Completing the puzzle already logs you in automatically when
+                 both fields are filled — this button only matters as a
+                 fallback for whichever field wasn't ready yet at that point. -->
+            <p v-if="loading" class="text-center text-sm text-gray-600 dark:text-gray-300">در حال ورود...</p>
             <button
+              v-else
               type="submit"
-              :disabled="loading || !captchaPassToken"
+              :disabled="!captchaPassToken"
               class="w-full rounded-md bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-500 disabled:opacity-50"
             >
-              {{ loading ? 'در حال ورود...' : 'ورود' }}
+              ورود
             </button>
             <p class="text-sm text-gray-600 dark:text-gray-400">
               حساب کاربری ندارید؟
