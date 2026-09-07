@@ -6,8 +6,8 @@ const { enabled: speechEnabled, supported: speechSupported, isLoading: speechLoa
 // there is to read/hear (at the slowed-down 0.8x speech rate) instead of a
 // flat duration — a one-line step and a five-line step shouldn't get the
 // same amount of time.
-const MIN_STEP_MS = 9000
-const MS_PER_CHAR = 90
+const MIN_STEP_MS = 14000
+const MS_PER_CHAR = 140
 
 const rect = ref<DOMRect | null>(null)
 const currentStep = computed(() => stepsForRoute.value[stepIndex.value])
