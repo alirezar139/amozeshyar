@@ -33,6 +33,7 @@ const { data: courses } = coursesAsync
 
 const markedDates = computed(() => (sessions.value ?? []).map((s: any) => s.startsAt))
 const selectedDay = ref<Date | null>(null)
+const dateBounds = dateTimeLocalBounds()
 
 // Creating a session needs a course (a session always belongs to one) —
 // the calendar itself has no course context, so this is the one extra
@@ -133,7 +134,7 @@ async function copyLink(id: number) {
           placeholder="عنوان کلاس، مثلاً «جلسه‌ی پرسش و پاسخ زنده»"
           class="glass rounded-md px-3 py-2 text-sm text-gray-900 dark:text-white sm:col-span-2"
         >
-        <input v-model="form.starts_at" type="datetime-local" required class="glass rounded-md px-3 py-2 text-sm text-gray-900 dark:text-white">
+        <input v-model="form.starts_at" type="datetime-local" required :min="dateBounds.min" :max="dateBounds.max" class="glass rounded-md px-3 py-2 text-sm text-gray-900 dark:text-white">
         <label class="glass flex items-center gap-2 rounded-md px-3 py-2 text-sm text-gray-700 dark:text-gray-200">
           <input v-model="form.is_online" type="checkbox" class="h-4 w-4">
           کلاس آنلاین است

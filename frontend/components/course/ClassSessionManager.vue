@@ -13,6 +13,7 @@ const { data: sessions, refresh } = await useAsyncData(`course-${props.courseId}
 const form = reactive({ title: '', starts_at: '', is_online: true, location_note: '' })
 const creating = ref(false)
 const error = ref('')
+const dateBounds = dateTimeLocalBounds()
 
 async function addSession() {
   error.value = ''
@@ -83,6 +84,8 @@ async function copyLink(id: number) {
           v-model="form.starts_at"
           type="datetime-local"
           required
+          :min="dateBounds.min"
+          :max="dateBounds.max"
           class="glass rounded-md px-3 py-2 text-sm text-gray-900 dark:text-white"
         >
         <label class="glass flex items-center gap-2 rounded-md px-3 py-2 text-sm text-gray-700 dark:text-gray-200">

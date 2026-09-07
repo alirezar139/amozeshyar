@@ -50,9 +50,21 @@ export function useJalali() {
   // go through this rather than `Date.toLocaleDateString('fa-IR')`, whose
   // calendar system isn't guaranteed the same across browsers/Node ICU
   // builds; this always renders Jalali, unambiguously.
+  //
+  // Wrapped in a try/catch on purpose: jalaali-js throws for a year
+  // outside roughly [-61, 3177], which a bad or corrupted `starts_at`
+  // can absolutely produce (seen in practice: a UTC offset with a
+  // seconds component for a pre-standard-timezone date broke the
+  // browser's own Date parser entirely, yielding a garbage year). A
+  // display helper crashing the whole page over one bad record is a far
+  // worse outcome than it just showing a fallback string for that one.
   function formatGregorianDate(date: Date): string {
-    const { jy, jm, jd } = fromGregorian(date)
-    return formatDate(jy, jm, jd)
+    try {
+      const { jy, jm, jd } = fromGregorian(date)
+      return formatDate(jy, jm, jd)
+    } catch {
+      return 'تاریخ نامعتبر'
+    }
   }
 
   function isSameDay(a: Date, b: Date): boolean {

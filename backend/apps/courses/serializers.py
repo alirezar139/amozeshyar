@@ -1,3 +1,6 @@
+from datetime import timedelta
+
+from django.utils import timezone
 from rest_framework import serializers
 
 from .models import Category, ClassSession, Course, Lesson
@@ -180,6 +183,23 @@ class ClassSessionSerializer(serializers.ModelSerializer):
             "title", "starts_at", "ends_at", "is_online", "location_note",
         )
         read_only_fields = ("id",)
+
+    def validate_starts_at(self, value):
+        # Nothing in the model itself constrains the year, so a stray
+        # Jalali year typed into a Gregorian-only datetime picker (seen in
+        # practice: a session dated 621 years in the past) sails through
+        # as a "valid" datetime — Django and Postgres are both happy to
+        # store it. The real damage shows up later, client-side: a date
+        # that old predates Iran's standard time zone, so Python computes
+        # its historical Local Mean Time offset (down to the second),
+        # which isn't a well-formed ISO offset and breaks the browser's
+        # own Date parser entirely. A generous but finite window closes
+        # this off at the source instead of relying on every consumer to
+        # defend against garbage dates forever.
+        now = timezone.now()
+        if not (now - timedelta(days=365) <= value <= now + timedelta(days=365 * 5)):
+            raise serializers.ValidationError("زمان کلاس باید بین یک سال گذشته تا پنج سال آینده باشد.")
+        return value
 
 
 class StudentScheduleSerializer(serializers.ModelSerializer):
