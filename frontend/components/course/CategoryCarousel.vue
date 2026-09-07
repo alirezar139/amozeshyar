@@ -47,7 +47,7 @@ onUnmounted(stopAuto)
         v-for="category in categories"
         :key="category.slug"
         :to="`/courses?category=${category.slug}`"
-        class="relative flex aspect-[21/9] w-full shrink-0 items-end sm:aspect-[3/1]"
+        class="relative flex h-40 w-full shrink-0 items-end sm:h-52 lg:h-60"
       >
         <NuxtImg
           v-if="category.image"
