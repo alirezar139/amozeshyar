@@ -1,3 +1,5 @@
+import secrets
+
 from django.db import models
 from django.utils.text import slugify
 
@@ -125,9 +127,19 @@ class ClassSession(TimeStampedModel):
     # deliberately a single free-text field rather than two, since only
     # one of them is ever relevant for a given session.
     location_note = models.CharField(max_length=500, blank=True)
+    # The built-in video room's name (Jitsi Meet). Random and unguessable
+    # rather than derived from the id — the public meet.jit.si server lets
+    # anyone who knows a room name join it, so the only real access control
+    # is never handing this out except through the gated `join` endpoint.
+    room_slug = models.SlugField(max_length=64, unique=True, blank=True)
 
     class Meta:
         ordering = ("starts_at",)
+
+    def save(self, *args, **kwargs):
+        if not self.room_slug:
+            self.room_slug = f"amozeshyar-{secrets.token_urlsafe(18)}".replace("_", "-").replace("=", "")
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.course.title} — {self.title} ({self.starts_at:%Y-%m-%d %H:%M})"

@@ -83,6 +83,13 @@ function clearFilter() {
               </span>
             </div>
             <p v-if="session.location_note" class="mt-2 text-sm text-gray-500 dark:text-gray-400">{{ session.location_note }}</p>
+            <NuxtLink
+              v-if="session.is_online"
+              :to="`/classroom/${session.id}`"
+              class="mt-3 inline-flex items-center gap-1.5 rounded-md bg-primary-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-primary-500"
+            >
+              پیوستن به کلاس آنلاین
+            </NuxtLink>
           </div>
         </div>
       </div>

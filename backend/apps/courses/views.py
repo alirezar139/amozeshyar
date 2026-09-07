@@ -1,7 +1,10 @@
 from django.db.models import Count, Q
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, permissions, viewsets
+from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.response import Response
 
 from apps.accounts.permissions import IsAdminRole, IsInstructor
 
@@ -130,6 +133,27 @@ class ClassSessionViewSet(viewsets.ModelViewSet):
         if not (is_owner or self.request.user.role == "admin"):
             raise PermissionDenied("You do not own this course.")
         serializer.save()
+
+    @action(detail=True, methods=["get"], permission_classes=[permissions.IsAuthenticated])
+    def join(self, request, pk=None):
+        """The room name is only ever handed out here — never embedded in
+        the plain session list — and only to people who should actually be
+        in the room: the course's own instructor, an admin, or a student
+        with an active enrollment. The public Jitsi server itself doesn't
+        check any of that; an unguessable room name plus this gate is the
+        access control."""
+        session = get_object_or_404(ClassSession.objects.select_related("course__instructor__user"), pk=pk)
+        user = request.user
+        is_owner = session.course.instructor.user_id == user.id
+        is_enrolled = session.course.enrollments.filter(student=user, is_active=True).exists()
+        if not (is_owner or user.role == "admin" or is_enrolled):
+            raise PermissionDenied("شما به این کلاس دسترسی ندارید.")
+        return Response({
+            "room_name": session.room_slug,
+            "display_name": user.get_full_name() or user.email,
+            "title": session.title,
+            "course_title": session.course.title,
+        })
 
 
 class MyScheduleView(generics.ListAPIView):

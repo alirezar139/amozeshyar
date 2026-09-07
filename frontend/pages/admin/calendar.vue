@@ -62,6 +62,13 @@ function clearFilter() {
               <span>{{ formatTime(session.startsAt) }}</span>
               <span v-if="session.is_online" class="text-primary-600 dark:text-primary-400">آنلاین</span>
             </div>
+            <NuxtLink
+              v-if="session.is_online"
+              :to="`/classroom/${session.id}`"
+              class="mt-3 inline-flex items-center gap-1.5 rounded-md bg-primary-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-primary-500"
+            >
+              پیوستن به کلاس آنلاین
+            </NuxtLink>
           </div>
         </div>
       </div>

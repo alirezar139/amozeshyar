@@ -75,7 +75,7 @@ function formatDateTime(iso: string) {
         </label>
         <input
           v-model="form.location_note"
-          :placeholder="form.is_online ? 'لینک جلسه (اختیاری، بعداً هم قابل افزودن است)' : 'آدرس محل برگزاری'"
+          :placeholder="form.is_online ? 'توضیح اضافه (اختیاری) — کلاس آنلاین از همین سامانه برگزار می‌شود' : 'آدرس محل برگزاری'"
           class="glass rounded-md px-3 py-2 text-sm text-gray-900 dark:text-white sm:col-span-2"
         >
         <button
@@ -98,14 +98,23 @@ function formatDateTime(iso: string) {
           </p>
           <p v-if="session.location_note" class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ session.location_note }}</p>
         </div>
-        <button
-          type="button"
-          :disabled="deletingId === session.id"
-          class="rounded-md border border-red-300 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50 dark:border-red-800 dark:hover:bg-red-950/40"
-          @click="removeSession(session.id)"
-        >
-          حذف
-        </button>
+        <div class="flex shrink-0 items-center gap-2">
+          <NuxtLink
+            v-if="session.is_online"
+            :to="`/classroom/${session.id}`"
+            class="rounded-md bg-primary-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-primary-500"
+          >
+            پیوستن به کلاس
+          </NuxtLink>
+          <button
+            type="button"
+            :disabled="deletingId === session.id"
+            class="rounded-md border border-red-300 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50 dark:border-red-800 dark:hover:bg-red-950/40"
+            @click="removeSession(session.id)"
+          >
+            حذف
+          </button>
+        </div>
       </div>
       <p v-if="sessions && sessions.length === 0" class="text-gray-600 dark:text-gray-400">هنوز کلاسی زمان‌بندی نشده است.</p>
     </div>
