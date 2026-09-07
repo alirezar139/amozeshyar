@@ -16,6 +16,7 @@ class Enrollment(TimeStampedModel):
 
     class Meta:
         unique_together = ("student", "course")
+        ordering = ("-access_granted_at",)
 
     def __str__(self):
         return f"{self.student} -> {self.course}"
