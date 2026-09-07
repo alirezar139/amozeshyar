@@ -1,11 +1,13 @@
 /** @type {import('tailwindcss').Config} */
 
 // Builds a Tailwind color function backed by a CSS custom property, so the
-// actual value can change at runtime (per-user palette choice) instead of
-// being frozen at build time — see assets/css/main.css for where each
-// `--c-primary-*`/`--c-accent-*` variable is defined per `[data-palette]`,
-// and useTheme.ts for how the attribute gets set. Still supports Tailwind's
-// opacity modifiers (`bg-primary-600/30`) since we return the `rgb(... / a)` form.
+// actual value can change at runtime (a user's own freely-picked color,
+// not a fixed palette) instead of being frozen at build time — see
+// assets/css/main.css for the default `--c-primary-*`/`--c-accent-*`
+// values, and utils/colorRamp.ts + useTheme.ts for how a picked hex color
+// gets turned into a full shade ramp and applied. Still supports
+// Tailwind's opacity modifiers (`bg-primary-600/30`) since we return the
+// `rgb(... / a)` form.
 function fromVar(name) {
   return ({ opacityValue }) =>
     opacityValue === undefined ? `rgb(var(${name}))` : `rgb(var(${name}) / ${opacityValue})`

@@ -3,7 +3,7 @@ definePageMeta({ layout: false, ssr: false })
 
 const authStore = useAuthStore()
 const { request } = useApi()
-const { theme, toggle: toggleTheme, palette, setPalette } = useTheme()
+const { theme, toggle: toggleTheme, colors, setColors } = useTheme()
 
 const layoutName = computed(() =>
   authStore.isAdmin ? 'admin' : authStore.isInstructor ? 'instructor' : 'dashboard'
@@ -50,15 +50,25 @@ async function saveProfile() {
   }
 }
 
-const palettes: Palette[] = ['teal', 'blue', 'purple', 'mono', 'green', 'red', 'orange']
-const paletteSwatches: Record<Palette, [string, string]> = {
-  teal: ['#157e6c', '#f98307'],
-  blue: ['#2563eb', '#db2777'],
-  purple: ['#7c3aed', '#ca8a04'],
-  mono: ['#475569', '#f98307'],
-  green: ['#16a34a', '#f98307'],
-  red: ['#dc2626', '#ca8a04'],
-  orange: ['#ea580c', '#2563eb'],
+// Two-way bound to the native color inputs directly — each change event
+// applies immediately (live preview) via setColors, no separate "apply"
+// step. Kept as local refs (not `colors` itself) only so typing/dragging
+// the picker doesn't re-trigger a save on every intermediate value.
+const primaryDraft = ref(colors.value.primary)
+const accentDraft = ref(colors.value.accent)
+watchEffect(() => {
+  primaryDraft.value = colors.value.primary
+  accentDraft.value = colors.value.accent
+})
+
+function applyDraftColors() {
+  setColors({ primary: primaryDraft.value, accent: accentDraft.value })
+}
+
+function applyPreset(preset: { primary: string; accent: string }) {
+  primaryDraft.value = preset.primary
+  accentDraft.value = preset.accent
+  setColors(preset)
 }
 </script>
 
@@ -122,23 +132,46 @@ const paletteSwatches: Record<Palette, [string, string]> = {
         </div>
       </section>
 
-      <section class="glass mt-6 rounded-2xl p-6">
-        <h2 class="text-sm font-semibold text-gray-900 dark:text-white">پالت رنگی</h2>
+      <section class="glass mt-6 rounded-2xl p-6" data-tour="palette-picker">
+        <h2 class="text-sm font-semibold text-gray-900 dark:text-white">رنگ‌بندی سامانه</h2>
         <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">این انتخاب برای حساب شما ذخیره می‌شود و در همه‌ی دستگاه‌ها اعمال می‌شود.</p>
-        <div data-tour="palette-picker" class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+
+        <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <label class="glass flex items-center justify-between gap-3 rounded-xl p-3">
+            <span class="text-sm text-gray-700 dark:text-gray-200">رنگ اصلی</span>
+            <input
+              v-model="primaryDraft"
+              type="color"
+              class="h-9 w-14 cursor-pointer rounded-md border-0 bg-transparent p-0"
+              @change="applyDraftColors"
+            />
+          </label>
+          <label class="glass flex items-center justify-between gap-3 rounded-xl p-3">
+            <span class="text-sm text-gray-700 dark:text-gray-200">رنگ تاکیدی</span>
+            <input
+              v-model="accentDraft"
+              type="color"
+              class="h-9 w-14 cursor-pointer rounded-md border-0 bg-transparent p-0"
+              @change="applyDraftColors"
+            />
+          </label>
+        </div>
+
+        <h3 class="mt-5 text-xs font-medium text-gray-600 dark:text-gray-300">شروع سریع با یکی از این ترکیب‌ها</h3>
+        <div class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <button
-            v-for="p in palettes"
-            :key="p"
+            v-for="preset in COLOR_PRESETS"
+            :key="preset.label"
             type="button"
             class="glass flex flex-col items-center gap-2 rounded-xl p-4 transition"
-            :class="palette === p ? 'ring-2 ring-primary-600' : ''"
-            @click="setPalette(p)"
+            :class="colors.primary === preset.colors.primary && colors.accent === preset.colors.accent ? 'ring-2 ring-primary-600' : ''"
+            @click="applyPreset(preset.colors)"
           >
             <span class="flex h-8 gap-1">
-              <span class="h-8 w-4 rounded-full" :style="{ backgroundColor: paletteSwatches[p][0] }" />
-              <span class="h-8 w-4 rounded-full" :style="{ backgroundColor: paletteSwatches[p][1] }" />
+              <span class="h-8 w-4 rounded-full" :style="{ backgroundColor: preset.colors.primary }" />
+              <span class="h-8 w-4 rounded-full" :style="{ backgroundColor: preset.colors.accent }" />
             </span>
-            <span class="text-xs text-gray-700 dark:text-gray-200">{{ PALETTE_LABELS[p] }}</span>
+            <span class="text-xs text-gray-700 dark:text-gray-200">{{ preset.label }}</span>
           </button>
         </div>
       </section>

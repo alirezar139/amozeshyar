@@ -9,6 +9,11 @@ iranian_mobile_validator = RegexValidator(
     message="Enter a valid Iranian mobile number (e.g. 09123456789).",
 )
 
+HEX_COLOR_VALIDATOR = RegexValidator(
+    regex=r"^#[0-9a-fA-F]{6}$",
+    message="Enter a valid hex color (e.g. #157e6c).",
+)
+
 
 class User(AbstractUser):
     """Custom user, keyed by email, carrying the platform-wide role."""
@@ -32,20 +37,13 @@ class User(AbstractUser):
     # it against yet; kept simple until that exists.
     interests = models.TextField(blank=True)
 
-    class ColorTheme(models.TextChoices):
-        TEAL = "teal", "Teal & Amber"
-        BLUE = "blue", "Blue & Rose"
-        PURPLE = "purple", "Purple & Gold"
-        MONO = "mono", "Monochrome & Amber"
-        GREEN = "green", "Green & Amber"
-        RED = "red", "Red & Gold"
-        ORANGE = "orange", "Orange & Blue"
-
-    # Per-account accent palette (frontend maps this to a `data-palette`
-    # attribute driving CSS custom properties — see useTheme.ts). Persisted
-    # server-side, not just localStorage, so it follows the user across
-    # devices once logged in.
-    color_theme = models.CharField(max_length=20, choices=ColorTheme.choices, default=ColorTheme.TEAL)
+    # Per-account colors — free-form hex, not a fixed palette id: the user
+    # can pick any color at all, and the frontend derives a full 50-950
+    # shade ramp from each at runtime (see useTheme.ts, utils/colorRamp.ts)
+    # via CSS custom properties. Persisted server-side, not just
+    # localStorage, so it follows the user across devices once logged in.
+    primary_color = models.CharField(max_length=7, default="#157e6c", validators=[HEX_COLOR_VALIDATOR])
+    accent_color = models.CharField(max_length=7, default="#f98307", validators=[HEX_COLOR_VALIDATOR])
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []

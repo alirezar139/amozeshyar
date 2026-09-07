@@ -1,10 +1,11 @@
-/* Per-account color palette: each preset just swaps these RGB triplets
-   (used by tailwind.config.js's primary/accent colors via rgb(var(...))).
-   The palette a user picked (see useTheme.ts, backend User.color_theme)
-   is applied as `data-palette` on <html> — default (teal) needs no
-   attribute at all. Same shade numbers are reused for dark mode too
-   (Tailwind's `dark:text-primary-300` etc. already pick a lighter shade
-   for contrast), so there's no separate dark-mode variable set. */
+/* Default primary/accent ramp (teal + amber) — the values every visitor
+   sees before any JS has run. A logged-in-or-returning user's actual
+   picked colors (free-form hex, not a fixed palette; see useTheme.ts and
+   utils/colorRamp.ts) overwrite these same custom properties inline via
+   the blocking script in nuxt.config.ts, before first paint. Same shade
+   numbers are reused for dark mode too (Tailwind's `dark:text-primary-300`
+   etc. already pick a lighter shade for contrast), so there's no separate
+   dark-mode variable set. */
 :root {
   --c-primary-50: 238 252 247;
   --c-primary-100: 213 245 234;
@@ -28,158 +29,6 @@
   --c-accent-700: 183 68 5;
   --c-accent-800: 148 53 12;
   --c-accent-900: 122 45 14;
-}
-
-:root[data-palette='blue'] {
-  --c-primary-50: 239 246 255;
-  --c-primary-100: 219 234 254;
-  --c-primary-200: 191 219 254;
-  --c-primary-300: 147 197 253;
-  --c-primary-400: 96 165 250;
-  --c-primary-500: 59 130 246;
-  --c-primary-600: 37 99 235;
-  --c-primary-700: 29 78 216;
-  --c-primary-800: 30 64 175;
-  --c-primary-900: 30 58 138;
-  --c-primary-950: 23 37 84;
-
-  --c-accent-50: 253 242 248;
-  --c-accent-100: 252 231 243;
-  --c-accent-200: 251 207 232;
-  --c-accent-300: 249 168 212;
-  --c-accent-400: 244 114 182;
-  --c-accent-500: 236 72 153;
-  --c-accent-600: 219 39 119;
-  --c-accent-700: 190 24 93;
-  --c-accent-800: 157 23 77;
-  --c-accent-900: 131 24 67;
-}
-
-:root[data-palette='purple'] {
-  --c-primary-50: 245 243 255;
-  --c-primary-100: 237 233 254;
-  --c-primary-200: 221 214 254;
-  --c-primary-300: 196 181 253;
-  --c-primary-400: 167 139 250;
-  --c-primary-500: 139 92 246;
-  --c-primary-600: 124 58 237;
-  --c-primary-700: 109 40 217;
-  --c-primary-800: 91 33 182;
-  --c-primary-900: 76 29 149;
-  --c-primary-950: 46 16 101;
-
-  --c-accent-50: 254 252 232;
-  --c-accent-100: 254 249 195;
-  --c-accent-200: 254 240 138;
-  --c-accent-300: 253 224 71;
-  --c-accent-400: 250 204 21;
-  --c-accent-500: 234 179 8;
-  --c-accent-600: 202 138 4;
-  --c-accent-700: 161 98 7;
-  --c-accent-800: 133 77 14;
-  --c-accent-900: 113 63 18;
-}
-
-:root[data-palette='mono'] {
-  --c-primary-50: 248 250 252;
-  --c-primary-100: 241 245 249;
-  --c-primary-200: 226 232 240;
-  --c-primary-300: 203 213 225;
-  --c-primary-400: 148 163 184;
-  --c-primary-500: 100 116 139;
-  --c-primary-600: 71 85 105;
-  --c-primary-700: 51 65 85;
-  --c-primary-800: 30 41 59;
-  --c-primary-900: 15 23 42;
-  --c-primary-950: 2 6 23;
-
-  /* Keeps the same amber accent as the default palette on purpose — a
-     pure monochrome UI still needs one warm color for CTAs to pop. */
-  --c-accent-50: 255 248 236;
-  --c-accent-100: 255 237 199;
-  --c-accent-200: 255 216 137;
-  --c-accent-300: 255 190 76;
-  --c-accent-400: 255 164 31;
-  --c-accent-500: 249 131 7;
-  --c-accent-600: 221 98 2;
-  --c-accent-700: 183 68 5;
-  --c-accent-800: 148 53 12;
-  --c-accent-900: 122 45 14;
-}
-
-:root[data-palette='green'] {
-  --c-primary-50: 240 253 244;
-  --c-primary-100: 220 252 231;
-  --c-primary-200: 187 247 208;
-  --c-primary-300: 134 239 172;
-  --c-primary-400: 74 222 128;
-  --c-primary-500: 34 197 94;
-  --c-primary-600: 22 163 74;
-  --c-primary-700: 21 128 61;
-  --c-primary-800: 22 101 52;
-  --c-primary-900: 20 83 45;
-  --c-primary-950: 5 46 22;
-
-  --c-accent-50: 255 248 236;
-  --c-accent-100: 255 237 199;
-  --c-accent-200: 255 216 137;
-  --c-accent-300: 255 190 76;
-  --c-accent-400: 255 164 31;
-  --c-accent-500: 249 131 7;
-  --c-accent-600: 221 98 2;
-  --c-accent-700: 183 68 5;
-  --c-accent-800: 148 53 12;
-  --c-accent-900: 122 45 14;
-}
-
-:root[data-palette='red'] {
-  --c-primary-50: 254 242 242;
-  --c-primary-100: 254 226 226;
-  --c-primary-200: 254 202 202;
-  --c-primary-300: 252 165 165;
-  --c-primary-400: 248 113 113;
-  --c-primary-500: 239 68 68;
-  --c-primary-600: 220 38 38;
-  --c-primary-700: 185 28 28;
-  --c-primary-800: 153 27 27;
-  --c-primary-900: 127 29 29;
-  --c-primary-950: 69 10 10;
-
-  --c-accent-50: 254 252 232;
-  --c-accent-100: 254 249 195;
-  --c-accent-200: 254 240 138;
-  --c-accent-300: 253 224 71;
-  --c-accent-400: 250 204 21;
-  --c-accent-500: 234 179 8;
-  --c-accent-600: 202 138 4;
-  --c-accent-700: 161 98 7;
-  --c-accent-800: 133 77 14;
-  --c-accent-900: 113 63 18;
-}
-
-:root[data-palette='orange'] {
-  --c-primary-50: 255 247 237;
-  --c-primary-100: 255 237 213;
-  --c-primary-200: 254 215 170;
-  --c-primary-300: 253 186 116;
-  --c-primary-400: 251 146 60;
-  --c-primary-500: 249 115 22;
-  --c-primary-600: 234 88 12;
-  --c-primary-700: 194 65 12;
-  --c-primary-800: 154 52 18;
-  --c-primary-900: 124 45 18;
-  --c-primary-950: 67 20 7;
-
-  --c-accent-50: 239 246 255;
-  --c-accent-100: 219 234 254;
-  --c-accent-200: 191 219 254;
-  --c-accent-300: 147 197 253;
-  --c-accent-400: 96 165 250;
-  --c-accent-500: 59 130 246;
-  --c-accent-600: 37 99 235;
-  --c-accent-700: 29 78 216;
-  --c-accent-800: 30 64 175;
-  --c-accent-900: 30 58 138;
 }
 
 /* Neutral silver/graphite base — color now lives in the primary/accent
@@ -227,10 +76,16 @@ html.dark body {
   backdrop-filter: blur(18px) saturate(140%);
   -webkit-backdrop-filter: blur(18px) saturate(140%);
   border: 1px solid rgb(255 255 255 / 0.7);
+  /* Two outer layers, not one: a tight, darker near-shadow gives the edge
+     a crisp, unmistakable lift off the page, while the large soft layer
+     underneath reads as ambient depth — a single diffused shadow alone
+     (the old value) looked too flat for a "crystal sitting above the
+     page" effect. */
   box-shadow:
     inset 0 1px 0 rgb(255 255 255 / 0.65),
     inset 0 0 0 1px rgb(148 163 184 / 0.08),
-    0 8px 30px -12px rgb(15 23 42 / 0.18);
+    0 2px 6px -1px rgb(15 23 42 / 0.22),
+    0 20px 45px -14px rgb(15 23 42 / 0.35);
 }
 
 html.dark .glass {
@@ -239,7 +94,8 @@ html.dark .glass {
   box-shadow:
     inset 0 1px 0 rgb(255 255 255 / 0.07),
     inset 0 0 0 1px rgb(255 255 255 / 0.04),
-    0 8px 30px -12px rgb(0 0 0 / 0.55);
+    0 2px 6px -1px rgb(0 0 0 / 0.45),
+    0 20px 45px -14px rgb(0 0 0 / 0.65);
 }
 
 /* Soft colored "crystal" glow under solid primary/accent buttons — a

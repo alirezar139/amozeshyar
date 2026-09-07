@@ -22,12 +22,12 @@ export default defineNuxtPlugin(async () => {
     const user = await request<any>('/auth/me/')
     authStore.setSession(authStore.accessToken!, user)
 
-    // Sync the account's saved palette onto this device (client only —
+    // Sync the account's saved colors onto this device (client only —
     // there's no localStorage/DOM to touch during SSR, and the inline
     // script already applied whatever this device remembers locally for
     // the first paint). Not persisting back: this is a read, not a change.
-    if (import.meta.client && user?.color_theme) {
-      useTheme().setPalette(user.color_theme, { persist: false })
+    if (import.meta.client && user?.primary_color && user?.accent_color) {
+      useTheme().setColors({ primary: user.primary_color, accent: user.accent_color }, { persist: false })
     }
   } catch {
     authStore.clearSession()
