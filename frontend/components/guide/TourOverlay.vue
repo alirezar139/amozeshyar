@@ -5,21 +5,30 @@ const rect = ref<DOMRect | null>(null)
 const tooltipStyle = ref<Record<string, string>>({})
 const currentStep = computed(() => stepsForRoute.value[stepIndex.value])
 
+let targetEl: Element | null = null
+
+function measure() {
+  if (!targetEl) return
+  rect.value = targetEl.getBoundingClientRect()
+  positionTooltip()
+}
+
 function locateTarget() {
   const step = currentStep.value
   if (!step) return
   const el = document.querySelector(step.selector)
+  targetEl = el
   if (!el) {
     rect.value = null
     return
   }
+  // Measure immediately (covers the common case where the element is
+  // already in view, no scroll needed) and then keep measuring on every
+  // scroll tick — smooth-scroll animations don't resolve on a fixed
+  // timer, so a one-shot delayed measurement can catch the element
+  // mid-flight and draw the box at the wrong spot.
+  measure()
   el.scrollIntoView({ block: 'center', behavior: 'smooth' })
-  // A brief delay lets the smooth scroll settle before we measure —
-  // otherwise the highlight box is drawn at the pre-scroll position.
-  setTimeout(() => {
-    rect.value = el.getBoundingClientRect()
-    positionTooltip()
-  }, 260)
 }
 
 function positionTooltip() {
@@ -37,9 +46,13 @@ watch([stepIndex, isTouring], () => {
 })
 onMounted(() => {
   if (isTouring.value) locateTarget()
-  window.addEventListener('resize', positionTooltip)
+  window.addEventListener('resize', measure)
+  window.addEventListener('scroll', measure, { passive: true, capture: true })
 })
-onUnmounted(() => window.removeEventListener('resize', positionTooltip))
+onUnmounted(() => {
+  window.removeEventListener('resize', measure)
+  window.removeEventListener('scroll', measure, true)
+})
 </script>
 
 <template>
