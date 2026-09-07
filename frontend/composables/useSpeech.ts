@@ -6,7 +6,12 @@ import type { VoiceId } from '@diffusionstudio/vits-web'
 // exposed to page JS either. The ~60MB model is fetched once and cached
 // in the browser's Origin Private File System, so only the very first
 // narration on a given browser is slow; everything after is local.
-const VOICE_ID: VoiceId = 'fa_IR-amir-medium'
+//
+// Of the two available Persian voices, "amir" is a US-English base voice
+// fine-tuned onto Persian data — it carries an audible foreign accent.
+// "gyro" was trained from a native Persian TTS dataset instead, so it's
+// the one used here.
+const VOICE_ID: VoiceId = 'fa_IR-gyro-medium'
 
 // The espeak-ng phonemizer underneath Piper stumbles on characters that
 // carry no sound of their own — most importantly U+200C (ZWNJ), the
