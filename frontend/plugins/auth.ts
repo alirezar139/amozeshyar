@@ -27,7 +27,15 @@ export default defineNuxtPlugin(async () => {
     // script already applied whatever this device remembers locally for
     // the first paint). Not persisting back: this is a read, not a change.
     if (import.meta.client && user?.primary_color && user?.accent_color) {
-      useTheme().setColors({ primary: user.primary_color, accent: user.accent_color }, { persist: false })
+      useTheme().setColors(
+        {
+          primary: user.primary_color,
+          accent: user.accent_color,
+          header: user.header_color ?? user.primary_color,
+          nav: user.nav_color ?? user.primary_color,
+        },
+        { persist: false }
+      )
     }
   } catch {
     authStore.clearSession()

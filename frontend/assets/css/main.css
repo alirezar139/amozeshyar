@@ -1,11 +1,18 @@
-/* Default primary/accent ramp (teal + amber) — the values every visitor
-   sees before any JS has run. A logged-in-or-returning user's actual
-   picked colors (free-form hex, not a fixed palette; see useTheme.ts and
+/* Default color ramps — the values every visitor sees before any JS has
+   run. A logged-in-or-returning user's actual picked colors (free-form
+   hex per role, not a fixed palette; see useTheme.ts and
    utils/colorRamp.ts) overwrite these same custom properties inline via
    the blocking script in nuxt.config.ts, before first paint. Same shade
    numbers are reused for dark mode too (Tailwind's `dark:text-primary-300`
    etc. already pick a lighter shade for contrast), so there's no separate
-   dark-mode variable set. */
+   dark-mode variable set.
+
+   Four independent roles, not one shared brand color: `primary` (main
+   buttons/CTAs), `accent` (secondary CTA), `header` (top bar / sidebar
+   brand mark), `nav` (navigation link hover/active state) — each
+   customizable on its own from the profile page. `header` and `nav`
+   default to the same value as `primary` so nothing visually changes
+   for anyone until they actually go pick a different one. */
 :root {
   --c-primary-50: 238 252 247;
   --c-primary-100: 213 245 234;
@@ -29,6 +36,30 @@
   --c-accent-700: 183 68 5;
   --c-accent-800: 148 53 12;
   --c-accent-900: 122 45 14;
+
+  --c-header-50: 238 252 247;
+  --c-header-100: 213 245 234;
+  --c-header-200: 173 235 216;
+  --c-header-300: 116 217 189;
+  --c-header-400: 61 191 160;
+  --c-header-500: 31 159 133;
+  --c-header-600: 21 126 108;
+  --c-header-700: 20 100 88;
+  --c-header-800: 20 80 71;
+  --c-header-900: 18 67 60;
+  --c-header-950: 6 38 31;
+
+  --c-nav-50: 238 252 247;
+  --c-nav-100: 213 245 234;
+  --c-nav-200: 173 235 216;
+  --c-nav-300: 116 217 189;
+  --c-nav-400: 61 191 160;
+  --c-nav-500: 31 159 133;
+  --c-nav-600: 21 126 108;
+  --c-nav-700: 20 100 88;
+  --c-nav-800: 20 80 71;
+  --c-nav-900: 18 67 60;
+  --c-nav-950: 6 38 31;
 }
 
 /* Neutral silver/graphite base — color now lives in the primary/accent

@@ -1,11 +1,13 @@
 // Turns a single picked hex color into a full 50-950 tint/shade ramp, so
 // a user can pick any color at all (not just from a curated list) and
 // still get a usable set of Tailwind-style shades for it. The picked hex
-// becomes the "500" (accent) or "600" (primary) step exactly — matching
-// which weight each role is actually used at across the app (buttons use
-// bg-primary-600 / bg-accent-500) — and the rest of the ramp is derived
+// becomes the "500" (accent-style) or "600" (primary/header/nav-style)
+// step exactly — matching which weight each role is actually used at
+// across the app (buttons use bg-primary-600 / bg-accent-500, header and
+// nav follow primary's convention) — and the rest of the ramp is derived
 // by shifting lightness around that anchor, keeping hue/saturation fixed.
 export type ColorRamp = Record<string, string>
+export type ColorRole = 'primary' | 'accent' | 'header' | 'nav'
 
 function hexToRgb(hex: string): [number, number, number] {
   const clean = hex.replace('#', '').trim()
@@ -62,10 +64,10 @@ const ACCENT_OFFSETS: Record<string, number> = {
   '500': 0, '600': -8, '700': -15, '800': -21, '900': -27,
 }
 
-export function generateRamp(hex: string, role: 'primary' | 'accent'): ColorRamp {
+export function generateRamp(hex: string, role: ColorRole): ColorRamp {
   const [r, g, b] = hexToRgb(hex)
   const [h, s, l] = rgbToHsl(r, g, b)
-  const offsets = role === 'primary' ? PRIMARY_OFFSETS : ACCENT_OFFSETS
+  const offsets = role === 'accent' ? ACCENT_OFFSETS : PRIMARY_OFFSETS
   const ramp: ColorRamp = {}
   for (const [step, delta] of Object.entries(offsets)) {
     const [rr, gg, bb] = hslToRgb(h, s, clampLightness(l + delta))

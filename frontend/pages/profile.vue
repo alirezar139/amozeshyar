@@ -53,21 +53,27 @@ async function saveProfile() {
 // Two-way bound to the native color inputs directly — each change event
 // applies immediately (live preview) via setColors, no separate "apply"
 // step. Kept as local refs (not `colors` itself) only so typing/dragging
-// the picker doesn't re-trigger a save on every intermediate value.
+// a picker doesn't re-trigger a save on every intermediate value.
 const primaryDraft = ref(colors.value.primary)
 const accentDraft = ref(colors.value.accent)
+const headerDraft = ref(colors.value.header)
+const navDraft = ref(colors.value.nav)
 watchEffect(() => {
   primaryDraft.value = colors.value.primary
   accentDraft.value = colors.value.accent
+  headerDraft.value = colors.value.header
+  navDraft.value = colors.value.nav
 })
 
 function applyDraftColors() {
-  setColors({ primary: primaryDraft.value, accent: accentDraft.value })
+  setColors({ primary: primaryDraft.value, accent: accentDraft.value, header: headerDraft.value, nav: navDraft.value })
 }
 
-function applyPreset(preset: { primary: string; accent: string }) {
+function applyPreset(preset: ThemeColors) {
   primaryDraft.value = preset.primary
   accentDraft.value = preset.accent
+  headerDraft.value = preset.header
+  navDraft.value = preset.nav
   setColors(preset)
 }
 </script>
@@ -138,7 +144,7 @@ function applyPreset(preset: { primary: string; accent: string }) {
 
         <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <label class="glass flex items-center justify-between gap-3 rounded-xl p-3">
-            <span class="text-sm text-gray-700 dark:text-gray-200">رنگ اصلی</span>
+            <span class="text-sm text-gray-700 dark:text-gray-200">رنگ دکمه‌ها</span>
             <input
               v-model="primaryDraft"
               type="color"
@@ -155,9 +161,27 @@ function applyPreset(preset: { primary: string; accent: string }) {
               @change="applyDraftColors"
             />
           </label>
+          <label class="glass flex items-center justify-between gap-3 rounded-xl p-3">
+            <span class="text-sm text-gray-700 dark:text-gray-200">رنگ هدر</span>
+            <input
+              v-model="headerDraft"
+              type="color"
+              class="h-9 w-14 cursor-pointer rounded-md border-0 bg-transparent p-0"
+              @change="applyDraftColors"
+            />
+          </label>
+          <label class="glass flex items-center justify-between gap-3 rounded-xl p-3">
+            <span class="text-sm text-gray-700 dark:text-gray-200">رنگ نوار/منو</span>
+            <input
+              v-model="navDraft"
+              type="color"
+              class="h-9 w-14 cursor-pointer rounded-md border-0 bg-transparent p-0"
+              @change="applyDraftColors"
+            />
+          </label>
         </div>
 
-        <h3 class="mt-5 text-xs font-medium text-gray-600 dark:text-gray-300">شروع سریع با یکی از این ترکیب‌ها</h3>
+        <h3 class="mt-5 text-xs font-medium text-gray-600 dark:text-gray-300">شروع سریع با یکی از این ترکیب‌ها (بعداً هرکدوم رو جدا هم می‌تونید تغییر بدید)</h3>
         <div class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <button
             v-for="preset in COLOR_PRESETS"

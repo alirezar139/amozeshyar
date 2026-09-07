@@ -38,12 +38,16 @@ class User(AbstractUser):
     interests = models.TextField(blank=True)
 
     # Per-account colors — free-form hex, not a fixed palette id: the user
-    # can pick any color at all, and the frontend derives a full 50-950
-    # shade ramp from each at runtime (see useTheme.ts, utils/colorRamp.ts)
-    # via CSS custom properties. Persisted server-side, not just
-    # localStorage, so it follows the user across devices once logged in.
+    # can pick any color at all, independently per UI role (main buttons,
+    # secondary CTA, header/brand mark, nav links), and the frontend
+    # derives a full 50-950 shade ramp from each at runtime (see
+    # useTheme.ts, utils/colorRamp.ts) via CSS custom properties.
+    # Persisted server-side, not just localStorage, so it follows the
+    # user across devices once logged in.
     primary_color = models.CharField(max_length=7, default="#157e6c", validators=[HEX_COLOR_VALIDATOR])
     accent_color = models.CharField(max_length=7, default="#f98307", validators=[HEX_COLOR_VALIDATOR])
+    header_color = models.CharField(max_length=7, default="#157e6c", validators=[HEX_COLOR_VALIDATOR])
+    nav_color = models.CharField(max_length=7, default="#157e6c", validators=[HEX_COLOR_VALIDATOR])
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []

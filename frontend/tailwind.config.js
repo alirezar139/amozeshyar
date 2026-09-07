@@ -56,6 +56,37 @@ export default {
           800: fromVar('--c-accent-800'),
           900: fromVar('--c-accent-900'),
         },
+        // Two more independent roles, same mechanism: `header` styles the
+        // top bar / sidebar brand mark, `nav` styles navigation link
+        // hover/active state — kept separate from primary/accent so a
+        // user can recolor "the buttons" without also recoloring "the
+        // header" or vice versa.
+        header: {
+          50: fromVar('--c-header-50'),
+          100: fromVar('--c-header-100'),
+          200: fromVar('--c-header-200'),
+          300: fromVar('--c-header-300'),
+          400: fromVar('--c-header-400'),
+          500: fromVar('--c-header-500'),
+          600: fromVar('--c-header-600'),
+          700: fromVar('--c-header-700'),
+          800: fromVar('--c-header-800'),
+          900: fromVar('--c-header-900'),
+          950: fromVar('--c-header-950'),
+        },
+        nav: {
+          50: fromVar('--c-nav-50'),
+          100: fromVar('--c-nav-100'),
+          200: fromVar('--c-nav-200'),
+          300: fromVar('--c-nav-300'),
+          400: fromVar('--c-nav-400'),
+          500: fromVar('--c-nav-500'),
+          600: fromVar('--c-nav-600'),
+          700: fromVar('--c-nav-700'),
+          800: fromVar('--c-nav-800'),
+          900: fromVar('--c-nav-900'),
+          950: fromVar('--c-nav-950'),
+        },
       },
     },
   },
