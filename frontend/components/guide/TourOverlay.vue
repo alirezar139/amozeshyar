@@ -1,19 +1,18 @@
 <script setup lang="ts">
 const { isTouring, stepIndex, stepsForRoute, isAutoPlaying, next, prev, endTour, toggleAutoPlay } = useGuide()
-const { enabled: speechEnabled, supported: speechSupported, speak, stop: stopSpeech, toggle: toggleSpeech } = useSpeech()
+const { enabled: speechEnabled, supported: speechSupported, speak, stop: stopSpeech, toggle: toggleSpeech, hasPersianVoice } = useSpeech()
 
-const AUTO_ADVANCE_MS = 5000
+const AUTO_ADVANCE_MS = 6000
 
 const rect = ref<DOMRect | null>(null)
-const tooltipStyle = ref<Record<string, string>>({})
 const currentStep = computed(() => stepsForRoute.value[stepIndex.value])
+const noPersianVoice = ref(false)
 
 let targetEl: Element | null = null
 
 function measure() {
   if (!targetEl) return
   rect.value = targetEl.getBoundingClientRect()
-  positionTooltip()
 }
 
 function locateTarget() {
@@ -25,35 +24,15 @@ function locateTarget() {
     rect.value = null
     return
   }
-  // Instant scroll, not smooth: a smooth-scroll animation has no fixed
-  // duration to wait out, and re-measuring on every scroll tick to track
-  // it just made the highlight box chase a moving target and re-trigger
-  // its transition dozens of times a second — pure jitter, no time to
-  // actually read the tooltip. Jumping straight there and measuring once
-  // (plus one rAF later, in case the browser defers layout a frame) is
-  // both simpler and calmer; the CSS transition still animates the single
-  // move from the previous step's box to this one.
+  // Instant scroll, not smooth: there's no fixed duration to wait out for
+  // a smooth-scroll animation, and re-measuring on every scroll tick to
+  // track it just made the highlight box chase a moving target and
+  // re-trigger its transition dozens of times a second. Jump straight
+  // there and measure once (plus one rAF later in case the browser
+  // defers layout a frame).
   el.scrollIntoView({ block: 'center', behavior: 'auto' })
   measure()
   requestAnimationFrame(measure)
-}
-
-function positionTooltip() {
-  if (!rect.value) return
-  const spaceBelow = window.innerHeight - rect.value.bottom
-  const top = spaceBelow > 180 ? rect.value.bottom + 14 : Math.max(14, rect.value.top - 174)
-  // The tooltip itself is capped at max-w-[90vw], but this clamp assumed
-  // a fixed 320px width regardless of viewport — on a narrow screen
-  // `window.innerWidth - 336` goes negative, which used to win the
-  // Math.min() and push the whole tooltip off-screen to the left (still
-  // "rendered", just invisible — which is exactly what looks like "no
-  // text at all" from the outside).
-  const assumedWidth = Math.min(320, window.innerWidth * 0.9)
-  const maxLeft = Math.max(16, window.innerWidth - assumedWidth - 16)
-  tooltipStyle.value = {
-    top: `${top}px`,
-    left: `${Math.min(Math.max(rect.value.left, 16), maxLeft)}px`,
-  }
 }
 
 // Auto-advance: the tour narrates itself by default. Keyed on stepIndex
@@ -73,9 +52,18 @@ function scheduleAuto() {
 
 function narrateCurrentStep() {
   const step = currentStep.value
-  if (step) speak(`${step.title}. ${step.text}`)
+  if (!step) return
+  noPersianVoice.value = speechSupported && speechEnabled.value && !hasPersianVoice()
+  speak(`${step.title}. ${step.text}`)
 }
 
+// The bottom panel (title/text/controls) is a *fixed* element, not
+// positioned relative to the highlighted part — after three rounds of
+// bugs in a dynamically-positioned tooltip (jitter, off-screen clamps,
+// a CSS specificity fight), the actual explanatory text is now
+// completely decoupled from that measurement logic and can never fail
+// to show just because a position calculation went wrong. Only the
+// spotlight box around the target element still needs `rect`.
 watch([stepIndex, isTouring], () => {
   if (isTouring.value) {
     locateTarget()
@@ -119,9 +107,10 @@ onUnmounted(() => {
       />
       <div v-else class="absolute inset-0 bg-black/60" />
 
-      <div class="glass absolute w-80 max-w-[90vw] overflow-hidden rounded-xl p-4" :style="tooltipStyle">
-        <!-- Progress bar: keyed on stepIndex so the fill animation restarts
-             fresh every step; paused visually alongside the real timer. -->
+      <!-- Always fixed to the bottom of the viewport — same spot every
+           step, on every page, regardless of where the highlighted part
+           happens to be. -->
+      <div class="glass absolute inset-x-4 bottom-4 mx-auto max-w-md overflow-hidden rounded-xl p-4 sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2">
         <div class="absolute inset-x-0 top-0 h-1 bg-black/10 dark:bg-white/10">
           <div
             :key="stepIndex"
@@ -159,6 +148,9 @@ onUnmounted(() => {
         </div>
         <h3 class="mt-1 font-semibold text-gray-900 dark:text-white">{{ currentStep.title }}</h3>
         <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">{{ currentStep.text }}</p>
+        <p v-if="noPersianVoice" class="mt-1 text-xs text-amber-600 dark:text-amber-400">
+          صدای فارسی روی این دستگاه نصب نیست؛ از تنظیمات ویندوز (گفتار) می‌توانید اضافه کنید.
+        </p>
         <div class="mt-3 flex items-center justify-between">
           <button type="button" class="text-xs text-gray-500 hover:underline dark:text-gray-400" @click="endTour">
             پایان تور
@@ -192,7 +184,7 @@ onUnmounted(() => {
   to { width: 100%; }
 }
 .animate-tour-progress {
-  animation: tour-progress 5s linear;
+  animation: tour-progress 6s linear;
 }
 @media (prefers-reduced-motion: reduce) {
   .animate-tour-progress { animation: none; width: 100%; }
