@@ -1,7 +1,7 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'admin' })
 const { request } = useApi()
-const { isSameDay } = useJalali()
+const { isSameDay, formatGregorianDate } = useJalali()
 
 const { data: sessions, pending, refresh } = await useAsyncData('admin-schedule', async () => {
   const page = await request<{ results: any[] }>('/class-sessions/')
@@ -78,6 +78,15 @@ function formatTime(date: Date) {
 function clearFilter() {
   selectedDay.value = null
 }
+
+const copiedId = ref<number | null>(null)
+async function copyLink(id: number) {
+  await navigator.clipboard.writeText(`${window.location.origin}/classroom/${id}`)
+  copiedId.value = id
+  setTimeout(() => {
+    if (copiedId.value === id) copiedId.value = null
+  }, 2000)
+}
 </script>
 
 <template>
@@ -151,17 +160,25 @@ function clearFilter() {
             <p class="font-semibold text-gray-900 dark:text-white">{{ session.title }}</p>
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ session.course_title }} — {{ session.instructor_name }}</p>
             <div class="mt-3 flex flex-wrap items-center gap-4 text-sm text-gray-600 dark:text-gray-300">
-              <span>{{ session.startsAt.toLocaleDateString('fa-IR') }}</span>
+              <span>{{ formatGregorianDate(session.startsAt) }}</span>
               <span>{{ formatTime(session.startsAt) }}</span>
               <span v-if="session.is_online" class="text-primary-600 dark:text-primary-400">آنلاین</span>
             </div>
-            <NuxtLink
-              v-if="session.is_online"
-              :to="`/classroom/${session.id}`"
-              class="mt-3 inline-flex items-center gap-1.5 rounded-md bg-primary-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-primary-500"
-            >
-              پیوستن به کلاس آنلاین
-            </NuxtLink>
+            <div v-if="session.is_online" class="mt-3 flex flex-wrap gap-2">
+              <NuxtLink
+                :to="`/classroom/${session.id}`"
+                class="inline-flex items-center gap-1.5 rounded-md bg-primary-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-primary-500"
+              >
+                پیوستن به کلاس آنلاین
+              </NuxtLink>
+              <button
+                type="button"
+                class="glass rounded-md px-4 py-1.5 text-sm text-gray-700 dark:text-gray-200"
+                @click="copyLink(session.id)"
+              >
+                {{ copiedId === session.id ? 'کپی شد ✓' : 'کپی لینک' }}
+              </button>
+            </div>
           </div>
         </div>
       </div>

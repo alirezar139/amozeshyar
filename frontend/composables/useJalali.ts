@@ -45,9 +45,19 @@ export function useJalali() {
     return `${toPersianDigits(jy)} ${JALALI_MONTH_NAMES[jm - 1]} ${toPersianDigits(jd)}`
   }
 
+  // Convenience for the common case (a JS Date from the backend, e.g. a
+  // session's starts_at) — every date shown anywhere in the app should
+  // go through this rather than `Date.toLocaleDateString('fa-IR')`, whose
+  // calendar system isn't guaranteed the same across browsers/Node ICU
+  // builds; this always renders Jalali, unambiguously.
+  function formatGregorianDate(date: Date): string {
+    const { jy, jm, jd } = fromGregorian(date)
+    return formatDate(jy, jm, jd)
+  }
+
   function isSameDay(a: Date, b: Date): boolean {
     return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
   }
 
-  return { fromGregorian, toGregorianDate, weekdayIndex, monthLength, formatDate, isSameDay }
+  return { fromGregorian, toGregorianDate, weekdayIndex, monthLength, formatDate, formatGregorianDate, isSameDay }
 }

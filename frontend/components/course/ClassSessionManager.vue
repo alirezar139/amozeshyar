@@ -1,6 +1,7 @@
 <script setup lang="ts">
 const props = defineProps<{ courseId: number }>()
 const { request } = useApi()
+const { formatGregorianDate } = useJalali()
 
 const { data: sessions, refresh } = await useAsyncData(`course-${props.courseId}-sessions`, async () => {
   const page = await request<{ results: any[] }>('/class-sessions/')
@@ -48,7 +49,22 @@ async function removeSession(id: number) {
 }
 
 function formatDateTime(iso: string) {
-  return new Date(iso).toLocaleString('fa-IR', { dateStyle: 'medium', timeStyle: 'short' })
+  const date = new Date(iso)
+  const time = date.toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })
+  return `${formatGregorianDate(date)} — ${time}`
+}
+
+// The link itself is just this route — access is still gated by login +
+// enrollment on the backend (see ClassSessionViewSet.join), so sharing
+// it around isn't a bypass, it's just a shortcut past finding the
+// "پیوستن" button in one's own calendar.
+const copiedId = ref<number | null>(null)
+async function copyLink(id: number) {
+  await navigator.clipboard.writeText(`${window.location.origin}/classroom/${id}`)
+  copiedId.value = id
+  setTimeout(() => {
+    if (copiedId.value === id) copiedId.value = null
+  }, 2000)
 }
 </script>
 
@@ -106,6 +122,14 @@ function formatDateTime(iso: string) {
           >
             پیوستن به کلاس
           </NuxtLink>
+          <button
+            v-if="session.is_online"
+            type="button"
+            class="glass rounded-md px-3 py-1.5 text-xs text-gray-700 dark:text-gray-200"
+            @click="copyLink(session.id)"
+          >
+            {{ copiedId === session.id ? 'کپی شد ✓' : 'کپی لینک برای دانشجو' }}
+          </button>
           <button
             type="button"
             :disabled="deletingId === session.id"
