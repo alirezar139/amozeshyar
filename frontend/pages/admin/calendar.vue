@@ -3,7 +3,7 @@ definePageMeta({ layout: 'admin' })
 const { request } = useApi()
 const { isSameDay, formatGregorianDate } = useJalali()
 
-const { data: sessions, pending, refresh } = await useAsyncData('admin-schedule', async () => {
+const { data: sessions, pending, error: sessionsError, refresh } = await useAsyncData('admin-schedule', async () => {
   const page = await request<{ results: any[] }>('/class-sessions/')
   return page.results
     .map((s: any) => ({ ...s, startsAt: new Date(s.starts_at) }))
@@ -56,14 +56,20 @@ async function createSession() {
         location_note: form.location_note,
       },
     })
-    Object.assign(form, { course: null, title: '', starts_at: '', is_online: true, location_note: '' })
-    showCreateForm.value = false
-    await refresh()
   } catch (err) {
     createError.value = getErrorMessage(err, 'ثبت کلاس ناموفق بود.')
-  } finally {
     creating.value = false
+    return
   }
+  // The class is already created at this point — closing the form and
+  // resetting it shouldn't depend on the refresh below succeeding, and a
+  // refresh failure shouldn't be reported as "creating failed" (it
+  // didn't) nor go unnoticed just because the form that used to show
+  // errors is now closed.
+  Object.assign(form, { course: null, title: '', starts_at: '', is_online: true, location_note: '' })
+  showCreateForm.value = false
+  creating.value = false
+  refresh().catch(() => {})
 }
 
 const visibleSessions = computed(() => {
@@ -139,7 +145,18 @@ async function copyLink(id: number) {
       </form>
     </div>
 
-    <div v-if="pending" class="mt-6 text-gray-500">در حال بارگذاری...</div>
+    <!-- Only the very first load ever blocks on `pending` — once we have
+         a list at all, a later refresh() (e.g. after creating a class)
+         updates it in place instead of hiding everything behind a
+         spinner again, so a slow or failed background refresh can never
+         strand the page on "در حال بارگذاری..." forever. -->
+    <div v-if="pending && !sessions" class="mt-6 text-gray-500">در حال بارگذاری...</div>
+    <div v-else-if="sessionsError" class="mt-6">
+      <p class="text-sm text-red-600">بارگذاری تقویم ناموفق بود.</p>
+      <button type="button" class="glass mt-2 rounded-md px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200" @click="refresh()">
+        تلاش دوباره
+      </button>
+    </div>
     <div v-else class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[320px_1fr]">
       <div data-tour="admin-calendar-grid" class="glass rounded-2xl p-5">
         <ScheduleMonthCalendar :marked-dates="markedDates" @select-day="(d) => (selectedDay = d)" />
