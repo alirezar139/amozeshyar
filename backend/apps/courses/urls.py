@@ -15,5 +15,6 @@ router.register("courses", views.PublicCourseViewSet, basename="course-public")
 urlpatterns = [
     path("courses/admin-create/", views.AdminCourseCreateView.as_view(), name="course-admin-create"),
     path("schedule/upcoming/", views.MyScheduleView.as_view(), name="my-schedule"),
+    path("reports/instructor-classes/", views.InstructorClassReportView.as_view(), name="instructor-class-report"),
     *router.urls,
 ]

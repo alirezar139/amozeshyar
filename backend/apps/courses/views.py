@@ -5,6 +5,7 @@ from rest_framework import generics, permissions, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from apps.accounts.permissions import IsAdminRole, IsInstructor
 
@@ -175,3 +176,34 @@ class MyScheduleView(generics.ListAPIView):
             .select_related("course", "course__instructor__user")
             .order_by("starts_at")
         )
+
+
+class InstructorClassReportView(APIView):
+    """Admin-only: how many classes each instructor has scheduled, split
+    into held (past) vs. upcoming — so an admin can see at a glance who's
+    actually running classes and how many, without opening every course."""
+
+    permission_classes = (IsAdminRole,)
+
+    def get(self, request):
+        from apps.instructors.models import InstructorProfile
+
+        now = timezone.now()
+        rows = []
+        instructors = InstructorProfile.objects.select_related("user").filter(
+            status=InstructorProfile.Status.APPROVED
+        )
+        for profile in instructors:
+            sessions = ClassSession.objects.filter(course__instructor=profile)
+            total = sessions.count()
+            if total == 0:
+                continue
+            rows.append({
+                "instructor_id": profile.id,
+                "instructor_name": profile.user.get_full_name() or profile.user.email,
+                "total_sessions": total,
+                "past_sessions": sessions.filter(starts_at__lt=now).count(),
+                "upcoming_sessions": sessions.filter(starts_at__gte=now).count(),
+            })
+        rows.sort(key=lambda r: r["total_sessions"], reverse=True)
+        return Response(rows)
