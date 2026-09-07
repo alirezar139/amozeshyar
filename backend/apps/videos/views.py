@@ -53,14 +53,19 @@ class PreviewStreamView(APIView):
 
 
 class ManifestView(APIView):
-    """Authenticated endpoint: re-checks enrollment on every call before handing out a signed HLS URL.
+    """Re-checks enrollment on every call before handing out a signed HLS URL.
 
     Re-checking here (rather than trusting a token minted once at page
     load) means a refund or access revocation takes effect on the very
-    next manifest fetch, not just at the next login.
+    next manifest fetch, not just at the next login. AllowAny (not
+    IsAuthenticated) on purpose: a lesson can be `is_free_preview`, and an
+    anonymous visitor must be able to watch that one in full without
+    logging in first — the frontend only ever requests this endpoint (vs.
+    PreviewStreamView) when it already believes access is allowed, so the
+    real gate is the enrolled-or-free-preview check below, not login.
     """
 
-    permission_classes = (permissions.IsAuthenticated,)
+    permission_classes = (permissions.AllowAny,)
     throttle_classes = (ScopedRateThrottle,)
     throttle_scope = "video_manifest"
     serializer_class = SignedUrlResponseSerializer
@@ -70,11 +75,13 @@ class ManifestView(APIView):
         video = generics.get_object_or_404(VideoAsset, id=video_id, status=VideoAsset.Status.READY)
         course = video.lesson.course
 
-        from apps.enrollments.models import Enrollment
+        is_enrolled = False
+        if request.user.is_authenticated:
+            from apps.enrollments.models import Enrollment
 
-        is_enrolled = Enrollment.objects.filter(
-            student=request.user, course=course, is_active=True
-        ).exists()
+            is_enrolled = Enrollment.objects.filter(
+                student=request.user, course=course, is_active=True
+            ).exists()
         if not (is_enrolled or video.lesson.is_free_preview):
             raise PermissionDenied("Enrollment required to watch the full video.")
         if not video.hls_master_key:
