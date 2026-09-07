@@ -62,7 +62,18 @@ class CaptchaVerifyRequestSerializer(serializers.Serializer):
     x = serializers.FloatField()
 
 
-class CaptchaVerifyResponseSerializer(serializers.Serializer):
+class CaptchaNumberChallengeSerializer(serializers.Serializer):
+    token = serializers.CharField()
+    image = serializers.CharField(help_text="data: URL, JPEG")
+    length = serializers.IntegerField()
+
+
+class CaptchaVerifyNumberRequestSerializer(serializers.Serializer):
+    token = serializers.CharField()
+    code = serializers.CharField()
+
+
+class CaptchaPassSerializer(serializers.Serializer):
     pass_token = serializers.CharField()
 
 

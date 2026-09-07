@@ -14,8 +14,10 @@ from .permissions import IsAdminRole
 from .serializers import (
     AdminUserSerializer,
     CaptchaChallengeSerializer,
+    CaptchaNumberChallengeSerializer,
+    CaptchaPassSerializer,
+    CaptchaVerifyNumberRequestSerializer,
     CaptchaVerifyRequestSerializer,
-    CaptchaVerifyResponseSerializer,
     EmailTokenObtainPairSerializer,
     RefreshResponseSerializer,
     RegisterSerializer,
@@ -144,17 +146,33 @@ class CaptchaChallengeView(APIView):
 
 
 class CaptchaVerifyView(APIView):
-    """Public: checks a drag attempt against the secret target and, on
-    success, issues a short-lived one-time pass that LoginView requires."""
+    """Public: checks a drag attempt against the secret target (stage 1 of
+    2) and, on success, hands back stage 2 — a distorted code to type in.
+    Passing this alone does not unlock login."""
 
     permission_classes = (permissions.AllowAny,)
-    serializer_class = CaptchaVerifyResponseSerializer
+    serializer_class = CaptchaNumberChallengeSerializer
 
-    @extend_schema(request=CaptchaVerifyRequestSerializer, responses=CaptchaVerifyResponseSerializer)
+    @extend_schema(request=CaptchaVerifyRequestSerializer, responses=CaptchaNumberChallengeSerializer)
     def post(self, request):
-        pass_token = captcha.verify_and_issue_pass(request.data.get("token"), request.data.get("x"))
-        if not pass_token:
+        stage2 = captcha.verify_puzzle(request.data.get("token"), request.data.get("x"))
+        if not stage2:
             return Response({"detail": "جای‌گذاری درست نبود، دوباره تلاش کنید."}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(stage2)
+
+
+class CaptchaVerifyNumberView(APIView):
+    """Public: checks stage 2's typed code and, only on success, issues the
+    short-lived one-time pass that LoginView requires."""
+
+    permission_classes = (permissions.AllowAny,)
+    serializer_class = CaptchaPassSerializer
+
+    @extend_schema(request=CaptchaVerifyNumberRequestSerializer, responses=CaptchaPassSerializer)
+    def post(self, request):
+        pass_token = captcha.verify_number_and_issue_pass(request.data.get("token"), request.data.get("code"))
+        if not pass_token:
+            return Response({"detail": "کد وارد شده درست نیست، دوباره تلاش کنید."}, status=status.HTTP_400_BAD_REQUEST)
         return Response({"pass_token": pass_token})
 
 

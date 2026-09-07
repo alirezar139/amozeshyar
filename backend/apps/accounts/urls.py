@@ -15,4 +15,5 @@ urlpatterns = [
     path("admin/create-user/", views.AdminCreateUserView.as_view(), name="admin-create-user"),
     path("captcha/challenge/", views.CaptchaChallengeView.as_view(), name="captcha-challenge"),
     path("captcha/verify/", views.CaptchaVerifyView.as_view(), name="captcha-verify"),
+    path("captcha/verify-number/", views.CaptchaVerifyNumberView.as_view(), name="captcha-verify-number"),
 ] + router.urls
