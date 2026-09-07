@@ -113,7 +113,15 @@ export function useGuide() {
   const isAutoPlaying = useState('guide-autoplay', () => true)
 
   const route = useRoute()
-  const stepsForRoute = computed(() => TOUR_STEPS[String(route.name ?? '')] ?? [])
+  const routeName = computed(() => String(route.name ?? ''))
+  const stepsForRoute = computed(() => TOUR_STEPS[routeName.value] ?? [])
+  // Narration is pre-rendered per step (see scripts/extract-tour-text.mjs
+  // and the generation notes in public/audio/tour/README.md) — a static
+  // file the browser just plays, not something synthesized on the fly.
+  const currentAudioUrl = computed(() => {
+    if (!stepsForRoute.value.length) return null
+    return `/audio/tour/${routeName.value}-${stepIndex.value}.wav`
+  })
 
   function open() {
     isOpen.value = true
@@ -143,7 +151,7 @@ export function useGuide() {
   }
 
   return {
-    isOpen, isTouring, stepIndex, stepsForRoute, isAutoPlaying,
+    isOpen, isTouring, stepIndex, stepsForRoute, isAutoPlaying, currentAudioUrl,
     open, close, startTour, endTour, next, prev, toggleAutoPlay,
   }
 }

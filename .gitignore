@@ -34,6 +34,9 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# --- One-off local tooling ---
+.piper-gen-env/
+
 # --- Docker / infra ---
 docker-compose.override.yml
 .env

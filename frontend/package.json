@@ -11,7 +11,6 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@diffusionstudio/vits-web": "^1.0.3",
     "@nuxt/image": "^1.9.0",
     "@nuxtjs/robots": "^6.2.0",
     "@nuxtjs/sitemap": "^8.5.0",

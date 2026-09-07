@@ -1,6 +1,6 @@
 <script setup lang="ts">
-const { isTouring, stepIndex, stepsForRoute, isAutoPlaying, next, prev, endTour, toggleAutoPlay } = useGuide()
-const { enabled: speechEnabled, supported: speechSupported, isLoading: speechLoading, loadProgress: speechProgress, speak, stop: stopSpeech, toggle: toggleSpeech } = useSpeech()
+const { isTouring, stepIndex, stepsForRoute, isAutoPlaying, currentAudioUrl, next, prev, endTour, toggleAutoPlay } = useGuide()
+const { enabled: speechEnabled, supported: speechSupported, play: playAudio, stop: stopSpeech, toggle: toggleSpeech } = useSpeech()
 
 // How long to linger on a step before auto-advancing. Scaled to how much
 // there is to read/hear (at the slowed-down 0.8x speech rate) instead of a
@@ -59,9 +59,8 @@ function scheduleAuto() {
 }
 
 function narrateCurrentStep() {
-  const step = currentStep.value
-  if (!step) return
-  speak(`${step.title}. ${step.text}`)
+  if (!currentStep.value) return
+  playAudio(currentAudioUrl.value)
 }
 
 // The bottom panel (title/text/controls) is a *fixed* element, not
@@ -155,11 +154,6 @@ onUnmounted(() => {
         </div>
         <h3 class="mt-1 font-semibold text-gray-900 dark:text-white">{{ currentStep.title }}</h3>
         <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">{{ currentStep.text }}</p>
-        <p v-if="speechEnabled && speechLoading" class="mt-1 flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-          <svg class="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" /><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" /></svg>
-          <span v-if="speechProgress > 0 && speechProgress < 100">در حال آماده‌سازی صدای فارسی — فقط بار اول ({{ speechProgress }}٪)...</span>
-          <span v-else>در حال آماده‌سازی صدای فارسی...</span>
-        </p>
         <div class="mt-3 flex items-center justify-between">
           <button type="button" class="text-xs font-medium text-red-600 hover:underline dark:text-red-400" @click="endTour">
             پایان تور
