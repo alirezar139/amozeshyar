@@ -3,23 +3,33 @@ definePageMeta({ layout: 'admin' })
 const { request } = useApi()
 const { isSameDay, formatGregorianDate } = useJalali()
 
-const { data: sessions, pending, error: sessionsError, refresh } = await useAsyncData('admin-schedule', async () => {
+// The three fetches below are independent of each other, so they're
+// kicked off together and awaited as a group instead of one `await`
+// per useAsyncData — three sequential round-trips (each one only
+// starting once the previous fully finishes) added up to three times
+// the wait for no reason, which is exactly what made this page feel
+// like it was hanging on a slow connection.
+const sessionsAsync = useAsyncData('admin-schedule', async () => {
   const page = await request<{ results: any[] }>('/class-sessions/')
   return page.results
     .map((s: any) => ({ ...s, startsAt: new Date(s.starts_at) }))
     .sort((a: any, b: any) => a.startsAt.getTime() - b.startsAt.getTime())
 })
-
-const { data: instructorReport } = await useAsyncData('admin-instructor-class-report', () =>
+const instructorReportAsync = useAsyncData('admin-instructor-class-report', () =>
   request<{ instructor_id: number; instructor_name: string; total_sessions: number; past_sessions: number; upcoming_sessions: number }[]>(
     '/reports/instructor-classes/'
   )
 )
-
-const { data: courses } = await useAsyncData('admin-schedule-courses', async () => {
+const coursesAsync = useAsyncData('admin-schedule-courses', async () => {
   const page = await request<{ results: any[] }>('/courses/admin-all/')
   return page.results
 })
+
+await Promise.all([sessionsAsync, instructorReportAsync, coursesAsync])
+
+const { data: sessions, pending, error: sessionsError, refresh } = sessionsAsync
+const { data: instructorReport } = instructorReportAsync
+const { data: courses } = coursesAsync
 
 const markedDates = computed(() => (sessions.value ?? []).map((s: any) => s.startsAt))
 const selectedDay = ref<Date | null>(null)

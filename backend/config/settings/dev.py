@@ -5,8 +5,33 @@ DEBUG = True
 ALLOWED_HOSTS = ["*"]
 
 INSTALLED_APPS += ["debug_toolbar"]  # noqa: F405
-MIDDLEWARE = ["debug_toolbar.middleware.DebugToolbarMiddleware", *MIDDLEWARE]  # noqa: F405
+MIDDLEWARE = [
+    "debug_toolbar.middleware.DebugToolbarMiddleware",
+    "apps.common.middleware.RequestTimingMiddleware",
+    *MIDDLEWARE,  # noqa: F405
+]
 INTERNAL_IPS = ["127.0.0.1"]
+
+# Temporary: tracking down a reported freeze on the admin calendar page.
+# Tails to backend/logs/requests.log — see apps/common/middleware.py.
+LOGS_DIR = BASE_DIR / "logs"  # noqa: F405
+LOGS_DIR.mkdir(exist_ok=True)
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {"plain": {"format": "%(asctime)s %(message)s"}},
+    "handlers": {
+        "requests_file": {
+            "class": "logging.FileHandler",
+            "filename": LOGS_DIR / "requests.log",
+            "formatter": "plain",
+            "encoding": "utf-8",
+        },
+    },
+    "loggers": {
+        "requests": {"handlers": ["requests_file"], "level": "INFO", "propagate": False},
+    },
+}
 # Redirect interception is more confusing than useful when just clicking
 # around the admin/login flow during dev.
 DEBUG_TOOLBAR_CONFIG = {"INTERCEPT_REDIRECTS": False}
