@@ -161,7 +161,7 @@ onUnmounted(() => {
           <span v-else>در حال آماده‌سازی صدای فارسی...</span>
         </p>
         <div class="mt-3 flex items-center justify-between">
-          <button type="button" class="text-xs text-gray-500 hover:underline dark:text-gray-400" @click="endTour">
+          <button type="button" class="text-xs font-medium text-red-600 hover:underline dark:text-red-400" @click="endTour">
             پایان تور
           </button>
           <div class="flex gap-2">
