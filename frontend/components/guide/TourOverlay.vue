@@ -1,5 +1,6 @@
 <script setup lang="ts">
 const { isTouring, stepIndex, stepsForRoute, isAutoPlaying, next, prev, endTour, toggleAutoPlay } = useGuide()
+const { enabled: speechEnabled, supported: speechSupported, speak, stop: stopSpeech, toggle: toggleSpeech } = useSpeech()
 
 const AUTO_ADVANCE_MS = 5000
 
@@ -41,9 +42,17 @@ function positionTooltip() {
   if (!rect.value) return
   const spaceBelow = window.innerHeight - rect.value.bottom
   const top = spaceBelow > 180 ? rect.value.bottom + 14 : Math.max(14, rect.value.top - 174)
+  // The tooltip itself is capped at max-w-[90vw], but this clamp assumed
+  // a fixed 320px width regardless of viewport — on a narrow screen
+  // `window.innerWidth - 336` goes negative, which used to win the
+  // Math.min() and push the whole tooltip off-screen to the left (still
+  // "rendered", just invisible — which is exactly what looks like "no
+  // text at all" from the outside).
+  const assumedWidth = Math.min(320, window.innerWidth * 0.9)
+  const maxLeft = Math.max(16, window.innerWidth - assumedWidth - 16)
   tooltipStyle.value = {
     top: `${top}px`,
-    left: `${Math.min(Math.max(rect.value.left, 16), window.innerWidth - 336)}px`,
+    left: `${Math.min(Math.max(rect.value.left, 16), maxLeft)}px`,
   }
 }
 
@@ -62,8 +71,18 @@ function scheduleAuto() {
   autoTimer = setTimeout(next, AUTO_ADVANCE_MS)
 }
 
+function narrateCurrentStep() {
+  const step = currentStep.value
+  if (step) speak(`${step.title}. ${step.text}`)
+}
+
 watch([stepIndex, isTouring], () => {
-  if (isTouring.value) locateTarget()
+  if (isTouring.value) {
+    locateTarget()
+    narrateCurrentStep()
+  } else {
+    stopSpeech()
+  }
 })
 watch([stepIndex, isTouring, isAutoPlaying], scheduleAuto)
 
@@ -71,11 +90,13 @@ onMounted(() => {
   if (isTouring.value) {
     locateTarget()
     scheduleAuto()
+    narrateCurrentStep()
   }
   window.addEventListener('resize', measure)
 })
 onUnmounted(() => {
   clearAutoTimer()
+  stopSpeech()
   window.removeEventListener('resize', measure)
 })
 </script>
@@ -114,15 +135,27 @@ onUnmounted(() => {
           <p class="text-xs font-medium text-primary-600 dark:text-primary-400">
             مرحله {{ stepIndex + 1 }} از {{ stepsForRoute.length }}
           </p>
-          <button
-            type="button"
-            :aria-label="isAutoPlaying ? 'توقف پخش خودکار' : 'ادامه‌ی پخش خودکار'"
-            class="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white"
-            @click="toggleAutoPlay"
-          >
-            <svg v-if="isAutoPlaying" class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20"><path d="M5 4h3v12H5V4zm7 0h3v12h-3V4z" /></svg>
-            <svg v-else class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20"><path d="M6 4l10 6-10 6V4z" /></svg>
-          </button>
+          <div class="flex items-center gap-2">
+            <button
+              v-if="speechSupported"
+              type="button"
+              :aria-label="speechEnabled ? 'قطع صدای راهنما' : 'فعال کردن صدای راهنما'"
+              class="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white"
+              @click="toggleSpeech(); speechEnabled && narrateCurrentStep()"
+            >
+              <svg v-if="speechEnabled" class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 11-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.983 5.983 0 01-1.757 4.243 1 1 0 11-1.415-1.415A3.987 3.987 0 0013 10a3.987 3.987 0 00-1.172-2.828 1 1 0 010-1.415z" /></svg>
+              <svg v-else class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM12.293 7.293a1 1 0 011.414 0L15 8.586l1.293-1.293a1 1 0 111.414 1.414L16.414 10l1.293 1.293a1 1 0 01-1.414 1.414L15 11.414l-1.293 1.293a1 1 0 01-1.414-1.414L13.586 10l-1.293-1.293a1 1 0 010-1.414z" /></svg>
+            </button>
+            <button
+              type="button"
+              :aria-label="isAutoPlaying ? 'توقف پخش خودکار' : 'ادامه‌ی پخش خودکار'"
+              class="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white"
+              @click="toggleAutoPlay"
+            >
+              <svg v-if="isAutoPlaying" class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20"><path d="M5 4h3v12H5V4zm7 0h3v12h-3V4z" /></svg>
+              <svg v-else class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20"><path d="M6 4l10 6-10 6V4z" /></svg>
+            </button>
+          </div>
         </div>
         <h3 class="mt-1 font-semibold text-gray-900 dark:text-white">{{ currentStep.title }}</h3>
         <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">{{ currentStep.text }}</p>
