@@ -8,6 +8,20 @@ import type { VoiceId } from '@diffusionstudio/vits-web'
 // narration on a given browser is slow; everything after is local.
 const VOICE_ID: VoiceId = 'fa_IR-amir-medium'
 
+// The espeak-ng phonemizer underneath Piper stumbles on characters that
+// carry no sound of their own — most importantly U+200C (ZWNJ), the
+// invisible "نیم‌فاصله" Persian text uses constantly for compound words
+// like "می‌شه" or "ثبت‌نام". Left in, it reads as a small glitch on
+// nearly every other word, which is what made the narration sound
+// pervasively "off" rather than wrong in any one obvious place. Dropping
+// it merges the compound back into one plain word ("میشه") — no audible
+// pause is lost, since the half-space was never a spoken pause to begin
+// with. An em dash is replaced with a comma instead of dropped, so the
+// pause it implies in writing survives as an actual pause in speech.
+function sanitizeForSpeech(text: string) {
+  return text.replace(/‌/g, '').replace(/[—–]/g, '،')
+}
+
 export function useSpeech() {
   const enabled = useState('speech-enabled', () => true)
   const isLoading = useState('speech-loading', () => false)
@@ -40,7 +54,7 @@ export function useSpeech() {
     loadProgress.value = 0
     try {
       const { predict } = await import('@diffusionstudio/vits-web')
-      const blob = await predict({ text, voiceId: VOICE_ID }, (progress) => {
+      const blob = await predict({ text: sanitizeForSpeech(text), voiceId: VOICE_ID }, (progress) => {
         if (myRequest !== requestId) return
         loadProgress.value = progress.total ? Math.round((progress.loaded / progress.total) * 100) : 0
       })
