@@ -1,7 +1,7 @@
 <script setup lang="ts">
 const sidebarOpen = ref(false)
 const { logout } = useAuth()
-const { siteName } = useSite()
+const { owner, siteName } = useSite()
 
 async function onLogout() {
   await logout()
@@ -13,8 +13,23 @@ async function onLogout() {
   <div class="relative flex min-h-screen flex-col md:flex-row">
     <LayoutAmbientBackground />
     <aside class="glass w-full shrink-0 border-x-0 border-t-0 md:w-64 md:border-y-0 md:border-e">
-      <div class="flex items-center justify-between px-4 py-4">
-        <NuxtLink to="/" class="text-lg font-bold text-header-600 dark:text-header-400">{{ siteName }}</NuxtLink>
+      <div class="flex items-center justify-between gap-2 px-4 py-4">
+        <!-- A student's panel belongs to one teacher: show who, not a generic brand -->
+        <NuxtLink to="/" class="flex min-w-0 items-center gap-3">
+          <img
+            v-if="owner?.cover_image"
+            :src="owner.cover_image"
+            :alt="siteName"
+            class="h-10 w-10 shrink-0 rounded-full object-cover object-top ring-2 ring-header-500/40"
+          >
+          <span v-else class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-header-600 font-bold text-white">
+            {{ siteName[0] }}
+          </span>
+          <span class="min-w-0">
+            <span class="block text-[11px] text-gray-500 dark:text-gray-400">استاد شما</span>
+            <span class="block truncate font-bold text-header-700 dark:text-header-400">{{ siteName }}</span>
+          </span>
+        </NuxtLink>
         <div class="flex items-center gap-2">
           <LayoutThemeToggle />
           <button class="md:hidden" aria-label="Toggle sidebar" @click="sidebarOpen = !sidebarOpen">☰</button>
