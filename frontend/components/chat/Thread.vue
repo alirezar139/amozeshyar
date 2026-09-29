@@ -214,13 +214,23 @@ watch(() => props.conversation.id, () => {
 <template>
   <div class="flex h-full min-h-0 flex-col">
     <!-- header -->
-    <header class="flex items-center gap-3 border-b border-white/30 px-4 py-3 dark:border-white/10">
+    <header class="relative z-10 flex items-center gap-3 border-b border-white/40 bg-white/60 px-4 py-3 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-gray-900/60">
       <button type="button" class="rounded-lg p-1.5 text-gray-500 hover:bg-black/5 md:hidden dark:hover:bg-white/10" aria-label="بازگشت" @click="emit('back')">
         <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
       </button>
       <ChatAvatar :src="conversation.avatar" :name="conversation.title" :group="conversation.kind === 'course'" />
       <div class="min-w-0">
-        <p class="truncate font-bold text-gray-900 dark:text-white">{{ conversation.title }}</p>
+        <p class="flex items-center gap-2 truncate font-bold text-gray-900 dark:text-white">
+          {{ conversation.title }}
+          <span
+            :class="[
+              'rounded-full px-2 py-0.5 text-[10px] font-semibold',
+              conversation.kind === 'course' ? 'bg-accent-500/15 text-accent-700 dark:text-accent-300' : 'bg-primary-500/15 text-primary-700 dark:text-primary-300',
+            ]"
+          >
+            {{ conversation.kind === 'course' ? 'گروه' : 'خصوصی' }}
+          </span>
+        </p>
         <p class="truncate text-xs text-gray-500 dark:text-gray-400">
           {{ conversation.kind === 'course' ? `گروه دوره · ${conversation.members.toLocaleString('fa-IR')} عضو` : conversation.subtitle }}
         </p>
@@ -248,10 +258,10 @@ watch(() => props.conversation.id, () => {
           <div :class="['mb-1.5 flex', m.is_mine ? 'justify-start' : 'justify-end']">
             <div
               :class="[
-                'bubble max-w-[85%] rounded-2xl px-3 py-2 shadow-sm sm:max-w-[70%]',
+                'bubble relative max-w-[85%] rounded-[1.25rem] px-3.5 py-2 sm:max-w-[70%]',
                 m.is_mine
-                  ? 'rounded-ss-md bg-primary-600 text-white'
-                  : 'rounded-se-md bg-white text-gray-900 dark:bg-gray-800 dark:text-gray-100',
+                  ? 'bubble-mine rounded-ss-md bg-gradient-to-br from-primary-500 to-primary-700 text-white shadow-md shadow-primary-700/20'
+                  : 'bubble-theirs rounded-se-md bg-white/95 text-gray-900 shadow-md shadow-black/5 ring-1 ring-black/5 dark:bg-gray-800/95 dark:text-gray-100 dark:ring-white/5',
                 m.failed ? 'ring-2 ring-red-500' : '',
               ]"
             >
@@ -332,8 +342,22 @@ watch(() => props.conversation.id, () => {
 </template>
 
 <style scoped>
+/* Soft wallpaper: faint dots over a gentle two-tone wash, like a chat app. */
 .chat-bg {
-  background-image: radial-gradient(rgb(var(--c-primary-500) / 0.07) 1px, transparent 1px);
-  background-size: 18px 18px;
+  background-color: rgb(var(--c-primary-500) / 0.03);
+  background-image:
+    radial-gradient(rgb(var(--c-primary-500) / 0.09) 1px, transparent 1px),
+    radial-gradient(circle at 10% 0%, rgb(var(--c-primary-500) / 0.08), transparent 45%),
+    radial-gradient(circle at 90% 100%, rgb(var(--c-accent-500) / 0.08), transparent 45%);
+  background-size: 18px 18px, 100% 100%, 100% 100%;
+}
+
+/* New messages pop in. */
+.bubble {
+  animation: bubble-in 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes bubble-in {
+  from { opacity: 0; transform: translateY(6px) scale(0.98); }
+  to { opacity: 1; transform: none; }
 }
 </style>

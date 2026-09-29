@@ -112,7 +112,7 @@ onBeforeUnmount(() => stopRecording(true))
 </script>
 
 <template>
-  <div class="border-t border-white/30 p-3 dark:border-white/10">
+  <div class="border-t border-white/40 bg-white/60 p-3 backdrop-blur-xl dark:border-white/10 dark:bg-gray-900/60">
     <!-- pending attachment -->
     <div v-if="file" class="mb-2 flex items-center gap-3 rounded-xl bg-black/[0.04] p-2 dark:bg-white/5">
       <img v-if="filePreview" :src="filePreview" alt="" class="h-12 w-12 rounded-lg object-cover">
@@ -158,7 +158,7 @@ onBeforeUnmount(() => stopRecording(true))
         rows="1"
         :disabled="disabled"
         placeholder="پیام بنویسید…"
-        class="glass max-h-40 min-h-[2.75rem] flex-1 resize-none rounded-2xl px-4 py-2.5 text-sm leading-6 text-gray-900 outline-none focus:ring-2 focus:ring-primary-500/40 dark:text-white"
+        class="max-h-40 min-h-[2.75rem] flex-1 resize-none rounded-3xl bg-black/[0.05] px-4 py-2.5 text-sm leading-6 text-gray-900 outline-none transition focus:bg-white focus:ring-2 focus:ring-primary-500/40 dark:bg-white/[0.07] dark:text-white dark:focus:bg-white/10"
         @input="autoGrow"
         @keydown="onKeydown"
       />
@@ -166,7 +166,7 @@ onBeforeUnmount(() => stopRecording(true))
         v-if="text.trim() || file"
         type="button"
         :disabled="disabled"
-        class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary-600 text-white shadow-lg shadow-primary-600/30 transition hover:scale-105 hover:bg-primary-500 disabled:opacity-40"
+        class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary-500 to-primary-700 text-white shadow-lg shadow-primary-600/30 transition hover:scale-105 disabled:opacity-40"
         aria-label="ارسال"
         @click="submit"
       >
@@ -176,7 +176,7 @@ onBeforeUnmount(() => stopRecording(true))
         v-else
         type="button"
         :disabled="disabled"
-        class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary-600 text-white shadow-lg shadow-primary-600/30 transition hover:scale-105 hover:bg-primary-500 disabled:opacity-40"
+        class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary-500 to-primary-700 text-white shadow-lg shadow-primary-600/30 transition hover:scale-105 disabled:opacity-40"
         aria-label="ضبط پیام صوتی"
         title="ضبط پیام صوتی"
         @click="startRecording"
