@@ -152,7 +152,7 @@ onBeforeUnmount(() => {
   filter: blur(80px);
   opacity: 0.35;
 }
-:global(html.dark) .blob {
+html.dark .blob {
   opacity: 0.22;
 }
 .aurora-a { animation: aurora-a 22s ease-in-out infinite; }
@@ -181,7 +181,7 @@ onBeforeUnmount(() => {
   transform: translate3d(calc(var(--px) * -24px), calc(var(--py) * -18px), 0);
   transition: transform 1.2s cubic-bezier(0.22, 1, 0.36, 1);
 }
-:global(html.dark) .flowing-gradient {
+html.dark .flowing-gradient {
   opacity: 0.2;
 }
 @keyframes flow {
@@ -200,7 +200,7 @@ onBeforeUnmount(() => {
 .wave-1 { opacity: 0.16; animation-duration: 26s; height: 100%; }
 .wave-2 { opacity: 0.14; animation-duration: 19s; animation-direction: reverse; height: 80%; }
 .wave-3 { opacity: 0.12; animation-duration: 14s; height: 60%; }
-:global(html.dark) .wave { filter: brightness(0.8); }
+html.dark .wave { filter: brightness(0.8); }
 @keyframes wave-move {
   from { transform: translateX(0); }
   to { transform: translateX(-50%); }
@@ -233,7 +233,7 @@ onBeforeUnmount(() => {
 .image-veil {
   background: rgb(243 244 246 / 0.72);
 }
-:global(html.dark) .image-veil {
+html.dark .image-veil {
   background: rgb(10 12 15 / 0.72);
 }
 
