@@ -88,3 +88,20 @@ def test_students_cannot_manage(site):
     assert client.get("/api/v1/courses/manage/").status_code == 403
     assert client.get("/api/v1/class-sessions/").status_code == 403
     assert client.get("/api/v1/site/settings/").status_code == 403
+
+
+def test_site_settings_edit_links_and_remove_photo(site):
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    site.cover_image = SimpleUploadedFile("me.jpg", b"fake", content_type="image/jpeg")
+    site.save()
+    client = client_for(site.user)
+    response = client.patch(
+        "/api/v1/site/settings/",
+        {"social_links": {"اینستاگرام": "https://instagram.com/ali"}, "cover_image": None},
+        format="json",
+    )
+    assert response.status_code == 200
+    site.refresh_from_db()
+    assert site.social_links == {"اینستاگرام": "https://instagram.com/ali"}
+    assert not site.cover_image
