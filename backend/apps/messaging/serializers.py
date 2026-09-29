@@ -43,14 +43,37 @@ class MessageSerializer(serializers.ModelSerializer):
     attachment_url = serializers.SerializerMethodField()
     reply_to = serializers.SerializerMethodField()
     seen_count = serializers.SerializerMethodField()
+    is_deleted = serializers.SerializerMethodField()
+    reactions = serializers.SerializerMethodField()
 
     class Meta:
         model = Message
         fields = (
             "id", "conversation", "sender", "is_mine", "text",
             "attachment_kind", "attachment_name", "attachment_size", "attachment_url", "duration_seconds",
-            "reply_to", "seen_count", "created_at",
+            "reply_to", "seen_count", "is_deleted", "reactions", "created_at",
         )
+
+    def to_representation(self, obj):
+        data = super().to_representation(obj)
+        if obj.deleted_at and not self.context.get("audit"):
+            # Gone for everyone in the conversation; only the report keeps it.
+            data.update(text="", attachment_kind="", attachment_name="", attachment_size=0,
+                        attachment_url=None, duration_seconds=None, reply_to=None, reactions=[])
+        return data
+
+    def get_is_deleted(self, obj) -> bool:
+        return obj.deleted_at is not None
+
+    def get_reactions(self, obj) -> list[dict]:
+        """[{emoji, count, mine}], most used first (uses prefetched reactions)."""
+        me = self.context["request"].user.id
+        summary: dict[str, dict] = {}
+        for r in obj.reactions.all():
+            row = summary.setdefault(r.emoji, {"emoji": r.emoji, "count": 0, "mine": False})
+            row["count"] += 1
+            row["mine"] = row["mine"] or r.user_id == me
+        return sorted(summary.values(), key=lambda row: -row["count"])
 
     def get_is_mine(self, obj) -> bool:
         return obj.sender_id == self.context["request"].user.id
@@ -59,6 +82,8 @@ class MessageSerializer(serializers.ModelSerializer):
         quoted = obj.reply_to
         if not quoted:
             return None
+        if quoted.deleted_at and not self.context.get("audit"):
+            return {"id": quoted.id, "sender_name": display_name(quoted.sender), "text": "", "attachment_kind": "", "deleted": True}
         return {
             "id": quoted.id,
             "sender_name": display_name(quoted.sender),
@@ -247,3 +272,16 @@ class GroupSettingsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Conversation
         fields = ("title", "avatar", "announcement_only", "member_ids")
+
+
+class AuditMessageSerializer(MessageSerializer):
+    """The teacher's chat report: everything, including deleted content."""
+
+    deleted_at = serializers.DateTimeField(read_only=True)
+    deleted_by_name = serializers.SerializerMethodField()
+
+    class Meta(MessageSerializer.Meta):
+        fields = MessageSerializer.Meta.fields + ("deleted_at", "deleted_by_name")
+
+    def get_deleted_by_name(self, obj) -> str:
+        return display_name(obj.deleted_by) if obj.deleted_by else ""
