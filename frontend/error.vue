@@ -25,7 +25,7 @@ function goHome() {
 
 <template>
   <div class="flex min-h-screen items-center justify-center px-4">
-    <LayoutAmbientBackground />
+    <LayoutSiteBackground />
     <div class="glass relative z-10 w-full max-w-md rounded-2xl p-8 text-center">
       <p class="text-6xl font-extrabold text-primary-600">{{ error.statusCode }}</p>
       <h1 class="mt-4 text-xl font-bold text-gray-900 dark:text-white">{{ title }}</h1>

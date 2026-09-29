@@ -106,3 +106,22 @@ def test_site_settings_edit_links_and_remove_photo(site):
     assert site.social_links == {"اینستاگرام": "https://instagram.com/ali"}
     assert not site.cover_image
     assert APIClient().get("/api/v1/site/").data["site_name"] == "آکادمی علی"
+
+
+def test_site_background_settings(site):
+    client = client_for(site.user)
+    ok = client.patch(
+        "/api/v1/site/settings/",
+        {"background_style": "waves", "background_colors": ["#112233", "#AABBCC"], "background_motion": False},
+        format="json",
+    )
+    assert ok.status_code == 200
+    public = APIClient().get("/api/v1/site/").data
+    assert public["background_style"] == "waves"
+    assert public["background_colors"] == ["#112233", "#AABBCC"]
+    assert public["background_motion"] is False
+
+    bad = client.patch("/api/v1/site/settings/", {"background_colors": ["red"]}, format="json")
+    assert bad.status_code == 400
+    bad = client.patch("/api/v1/site/settings/", {"background_style": "disco"}, format="json")
+    assert bad.status_code == 400

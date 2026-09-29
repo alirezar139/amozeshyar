@@ -1,3 +1,5 @@
+import re
+
 from rest_framework import serializers
 
 from .models import InstructorProfile
@@ -16,6 +18,10 @@ class PublicInstructorSerializer(serializers.ModelSerializer):
             "display_name",
             "site_name",
             "logo",
+            "background_style",
+            "background_colors",
+            "background_image",
+            "background_motion",
             "headline",
             "bio",
             "credentials",
@@ -36,4 +42,14 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = InstructorProfile
-        fields = ("site_name", "logo", "headline", "bio", "credentials", "cover_image", "social_links")
+        fields = (
+            "site_name", "logo", "headline", "bio", "credentials", "cover_image", "social_links",
+            "background_style", "background_colors", "background_image", "background_motion",
+        )
+
+    def validate_background_colors(self, value):
+        if not isinstance(value, list) or len(value) > 3 or not all(
+            isinstance(c, str) and re.fullmatch(r"#[0-9a-fA-F]{6}", c) for c in value
+        ):
+            raise serializers.ValidationError("Up to three hex colors like #157e6c.")
+        return value

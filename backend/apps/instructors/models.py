@@ -7,6 +7,14 @@ from apps.common.models import TimeStampedModel
 
 
 class InstructorProfile(TimeStampedModel):
+    class BackgroundStyle(models.TextChoices):
+        AURORA = "aurora", "Aurora"
+        GRADIENT = "gradient", "Flowing gradient"
+        WAVES = "waves", "Waves"
+        PARTICLES = "particles", "Floating particles"
+        IMAGE = "image", "Custom image"
+        PLAIN = "plain", "Plain"
+
     """Public profile of the instructor who owns this install.
 
     Each instructor gets their own install of the software, so exactly one
@@ -55,6 +63,12 @@ class InstructorProfile(TimeStampedModel):
     # the instructor's own name; blank logo to their initial.
     site_name = models.CharField(max_length=100, blank=True)
     logo = models.ImageField(upload_to="site_logos/", blank=True, null=True)
+    # Site-wide animated background. Empty colors fall back to the theme's
+    # primary/accent; background_image is only used by the "image" style.
+    background_style = models.CharField(max_length=20, choices=BackgroundStyle.choices, default=BackgroundStyle.AURORA)
+    background_colors = models.JSONField(default=list, blank=True)
+    background_image = models.ImageField(upload_to="site_backgrounds/", blank=True, null=True)
+    background_motion = models.BooleanField(default=True)
 
     class Meta:
         ordering = ("-created_at",)
