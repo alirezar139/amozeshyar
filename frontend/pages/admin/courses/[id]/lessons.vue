@@ -31,7 +31,7 @@ const { data: course } = await useAsyncData(`admin-course-${courseId}`, () =>
 
     <CourseLessonManager :course-id="courseId" data-tour="lesson-manager" class="mt-6" />
 
-    <h2 class="mt-12 text-lg font-bold text-gray-900 dark:text-white">زمان‌بندی کلاس‌های زنده</h2>
+    <h2 class="mt-12 text-lg font-bold text-gray-900 dark:text-white">زمان‌بندی دوره‌های آنلاین</h2>
     <CourseClassSessionManager :course-id="courseId" data-tour="class-session-manager" class="mt-4" />
   </div>
 </template>

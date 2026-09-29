@@ -61,7 +61,7 @@ async function createSession() {
       },
     })
   } catch (err) {
-    createError.value = getErrorMessage(err, 'ثبت کلاس ناموفق بود.')
+    createError.value = getErrorMessage(err, 'ثبت دوره‌ی آنلاین ناموفق بود.')
     creating.value = false
     return
   }
@@ -102,20 +102,20 @@ async function copyLink(id: number) {
 <template>
   <div>
     <div class="flex flex-wrap items-center justify-between gap-3">
-      <h1 class="text-xl font-bold text-gray-900 dark:text-white">تقویم کلاس‌های سامانه</h1>
+      <h1 class="text-xl font-bold text-gray-900 dark:text-white">تقویم دوره‌های آنلاین</h1>
       <div class="flex gap-2">
         <button v-if="selectedDay" type="button" class="glass rounded-md px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200" @click="clearFilter">
           نمایش همه ✕
         </button>
         <button type="button" class="rounded-md bg-primary-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-primary-500" @click="openCreateForm">
-          + افزودن کلاس
+          + افزودن دوره‌ی آنلاین
         </button>
       </div>
     </div>
-    <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">تمام کلاس‌های زمان‌بندی‌شده در همه‌ی دوره‌ها.</p>
+    <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">تمام دوره‌های آنلاین زمان‌بندی‌شده.</p>
 
     <div v-if="showCreateForm" class="glass mt-4 rounded-2xl p-5">
-      <h2 class="text-sm font-semibold text-gray-900 dark:text-white">کلاس جدید</h2>
+      <h2 class="text-sm font-semibold text-gray-900 dark:text-white">دوره‌ی آنلاین جدید</h2>
       <form class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2" @submit.prevent="createSession">
         <select v-model.number="form.course" required class="glass rounded-md px-3 py-2 text-sm text-gray-900 dark:text-white sm:col-span-2">
           <option :value="null" disabled>انتخاب دوره</option>
@@ -124,13 +124,13 @@ async function copyLink(id: number) {
         <input
           v-model="form.title"
           required
-          placeholder="عنوان کلاس، مثلاً «جلسه‌ی پرسش و پاسخ زنده»"
+          placeholder="عنوان، مثلاً «جلسه‌ی پرسش و پاسخ»"
           class="glass rounded-md px-3 py-2 text-sm text-gray-900 dark:text-white sm:col-span-2"
         >
         <input v-model="form.starts_at" type="datetime-local" required :min="dateBounds.min" :max="dateBounds.max" class="glass rounded-md px-3 py-2 text-sm text-gray-900 dark:text-white">
         <label class="glass flex items-center gap-2 rounded-md px-3 py-2 text-sm text-gray-700 dark:text-gray-200">
           <input v-model="form.is_online" type="checkbox" class="h-4 w-4">
-          کلاس آنلاین است
+          به‌صورت آنلاین برگزار می‌شود
         </label>
         <input
           v-model="form.location_note"
@@ -140,7 +140,7 @@ async function copyLink(id: number) {
         <p v-if="createError" class="text-sm text-red-600 sm:col-span-2">{{ createError }}</p>
         <div class="flex gap-2 sm:col-span-2">
           <button type="submit" :disabled="creating" class="rounded-md bg-primary-600 px-5 py-2 text-sm font-semibold text-white hover:bg-primary-500 disabled:opacity-50">
-            {{ creating ? 'در حال ثبت...' : 'ثبت کلاس' }}
+            {{ creating ? 'در حال ثبت...' : 'ثبت' }}
           </button>
           <button type="button" class="glass rounded-md px-5 py-2 text-sm text-gray-700 dark:text-gray-200" @click="showCreateForm = false">
             انصراف
@@ -168,13 +168,13 @@ async function copyLink(id: number) {
 
       <div data-tour="admin-calendar-sessions">
         <h2 class="text-sm font-semibold text-gray-900 dark:text-white">
-          {{ selectedDay ? 'کلاس‌های این روز' : 'همه‌ی کلاس‌های زمان‌بندی‌شده' }}
+          {{ selectedDay ? 'دوره‌های آنلاین این روز' : 'همه‌ی دوره‌های آنلاین' }}
         </h2>
         <p v-if="!sessions?.length" class="mt-4 text-sm text-gray-500 dark:text-gray-400">
-          هنوز هیچ کلاسی در سامانه زمان‌بندی نشده است.
+          هنوز هیچ دوره‌ی آنلاینی زمان‌بندی نشده است.
         </p>
         <p v-else-if="!visibleSessions.length" class="mt-4 text-sm text-gray-500 dark:text-gray-400">
-          برای این روز کلاسی زمان‌بندی نشده است.
+          برای این روز دوره‌ی آنلاینی زمان‌بندی نشده است.
         </p>
         <div v-else class="mt-4 space-y-3">
           <div v-for="session in visibleSessions" :key="session.id" class="glass rounded-xl p-4">
@@ -190,7 +190,7 @@ async function copyLink(id: number) {
                 :to="`/classroom/${session.id}`"
                 class="inline-flex items-center gap-1.5 rounded-md bg-primary-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-primary-500"
               >
-                پیوستن به کلاس آنلاین
+                ورود به دوره‌ی آنلاین
               </NuxtLink>
               <button
                 type="button"

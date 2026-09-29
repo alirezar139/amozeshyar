@@ -20,7 +20,7 @@ function rank(e: any) {
 <template>
   <div>
     <h1 class="text-xl font-bold text-gray-900 dark:text-white">دوره‌های من</h1>
-    <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">روی هر دوره بزنید تا وارد کلاس درسش شوید.</p>
+    <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">روی هر دوره بزنید تا وارد صفحه‌ی یادگیری‌اش شوید.</p>
 
     <div v-if="pending" class="mt-6 text-gray-500">در حال بارگذاری...</div>
 

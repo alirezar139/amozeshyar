@@ -45,7 +45,7 @@ onMounted(async () => {
     info.value = await request<typeof info.value>(`/class-sessions/${sessionId}/join/`)
   } catch (err) {
     status.value = 'error'
-    errorMessage.value = getErrorMessage(err, 'شما به این کلاس دسترسی ندارید یا کلاسی با این شناسه پیدا نشد.')
+    errorMessage.value = getErrorMessage(err, 'شما به این دوره‌ی آنلاین دسترسی ندارید یا پیدا نشد.')
     return
   }
 
@@ -53,7 +53,7 @@ onMounted(async () => {
     await loadScript('https://meet.jit.si/external_api.js')
   } catch {
     status.value = 'error'
-    errorMessage.value = 'اتصال به سرویس کلاس آنلاین ناموفق بود. اتصال اینترنت خود را بررسی کنید.'
+    errorMessage.value = 'اتصال به سرویس دوره‌ی آنلاین ناموفق بود. اتصال اینترنت خود را بررسی کنید.'
     return
   }
 
@@ -82,12 +82,12 @@ onUnmounted(() => {
 <template>
   <div class="fixed inset-0 flex flex-col bg-gray-950">
     <div v-if="status !== 'error'" class="flex items-center justify-between px-4 py-2 text-sm text-gray-300">
-      <span>{{ info ? `${info.course_title} — ${info.title}` : 'در حال اتصال به کلاس...' }}</span>
+      <span>{{ info ? `${info.course_title} — ${info.title}` : 'در حال اتصال...' }}</span>
       <NuxtLink :to="backTo" class="text-gray-400 hover:text-white">بازگشت ✕</NuxtLink>
     </div>
 
     <div v-if="status === 'loading'" class="flex flex-1 items-center justify-center text-gray-400">
-      در حال اتصال به کلاس آنلاین...
+      در حال اتصال به دوره‌ی آنلاین...
     </div>
     <div v-else-if="status === 'error'" class="flex flex-1 flex-col items-center justify-center gap-4 px-4 text-center text-gray-300">
       <p>{{ errorMessage }}</p>

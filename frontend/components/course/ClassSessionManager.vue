@@ -32,7 +32,7 @@ async function addSession() {
     Object.assign(form, { title: '', starts_at: '', is_online: true, location_note: '' })
     await refresh()
   } catch (err) {
-    error.value = getErrorMessage(err, 'ثبت کلاس ناموفق بود.')
+    error.value = getErrorMessage(err, 'ثبت دوره‌ی آنلاین ناموفق بود.')
   } finally {
     creating.value = false
   }
@@ -72,12 +72,12 @@ async function copyLink(id: number) {
 <template>
   <div>
     <div class="glass rounded-2xl p-6">
-      <h2 class="font-semibold text-gray-900 dark:text-white">افزودن کلاس زمان‌بندی‌شده</h2>
+      <h2 class="font-semibold text-gray-900 dark:text-white">افزودن دوره‌ی آنلاین</h2>
       <form class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2" @submit.prevent="addSession">
         <input
           v-model="form.title"
           required
-          placeholder="عنوان کلاس، مثلاً «جلسه‌ی پرسش و پاسخ زنده»"
+          placeholder="عنوان، مثلاً «جلسه‌ی پرسش و پاسخ»"
           class="glass rounded-md px-3 py-2 text-sm text-gray-900 dark:text-white sm:col-span-2"
         >
         <input
@@ -90,11 +90,11 @@ async function copyLink(id: number) {
         >
         <label class="glass flex items-center gap-2 rounded-md px-3 py-2 text-sm text-gray-700 dark:text-gray-200">
           <input v-model="form.is_online" type="checkbox" class="h-4 w-4">
-          کلاس آنلاین است
+          به‌صورت آنلاین برگزار می‌شود
         </label>
         <input
           v-model="form.location_note"
-          :placeholder="form.is_online ? 'توضیح اضافه (اختیاری) — کلاس آنلاین از همین سامانه برگزار می‌شود' : 'آدرس محل برگزاری'"
+          :placeholder="form.is_online ? 'توضیح اضافه (اختیاری) — از همین سامانه برگزار می‌شود' : 'آدرس محل برگزاری'"
           class="glass rounded-md px-3 py-2 text-sm text-gray-900 dark:text-white sm:col-span-2"
         >
         <button
@@ -123,7 +123,7 @@ async function copyLink(id: number) {
             :to="`/classroom/${session.id}`"
             class="rounded-md bg-primary-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-primary-500"
           >
-            پیوستن به کلاس
+            ورود
           </NuxtLink>
           <button
             v-if="session.is_online"
@@ -143,7 +143,7 @@ async function copyLink(id: number) {
           </button>
         </div>
       </div>
-      <p v-if="sessions && sessions.length === 0" class="text-gray-600 dark:text-gray-400">هنوز کلاسی زمان‌بندی نشده است.</p>
+      <p v-if="sessions && sessions.length === 0" class="text-gray-600 dark:text-gray-400">هنوز دوره‌ی آنلاینی زمان‌بندی نشده است.</p>
     </div>
   </div>
 </template>

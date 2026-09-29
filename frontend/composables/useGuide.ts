@@ -12,10 +12,10 @@ export interface TourStep {
 // FAQ in GuidePanel is always available regardless.
 export const TOUR_STEPS: Record<string, TourStep[]> = {
   index: [
-    { selector: '[data-tour="header-login"]', title: 'ورود یا ثبت‌نام', text: 'برای خرید دوره و حضور در کلاس‌ها، اول باید وارد حساب خودتون بشید — یه پاپ‌آپ سبک باز می‌شه، نه یه صفحه‌ی جدا.' },
+    { selector: '[data-tour="header-login"]', title: 'ورود یا ثبت‌نام', text: 'برای خرید دوره و شرکت در دوره‌های آنلاین، اول باید وارد حساب خودتون بشید — یه پاپ‌آپ سبک باز می‌شه، نه یه صفحه‌ی جدا.' },
     { selector: '[data-tour="hero-cta"]', title: 'مشاهده‌ی دوره‌ها', text: 'با این دکمه به فهرست کامل دوره‌های سایت می‌رسید.' },
     { selector: '[data-tour="featured-courses"]', title: 'دوره‌ها', text: 'چند نمونه از دوره‌های تازه؛ روی هرکدوم بزنید تا پیش‌نمایش رایگانش رو ببینید.' },
-    { selector: '[data-tour="features"]', title: 'چرا این دوره‌ها؟', text: 'پیش‌نمایش رایگان، کلاس آنلاین زنده، پرداخت امن و دسترسی همیشگی به دوره‌ی خریداری‌شده.' },
+    { selector: '[data-tour="features"]', title: 'چرا این دوره‌ها؟', text: 'پیش‌نمایش رایگان، دوره‌های آنلاین، پرداخت امن و دسترسی همیشگی به دوره‌ی خریداری‌شده.' },
     { selector: '[data-tour="categories"]', title: 'دسته‌بندی دوره‌ها', text: 'روی هر دسته کلیک کنید تا فقط دوره‌های همون موضوع رو ببینید.' },
   ],
 
@@ -34,8 +34,8 @@ export const TOUR_STEPS: Record<string, TourStep[]> = {
     { selector: '[data-tour="my-courses-grid"]', title: 'دوره‌های من', text: 'همه‌ی دوره‌هایی که خریداری کردید اینجا هستن؛ با کلیک روی هرکدوم وارد محتوای کاملش می‌شید.' },
   ],
   'dashboard-calendar': [
-    { selector: '[data-tour="student-calendar"]', title: 'تقویم کلاس‌ها', text: 'روزهایی که کلاس زنده دارید روی تقویم علامت خورده؛ روی یه روز بزنید تا فقط جلسات همون روز رو ببینید.' },
-    { selector: '[data-tour="upcoming-sessions"]', title: 'جلسات پیش رو', text: 'زمان دقیق هر کلاس زنده و اینکه آنلاینه یا نه، همین‌جا نشون داده می‌شه.' },
+    { selector: '[data-tour="student-calendar"]', title: 'تقویم دوره‌های آنلاین', text: 'روزهایی که دوره‌ی آنلاین دارید روی تقویم علامت خورده؛ روی یه روز بزنید تا فقط جلسات همون روز رو ببینید.' },
+    { selector: '[data-tour="upcoming-sessions"]', title: 'جلسات پیش رو', text: 'زمان دقیق هر دوره‌ی آنلاین و اینکه آنلاینه یا نه، همین‌جا نشون داده می‌شه.' },
   ],
   'dashboard-orders': [
     { selector: '[data-tour="orders-heading"]', title: 'سفارش‌های من', text: 'تاریخچه‌ی خریدها و وضعیت پرداخت هرکدوم اینجا نمایش داده می‌شه.' },
@@ -43,21 +43,21 @@ export const TOUR_STEPS: Record<string, TourStep[]> = {
 
   admin: [
     { selector: '[data-tour="admin-courses-stat"]', title: 'دوره‌های شما', text: 'تعداد دوره‌هایی که روی سایت منتشر شدن؛ با کلیک وارد فهرست کامل دوره‌ها می‌شید.' },
-    { selector: '[data-tour="admin-sessions-stat"]', title: 'کلاس‌های پیش رو', text: 'تعداد کلاس‌های زنده‌ای که زمان‌بندی کردید؛ با کلیک به تقویم کلاس‌ها می‌رید.' },
+    { selector: '[data-tour="admin-sessions-stat"]', title: 'دوره‌های آنلاین پیش رو', text: 'تعداد دوره‌های آنلاینی که زمان‌بندی کردید؛ با کلیک به تقویم دوره‌های آنلاین می‌رید.' },
   ],
   'admin-calendar': [
-    { selector: '[data-tour="admin-calendar-grid"]', title: 'تقویم کلاس‌ها', text: 'همه‌ی کلاس‌های زنده‌ی همه‌ی دوره‌هاتون روی یه تقویم.' },
-    { selector: '[data-tour="admin-calendar-sessions"]', title: 'فهرست کلاس‌ها', text: 'با انتخاب یه روز از تقویم، فقط کلاس‌های همون روز اینجا فیلتر می‌شن.' },
+    { selector: '[data-tour="admin-calendar-grid"]', title: 'تقویم دوره‌های آنلاین', text: 'همه‌ی دوره‌های آنلاینتون روی یه تقویم.' },
+    { selector: '[data-tour="admin-calendar-sessions"]', title: 'فهرست دوره‌های آنلاین', text: 'با انتخاب یه روز از تقویم، فقط دوره‌های آنلاین همون روز اینجا فیلتر می‌شن.' },
   ],
   'admin-courses': [
-    { selector: '[data-tour="all-courses-table"]', title: 'همه‌ی دوره‌ها', text: 'از این جدول سرفصل‌ها، ویدیوها و کلاس‌های هر دوره رو مدیریت کنید، یا دوره رو منتشر کنید و به پیش‌نویس برگردونید.' },
+    { selector: '[data-tour="all-courses-table"]', title: 'همه‌ی دوره‌ها', text: 'از این جدول سرفصل‌ها، ویدیوها و دوره‌های آنلاین هر دوره رو مدیریت کنید، یا دوره رو منتشر کنید و به پیش‌نویس برگردونید.' },
   ],
   'admin-courses-create': [
     { selector: '[data-tour="admin-course-create-form"]', title: 'دوره‌ی جدید', text: 'عنوان، توضیحات، دسته‌بندی و قیمت رو وارد کنید؛ دوره بلافاصله روی سایت منتشر می‌شه.' },
   ],
   'admin-courses-id-lessons': [
     { selector: '[data-tour="lesson-manager"]', title: 'سرفصل‌ها و ویدیو', text: 'جلسه بسازید و ویدیوش رو آپلود کنید؛ پردازش و ساخت پیش‌نمایش رایگان خودکار انجام می‌شه.' },
-    { selector: '[data-tour="class-session-manager"]', title: 'کلاس‌های زنده', text: 'زمان‌بندی جلسات زنده‌ی این دوره رو از همین‌جا مدیریت می‌کنید.' },
+    { selector: '[data-tour="class-session-manager"]', title: 'دوره‌های آنلاین', text: 'زمان‌بندی جلسات زنده‌ی این دوره رو از همین‌جا مدیریت می‌کنید.' },
   ],
   'admin-settings': [
     { selector: '[data-tour="site-settings-form"]', title: 'تنظیمات سایت', text: 'عنوان تخصص، معرفی، عکس و شبکه‌های اجتماعی‌تون رو اینجا بنویسید؛ همین‌ها در صفحه‌ی اول سایت نمایش داده می‌شن.' },
