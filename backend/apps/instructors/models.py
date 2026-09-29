@@ -97,6 +97,8 @@ class InstructorProfile(TimeStampedModel):
     background_colors = models.JSONField(default=list, blank=True)
     background_image = models.ImageField(upload_to="site_backgrounds/", blank=True, null=True)
     background_motion = models.BooleanField(default=True)
+    # Messenger: may classmates (students sharing a course) chat privately?
+    allow_peer_chat = models.BooleanField(default=True)
     background_speed = models.CharField(max_length=10, choices=BackgroundSpeed.choices, default=BackgroundSpeed.SLOW)
 
     class Meta:

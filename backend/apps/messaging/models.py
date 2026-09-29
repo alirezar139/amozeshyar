@@ -6,18 +6,22 @@ from apps.common.models import TimeStampedModel
 
 
 class Conversation(TimeStampedModel):
-    """A chat between the site's teacher side (every admin) and students.
-
-    Two kinds, one per subject:
-      - direct: one student <-> the teacher (`student` set);
+    """A chat on the site. Four kinds:
+      - direct: one student <-> the teacher side (every admin); `student` set.
       - course: a group per course — the teacher plus every student actively
         enrolled in it (`course` set). Membership is derived from enrollment,
-        not stored, so it follows purchases and refunds automatically.
+        so it follows purchases and refunds automatically.
+      - custom: a group the teacher created, with explicit members
+        (ConversationMember) plus the teacher side.
+      - peer: a private chat between two classmates (two ConversationMember
+        rows). The teacher side does not see these.
     """
 
     class Kind(models.TextChoices):
         DIRECT = "direct", "Direct"
         COURSE = "course", "Course group"
+        CUSTOM = "custom", "Custom group"
+        PEER = "peer", "Peer"
 
     kind = models.CharField(max_length=10, choices=Kind.choices)
     student = models.ForeignKey(
@@ -27,6 +31,12 @@ class Conversation(TimeStampedModel):
         "courses.Course", null=True, blank=True, on_delete=models.CASCADE, related_name="conversations"
     )
     last_message_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    # Group settings (course and custom groups).
+    title = models.CharField(max_length=120, blank=True)
+    avatar = models.ImageField(upload_to="chat_groups/", blank=True, null=True)
+    announcement_only = models.BooleanField(default=False)
+    pinned_message = models.ForeignKey("Message", null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
 
     class Meta:
         ordering = ("-last_message_at", "-created_at")
@@ -35,13 +45,29 @@ class Conversation(TimeStampedModel):
             models.UniqueConstraint(fields=("course",), condition=Q(kind="course"), name="one_group_per_course"),
             models.CheckConstraint(
                 condition=(Q(kind="direct", student__isnull=False, course__isnull=True))
-                | (Q(kind="course", course__isnull=False, student__isnull=True)),
+                | (Q(kind="course", course__isnull=False, student__isnull=True))
+                | (Q(kind__in=("custom", "peer"), student__isnull=True, course__isnull=True)),
                 name="conversation_kind_matches_subject",
             ),
         ]
 
     def __str__(self):
-        return f"{self.kind}: {self.student or self.course}"
+        return f"{self.kind}: {self.title or self.student or self.course or self.pk}"
+
+    @property
+    def is_group(self) -> bool:
+        return self.kind in (self.Kind.COURSE, self.Kind.CUSTOM)
+
+
+class ConversationMember(models.Model):
+    """Explicit membership, for custom groups and peer chats."""
+
+    conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE, related_name="members")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="chat_memberships")
+    added_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=("conversation", "user"), name="one_membership_per_user")]
 
 
 class Message(TimeStampedModel):
