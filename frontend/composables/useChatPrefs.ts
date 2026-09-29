@@ -58,13 +58,6 @@ export function useChatPrefs() {
   return { prefs, update }
 }
 
-/** Back-compat wrapper used by the thread for its wallpaper class. */
-export function useChatWallpaper() {
-  const { prefs, update } = useChatPrefs()
-  const wallpaper = computed(() => prefs.value.wallpaper)
-  return { wallpaper, setWallpaper: (value: ChatWallpaper) => update({ wallpaper: value }) }
-}
-
 /** A short, soft two-note chime for incoming messages (no audio file needed). */
 export function playChatChime() {
   try {
