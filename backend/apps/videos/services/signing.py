@@ -25,7 +25,12 @@ def get_presigned_url(storage_key: str, expires_in: int = 600) -> str:
 def get_download_url(storage_key: str, filename: str, expires_in: int = 300) -> str:
     """Presigned URL forcing a browser download (Content-Disposition), for the owner/admin download endpoint."""
     # RFC 6266: an ASCII fallback plus the real (often Persian) name as UTF-8.
-    ascii_name = filename.encode("ascii", "ignore").decode().replace('"', "").strip() or "download"
+    stem, dot, ext = filename.rpartition(".")
+    if not dot:
+        stem, ext = filename, ""
+    ascii_stem = stem.encode("ascii", "ignore").decode().replace('"', "").strip() or "download"
+    ascii_ext = ext.encode("ascii", "ignore").decode().replace('"', "")
+    ascii_name = f"{ascii_stem}.{ascii_ext}" if ascii_ext else ascii_stem
     disposition = f"attachment; filename=\"{ascii_name}\"; filename*=UTF-8''{quote(filename)}"
     params = {"ResponseContentDisposition": disposition}
     return _storage.bucket.meta.client.generate_presigned_url(
