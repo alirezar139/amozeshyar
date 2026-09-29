@@ -97,16 +97,4 @@ defineProps<{
   25% { transform: translateY(-6px) rotate(-1deg); }
   75% { transform: translateY(-3px) rotate(1deg); }
 }
-
-@media (prefers-reduced-motion: reduce) {
-  .portrait-stack {
-    animation: none;
-  }
-  .page {
-    animation: none !important;
-    transition: none;
-  }
-  .page-back { transform: rotate(-6deg); }
-  .page-mid { transform: rotate(6deg); }
-}
 </style>

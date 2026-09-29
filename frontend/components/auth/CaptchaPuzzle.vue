@@ -368,10 +368,4 @@ html.dark .captcha-input {
 .pop-leave-to {
   opacity: 0;
 }
-
-@media (prefers-reduced-motion: reduce) {
-  .captcha-glow-bar, .captcha-frame, .captcha-invite, .captcha-shake, .captcha-shimmer {
-    animation: none;
-  }
-}
 </style>
