@@ -55,6 +55,9 @@ class OrderItem(models.Model):
     class Meta:
         unique_together = ("order", "course")
 
+    def __str__(self):
+        return f"{self.course} in order #{self.order_id}"
+
 
 class Payment(TimeStampedModel):
     class Status(models.TextChoices):

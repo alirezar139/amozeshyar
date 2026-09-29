@@ -71,6 +71,9 @@ class ConversationMember(models.Model):
     class Meta:
         constraints = [models.UniqueConstraint(fields=("conversation", "user"), name="one_membership_per_user")]
 
+    def __str__(self):
+        return f"{self.user} in {self.conversation}"
+
 
 class Message(TimeStampedModel):
     class AttachmentKind(models.TextChoices):
@@ -108,3 +111,6 @@ class ConversationRead(models.Model):
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=("conversation", "user"), name="one_read_marker_per_user")]
+
+    def __str__(self):
+        return f"{self.user} read {self.conversation} up to #{self.last_read_message_id}"

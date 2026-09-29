@@ -1,0 +1,15 @@
+# Ruff (lint + import order) for the backend. Run: ruff check .
+target-version = "py312"
+line-length = 120
+extend-exclude = ["**/migrations/**", ".venv"]
+
+[lint]
+# E/W: pycodestyle, F: pyflakes, I: import order, B: common bugs, UP: modern syntax, DJ: Django rules
+select = ["E", "W", "F", "I", "B", "UP", "DJ"]
+ignore = [
+  "E501",  # long lines are left to the formatter/reviewer (Persian strings run long)
+  "B904",  # 'raise ... from err' inside except — we already chain where it matters
+]
+
+[lint.isort]
+known-first-party = ["apps", "config"]
