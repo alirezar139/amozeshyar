@@ -64,9 +64,11 @@
 
 /* Neutral silver/graphite base — color now lives in the primary/accent
    buttons and highlights, not the backdrop itself, per the "chrome +
-   crystal" direction (not the earlier all-over teal/amber wash). */
-html,
-body {
+   crystal" direction (not the earlier all-over teal/amber wash).
+   Painted on <html> only: <body> stays transparent, otherwise its own
+   opaque background would sit on top of the site-wide animated
+   backdrop (LayoutSiteBackground, a fixed -z-10 layer) and hide it. */
+html {
   background-color: #f3f4f6;
   background-image:
     radial-gradient(at 15% 10%, rgba(148, 163, 184, 0.30) 0px, transparent 55%),
@@ -76,12 +78,15 @@ body {
   background-attachment: fixed;
   min-height: 100vh;
 }
+body {
+  background: transparent;
+  min-height: 100vh;
+}
 
 /* Keyed off the `.dark` class on <html> (set by useTheme.ts / the
    no-flash inline script in nuxt.config.ts), not a media query — the
    theme is a user choice now, not just a mirror of the OS setting. */
-html.dark,
-html.dark body {
+html.dark {
   background-color: #0a0c0f;
   background-image:
     radial-gradient(at 15% 10%, rgba(148, 163, 184, 0.14) 0px, transparent 55%),
