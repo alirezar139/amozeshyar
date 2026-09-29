@@ -2,6 +2,16 @@
 const { openLogin, openRegister } = useAuthModal()
 const currentYear = new Date().getFullYear()
 const { owner, siteName } = useSite()
+
+const LEGACY_LABELS: Record<string, string> = {
+  instagram: 'اینستاگرام', telegram: 'تلگرام', youtube: 'یوتیوب', website: 'وب‌سایت', linkedin: 'لینکدین',
+}
+// Only http(s) links — the owner types these in freely, and a javascript: URL here would run on click.
+const socialLinks = computed(() =>
+  Object.entries(owner.value?.social_links ?? {})
+    .filter(([, url]) => /^https?:\/\//i.test(String(url)))
+    .map(([key, url]) => ({ label: LEGACY_LABELS[key] ?? key, url: String(url) })),
+)
 </script>
 
 <template>
@@ -17,10 +27,13 @@ const { owner, siteName } = useSite()
           <li><NuxtLink to="/courses">همه‌ی دوره‌ها</NuxtLink></li>
         </ul>
       </div>
-      <div v-if="owner?.phone_number">
-        <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100">تماس</h3>
+      <div v-if="owner?.phone_number || socialLinks.length">
+        <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100">تماس و شبکه‌های اجتماعی</h3>
         <ul class="mt-3 space-y-2 text-sm text-gray-600 dark:text-gray-400">
-          <li><a :href="`tel:${owner.phone_number}`" dir="ltr">{{ owner.phone_number }}</a></li>
+          <li v-if="owner?.phone_number"><a :href="`tel:${owner.phone_number}`" dir="ltr">{{ owner.phone_number }}</a></li>
+          <li v-for="link in socialLinks" :key="link.label">
+            <a :href="link.url" target="_blank" rel="noopener" class="hover:text-primary-600 dark:hover:text-primary-400">{{ link.label }}</a>
+          </li>
         </ul>
       </div>
       <div>
