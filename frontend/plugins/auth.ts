@@ -14,6 +14,11 @@ export default defineNuxtPlugin(async () => {
   const authStore = useAuthStore()
   if (import.meta.client && authStore.accessToken) return
 
+  // During SSR we can see the request's cookies: a visitor without the
+  // refresh cookie has no session to restore, so don't spend a round trip
+  // (and a guaranteed 401) finding that out on every page view.
+  if (import.meta.server && !useRequestHeaders(['cookie']).cookie?.includes('refresh_token=')) return
+
   const { request, refreshSession } = useApi()
   const refreshed = await refreshSession()
   if (!refreshed) return

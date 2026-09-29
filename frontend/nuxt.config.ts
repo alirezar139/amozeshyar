@@ -13,6 +13,23 @@ export default defineNuxtConfig({
     '@nuxt/image',
   ],
 
+  vite: {
+    // Dev server only: compile the app's pages/components up front at
+    // startup, instead of on the first visit to each page (which made every
+    // first click feel slow while Vite transformed dozens of modules).
+    server: {
+      warmup: {
+        clientFiles: ['./app.vue', './error.vue', './layouts/*.vue', './pages/**/*.vue', './components/**/*.vue'],
+      },
+    },
+    // hls.js is imported lazily by the video player; pre-bundling it keeps
+    // its first use from triggering a dependency re-optimization, which
+    // forces a full page reload mid-session.
+    optimizeDeps: {
+      include: ['hls.js'],
+    },
+  },
+
   runtimeConfig: {
     public: {
       apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:8000/api/v1',
