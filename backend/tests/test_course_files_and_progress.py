@@ -135,3 +135,32 @@ def test_manual_completion_and_progress_summary(owner, course):
     assert summary["completed_lessons"] == 1 and summary["total_lessons"] == 4
     assert summary["next_session"]["title"] == "Live"
     assert summary["recent_files"][0]["course_slug"] == course.slug
+
+
+def test_upload_accepts_recently_expired_token_but_other_endpoints_do_not(owner, course):
+    from datetime import timedelta as td
+
+    from rest_framework_simplejwt.tokens import AccessToken
+
+    lesson = Lesson.objects.create(course=course, title="a", order=1)
+    token = AccessToken.for_user(owner.user)
+    token.set_exp(lifetime=-td(minutes=30))  # expired half an hour ago
+    client = APIClient()
+    client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+
+    response = client.post(
+        "/api/v1/lesson-files/",
+        {"lesson": lesson.id, "file": SimpleUploadedFile("a.pdf", b"%PDF")},
+        format="multipart",
+    )
+    assert response.status_code == 201
+    assert client.get("/api/v1/lesson-files/").status_code == 401
+
+    token.set_exp(lifetime=-td(hours=7))
+    client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+    response = client.post(
+        "/api/v1/lesson-files/",
+        {"lesson": lesson.id, "file": SimpleUploadedFile("a.pdf", b"%PDF")},
+        format="multipart",
+    )
+    assert response.status_code == 401
