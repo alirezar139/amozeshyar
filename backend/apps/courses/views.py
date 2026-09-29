@@ -1,4 +1,5 @@
-from django.db.models import Count, Q
+from django.db import transaction
+from django.db.models import Count, Max, Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, permissions, viewsets
@@ -9,11 +10,12 @@ from rest_framework.response import Response
 from apps.accounts.permissions import IsAdminRole
 
 from .filters import CourseFilter
-from .models import Category, ClassSession, Course, Lesson
+from .models import Category, ClassSession, Course, Lesson, LessonFile
 from .serializers import (
     CategorySerializer,
     ClassSessionSerializer,
     CourseManageSerializer,
+    LessonFileSerializer,
     LessonSerializer,
     PublicCourseDetailSerializer,
     PublicCourseListSerializer,
@@ -61,9 +63,87 @@ class CourseManageViewSet(viewsets.ModelViewSet):
 
 
 class LessonViewSet(viewsets.ModelViewSet):
+    """Admin CRUD for lessons. `?course=<id>` scopes to one course; not
+    paginated, since a course's lesson list is always shown whole."""
+
     serializer_class = LessonSerializer
     permission_classes = (permissions.IsAuthenticated, IsAdminRole)
-    queryset = Lesson.objects.all()
+    pagination_class = None
+
+    def get_queryset(self):
+        lessons = Lesson.objects.select_related("video_asset").prefetch_related("files").order_by("course", "order")
+        course_id = self.request.query_params.get("course")
+        return lessons.filter(course_id=course_id) if course_id else lessons
+
+    def perform_create(self, serializer):
+        course = serializer.validated_data["course"]
+        order = serializer.validated_data.get("order")
+        if not order or course.lessons.filter(order=order).exists():
+            order = (course.lessons.aggregate(m=Max("order"))["m"] or 0) + 1
+        serializer.save(order=order)
+
+    @action(detail=True, methods=["post"])
+    def move(self, request, pk=None):
+        """Swap this lesson with its neighbour: body {"direction": "up" | "down"}."""
+        lesson = self.get_object()
+        siblings = Lesson.objects.filter(course=lesson.course)
+        if request.data.get("direction") == "up":
+            neighbour = siblings.filter(order__lt=lesson.order).order_by("-order").first()
+        else:
+            neighbour = siblings.filter(order__gt=lesson.order).order_by("order").first()
+        if neighbour:
+            with transaction.atomic():
+                # Park one row outside the range first: (course, order) is unique.
+                parked = (siblings.aggregate(m=Max("order"))["m"] or 0) + 1
+                a, b = lesson.order, neighbour.order
+                Lesson.objects.filter(pk=lesson.pk).update(order=parked)
+                Lesson.objects.filter(pk=neighbour.pk).update(order=a)
+                Lesson.objects.filter(pk=lesson.pk).update(order=b)
+        return Response(self.get_serializer(self.get_queryset(), many=True).data)
+
+
+class LessonFileViewSet(viewsets.ModelViewSet):
+    """Admin: upload, rename and delete lesson files (`?lesson=` / `?course=`).
+    `download` is also open to enrolled students — see its docstring."""
+
+    serializer_class = LessonFileSerializer
+    permission_classes = (permissions.IsAuthenticated, IsAdminRole)
+    http_method_names = ("get", "post", "patch", "delete", "head", "options")
+    pagination_class = None
+
+    def get_queryset(self):
+        files = LessonFile.objects.select_related("lesson__course")
+        params = self.request.query_params
+        if params.get("lesson"):
+            files = files.filter(lesson_id=params["lesson"])
+        if params.get("course"):
+            files = files.filter(lesson__course_id=params["course"])
+        return files
+
+    @action(detail=True, methods=["get"], permission_classes=[permissions.IsAuthenticated])
+    def download(self, request, pk=None):
+        """A short-lived signed download link — only for the admin, anyone on
+        a free-preview lesson, or a student actively enrolled in the course."""
+        lesson_file = get_object_or_404(LessonFile.objects.select_related("lesson__course"), pk=pk)
+        lesson = lesson_file.lesson
+        user = request.user
+        allowed = (
+            user.role == "admin"
+            or lesson.is_free_preview
+            or lesson.course.enrollments.filter(student=user, is_active=True).exists()
+        )
+        if not allowed:
+            raise PermissionDenied("برای دانلود این فایل باید در دوره ثبت‌نام کرده باشید.")
+        return Response({"url": _download_url(lesson_file)})
+
+
+def _download_url(lesson_file: LessonFile) -> str:
+    storage = lesson_file.file.storage
+    if hasattr(storage, "bucket"):  # S3/MinIO: signed, forced-download link
+        from apps.videos.services.signing import get_download_url
+
+        return get_download_url(lesson_file.file.name, lesson_file.original_name)
+    return lesson_file.file.url
 
 
 class ClassSessionViewSet(viewsets.ModelViewSet):

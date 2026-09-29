@@ -35,3 +35,27 @@ def validate_image_file(file_obj):
     mime_type = _sniff_mime_type(file_obj)
     if mime_type not in ALLOWED_IMAGE_MIME_TYPES:
         raise ValidationError(f"Unsupported image format detected: {mime_type}.")
+
+
+# Course files (handouts, exercises, source code...). Served only as forced
+# downloads from private storage, but anything a browser would render
+# inline and run (html, svg, js-in-browser formats) or execute is still
+# refused outright.
+ALLOWED_COURSE_FILE_EXTENSIONS = {
+    "pdf", "doc", "docx", "ppt", "pptx", "xls", "xlsx", "csv", "txt", "md", "rtf", "odt", "ods", "odp",
+    "zip", "rar", "7z", "tar", "gz",
+    "png", "jpg", "jpeg", "webp", "gif",
+    "mp3", "m4a", "wav", "ogg",
+    "py", "ipynb", "java", "c", "cpp", "h", "cs", "go", "rs", "php", "rb", "sql", "json", "xml", "yaml", "yml",
+    "psd", "ai", "fig", "sketch", "dwg",
+}
+MAX_COURSE_FILE_SIZE_BYTES = 500 * 1024 * 1024  # 500 MB
+
+
+def validate_course_file(file_obj):
+    if file_obj.size > MAX_COURSE_FILE_SIZE_BYTES:
+        raise ValidationError("حجم فایل بیشتر از ۵۰۰ مگابایت است.")
+    name = (file_obj.name or "").lower()
+    extension = name.rsplit(".", 1)[-1] if "." in name else ""
+    if extension not in ALLOWED_COURSE_FILE_EXTENSIONS:
+        raise ValidationError(f"این نوع فایل پشتیبانی نمی‌شود: .{extension or '?'}")

@@ -3,7 +3,9 @@ from datetime import timedelta
 from django.utils import timezone
 from rest_framework import serializers
 
-from .models import Category, ClassSession, Course, Lesson
+from apps.common.validators import validate_course_file
+
+from .models import Category, ClassSession, Course, Lesson, LessonFile
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -14,20 +16,66 @@ class CategorySerializer(serializers.ModelSerializer):
         fields = ("id", "name", "slug", "parent", "image", "course_count")
 
 
+class LessonFilePublicSerializer(serializers.ModelSerializer):
+    """What a lesson's file list shows — metadata only, never the file URL."""
+
+    extension = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = LessonFile
+        fields = ("id", "title", "original_name", "size_bytes", "extension", "created_at")
+
+
+class LessonFileSerializer(serializers.ModelSerializer):
+    """Admin upload/rename of a lesson file."""
+
+    file = serializers.FileField(write_only=True, validators=[validate_course_file])
+    extension = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = LessonFile
+        fields = ("id", "lesson", "title", "file", "original_name", "size_bytes", "extension", "created_at")
+        read_only_fields = ("id", "original_name", "size_bytes", "extension", "created_at")
+
+    def get_fields(self):
+        fields = super().get_fields()
+        if self.instance is not None:
+            # Renaming only; the file itself and its lesson are fixed once uploaded.
+            fields["file"].required = False
+            fields["lesson"].read_only = True
+        return fields
+
+    def create(self, validated_data):
+        upload = validated_data["file"]
+        validated_data["original_name"] = upload.name[:255]
+        validated_data["size_bytes"] = upload.size
+        if not validated_data.get("title"):
+            validated_data["title"] = upload.name.rsplit(".", 1)[0][:255]
+        return super().create(validated_data)
+
+
 class LessonSerializer(serializers.ModelSerializer):
     has_video = serializers.SerializerMethodField()
     video_id = serializers.SerializerMethodField()
     video_status = serializers.SerializerMethodField()
+    video_duration = serializers.SerializerMethodField()
+    video_error = serializers.SerializerMethodField()
     progress_seconds = serializers.SerializerMethodField()
     completed = serializers.SerializerMethodField()
+    files = LessonFilePublicSerializer(many=True, read_only=True)
 
     class Meta:
         model = Lesson
         fields = (
-            "id", "course", "title", "order", "is_free_preview", "attachment",
-            "has_video", "video_id", "video_status", "progress_seconds", "completed",
+            "id", "course", "title", "order", "is_free_preview",
+            "has_video", "video_id", "video_status", "video_duration", "video_error",
+            "progress_seconds", "completed", "files",
         )
         read_only_fields = ("id",)
+        extra_kwargs = {"order": {"required": False}}
+        # The model's (course, order) unique_together would otherwise make
+        # `order` required; the view assigns the next free slot instead.
+        validators = []
 
     def get_has_video(self, obj) -> bool:
         return hasattr(obj, "video_asset")
@@ -37,6 +85,15 @@ class LessonSerializer(serializers.ModelSerializer):
 
     def get_video_status(self, obj) -> str | None:
         return obj.video_asset.status if hasattr(obj, "video_asset") else None
+
+    def get_video_duration(self, obj) -> int | None:
+        return obj.video_asset.duration_seconds if hasattr(obj, "video_asset") else None
+
+    def get_video_error(self, obj) -> str:
+        # Processing errors are for the admin fixing the upload, not for students.
+        request = self.context.get("request")
+        is_admin = bool(request and request.user.is_authenticated and request.user.role == "admin")
+        return obj.video_asset.processing_error if is_admin and hasattr(obj, "video_asset") else ""
 
     def _progress(self, obj):
         request = self.context.get("request")

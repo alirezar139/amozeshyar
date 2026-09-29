@@ -4,11 +4,15 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.courses.models import Lesson
+from django.db.models import Sum
+from django.utils import timezone
+
+from apps.courses.models import ClassSession, Lesson, LessonFile
 
 from .models import Enrollment, LessonProgress, WishlistItem
 from .serializers import (
     ContinueLearningSerializer,
+    DashboardSummarySerializer,
     EnrollmentSerializer,
     LessonProgressResponseSerializer,
     LessonProgressUpdateSerializer,
@@ -23,7 +27,55 @@ class MyEnrollmentsViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False):
             return Enrollment.objects.none()
-        return Enrollment.objects.filter(student=self.request.user, is_active=True)
+        return Enrollment.objects.filter(student=self.request.user, is_active=True).select_related("course__category")
+
+    @extend_schema(responses=DashboardSummarySerializer)
+    @action(detail=False, methods=["get"])
+    def summary(self, request):
+        """Everything the student dashboard's home shows, in one call."""
+        user = request.user
+        course_ids = list(
+            Enrollment.objects.filter(student=user, is_active=True).values_list("course_id", flat=True)
+        )
+        progress = LessonProgress.objects.filter(student=user, lesson__course_id__in=course_ids)
+        next_session = (
+            ClassSession.objects.filter(course_id__in=course_ids, starts_at__gte=timezone.now())
+            .select_related("course")
+            .order_by("starts_at")
+            .first()
+        )
+        recent_files = (
+            LessonFile.objects.filter(lesson__course_id__in=course_ids)
+            .select_related("lesson__course")
+            .order_by("-created_at")[:5]
+        )
+        data = {
+            "courses": len(course_ids),
+            "completed_lessons": progress.filter(completed=True).count(),
+            "total_lessons": Lesson.objects.filter(course_id__in=course_ids).count(),
+            "watched_minutes": (progress.aggregate(s=Sum("position_seconds"))["s"] or 0) // 60,
+            "next_session": next_session and {
+                "id": next_session.id,
+                "title": next_session.title,
+                "course_title": next_session.course.title,
+                "starts_at": next_session.starts_at,
+                "is_online": next_session.is_online,
+            },
+            "recent_files": [
+                {
+                    "id": f.id,
+                    "title": f.title or f.original_name,
+                    "extension": f.extension,
+                    "size_bytes": f.size_bytes,
+                    "lesson_title": f.lesson.title,
+                    "course_title": f.lesson.course.title,
+                    "course_slug": f.lesson.course.slug,
+                    "created_at": f.created_at,
+                }
+                for f in recent_files
+            ],
+        }
+        return Response(DashboardSummarySerializer(data).data)
 
     @extend_schema(responses=ContinueLearningSerializer)
     @action(detail=False, methods=["get"], url_path="continue")
@@ -107,10 +159,18 @@ class LessonProgressView(APIView):
 
         lesson = generics.get_object_or_404(Lesson, id=payload.validated_data["lesson_id"])
         position_seconds = payload.validated_data["position_seconds"]
-        video = getattr(lesson, "video_asset", None)
-        completed = bool(
-            video and video.duration_seconds and position_seconds >= video.duration_seconds * 0.9
-        )
+        explicit = payload.validated_data["completed"]
+        existing = LessonProgress.objects.filter(student=request.user, lesson=lesson).first()
+        if explicit is not None:
+            completed = explicit
+            position_seconds = existing.position_seconds if existing and not position_seconds else position_seconds
+        else:
+            video = getattr(lesson, "video_asset", None)
+            watched_enough = bool(
+                video and video.duration_seconds and position_seconds >= video.duration_seconds * 0.9
+            )
+            # Watching a finished lesson again from the start shouldn't un-finish it.
+            completed = watched_enough or bool(existing and existing.completed)
 
         obj, _ = LessonProgress.objects.update_or_create(
             student=request.user,

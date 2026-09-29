@@ -97,7 +97,6 @@ class Lesson(TimeStampedModel):
     # A lesson explicitly marked free skips the paywall entirely (a marketing
     # sampler chapter), independent of the video-level preview-clip mechanism.
     is_free_preview = models.BooleanField(default=False)
-    attachment = models.FileField(upload_to="lesson_attachments/", blank=True, null=True)
 
     class Meta:
         ordering = ("course", "order")
@@ -142,3 +141,28 @@ class ClassSession(TimeStampedModel):
 
     def __str__(self):
         return f"{self.course.title} — {self.title} ({self.starts_at:%Y-%m-%d %H:%M})"
+
+
+class LessonFile(TimeStampedModel):
+    """A downloadable file attached to a lesson (handout, exercise, code...).
+
+    Never exposed by URL in API responses: students get a short-lived signed
+    download link from `lesson-files/<id>/download/`, only if they're
+    enrolled (or the lesson is a free preview).
+    """
+
+    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, related_name="files")
+    title = models.CharField(max_length=255, blank=True)
+    file = models.FileField(upload_to="lesson_files/")
+    original_name = models.CharField(max_length=255)
+    size_bytes = models.PositiveBigIntegerField(default=0)
+
+    class Meta:
+        ordering = ("created_at",)
+
+    def __str__(self):
+        return self.title or self.original_name
+
+    @property
+    def extension(self) -> str:
+        return self.original_name.rsplit(".", 1)[-1].lower() if "." in self.original_name else ""

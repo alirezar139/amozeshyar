@@ -7,6 +7,7 @@ router = DefaultRouter()
 router.register("categories", views.CategoryViewSet, basename="category")
 router.register("courses/manage", views.CourseManageViewSet, basename="course-manage")
 router.register("lessons", views.LessonViewSet, basename="lesson")
+router.register("lesson-files", views.LessonFileViewSet, basename="lesson-file")
 router.register("class-sessions", views.ClassSessionViewSet, basename="class-session")
 router.register("courses", views.PublicCourseViewSet, basename="course-public")
 

@@ -22,6 +22,14 @@ class VideoUploadView(generics.CreateAPIView):
     permission_classes = (permissions.IsAuthenticated, IsAdminRole)
 
 
+class VideoDeleteView(generics.DestroyAPIView):
+    """Admin: remove a lesson's video (the lesson itself stays)."""
+
+    permission_classes = (permissions.IsAuthenticated, IsAdminRole)
+    queryset = VideoAsset.objects.all()
+    lookup_url_kwarg = "video_id"
+
+
 class PreviewStreamView(APIView):
     """Public endpoint: always resolves to the physically-truncated preview clip, never the full file.
 
