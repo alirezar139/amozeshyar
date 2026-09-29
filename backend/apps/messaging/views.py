@@ -105,9 +105,12 @@ class ConversationViewSet(mixins.DestroyModelMixin, viewsets.ReadOnlyModelViewSe
     # ---------- groups ----------
     @action(detail=False, methods=["post"])
     def groups(self, request):
-        """The teacher creates a custom group: {title, member_ids, announcement_only}."""
-        if not services.is_teacher(request.user):
-            raise PermissionDenied()
+        """Create a group: {title, member_ids, announcement_only}. The teacher's
+        groups can include any student; a student's group is private to them
+        and their classmates (only while classmate chat is on)."""
+        teacher = services.is_teacher(request.user)
+        if not teacher and not services.peer_chat_allowed():
+            raise PermissionDenied("ساخت گروه توسط دانشجویان غیرفعال است.")
         payload = GroupSettingsSerializer(data=request.data)
         payload.is_valid(raise_exception=True)
         title = (payload.validated_data.get("title") or "").strip()
@@ -120,9 +123,14 @@ class ConversationViewSet(mixins.DestroyModelMixin, viewsets.ReadOnlyModelViewSe
                 avatar=payload.validated_data.get("avatar"),
                 announcement_only=payload.validated_data.get("announcement_only", False),
                 created_by=request.user,
+                private=not teacher,
                 last_message_at=timezone.now(),
             )
-            self._add_members(conversation, payload.validated_data.get("member_ids", []))
+            member_ids = payload.validated_data.get("member_ids", [])
+            if not teacher:
+                allowed = set(services.classmates(request.user).values_list("pk", flat=True))
+                member_ids = [i for i in member_ids if i in allowed] + [request.user.id]
+            self._add_members(conversation, member_ids)
         return Response(self._row(conversation), status=status.HTTP_201_CREATED)
 
     def _add_members(self, conversation, user_ids):
@@ -155,7 +163,11 @@ class ConversationViewSet(mixins.DestroyModelMixin, viewsets.ReadOnlyModelViewSe
             self._require_manager(conversation)
             if conversation.kind != Conversation.Kind.CUSTOM:
                 raise ValidationError("اعضای گروه دوره از ثبت‌نام‌های دوره می‌آیند.")
-            self._add_members(conversation, request.data.get("user_ids", []))
+            user_ids = request.data.get("user_ids", [])
+            if conversation.private:
+                allowed = set(services.classmates(request.user).values_list("pk", flat=True))
+                user_ids = [i for i in user_ids if i in allowed]
+            self._add_members(conversation, user_ids)
         return Response(MemberSerializer(services.members(conversation), many=True).data)
 
     @action(detail=True, methods=["delete"], url_path=r"members/(?P<user_id>\d+)")
