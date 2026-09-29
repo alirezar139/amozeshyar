@@ -7,6 +7,7 @@ export interface SiteOwner {
   background_colors: string[]
   background_image: string | null
   background_motion: boolean
+  background_speed: string
   headline: string
   bio: string
   credentials: { title: string; issuer?: string; year?: string | number }[]

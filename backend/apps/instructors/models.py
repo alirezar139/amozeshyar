@@ -12,8 +12,18 @@ class InstructorProfile(TimeStampedModel):
         GRADIENT = "gradient", "Flowing gradient"
         WAVES = "waves", "Waves"
         PARTICLES = "particles", "Floating particles"
+        STARS = "stars", "Starry sky"
+        BOKEH = "bokeh", "Bokeh"
+        SHAPES = "shapes", "Floating shapes"
+        RIBBONS = "ribbons", "Light ribbons"
+        GRID = "grid", "Moving grid"
         IMAGE = "image", "Custom image"
         PLAIN = "plain", "Plain"
+
+    class BackgroundSpeed(models.TextChoices):
+        SLOW = "slow", "Slow"
+        NORMAL = "normal", "Normal"
+        FAST = "fast", "Fast"
 
     """Public profile of the instructor who owns this install.
 
@@ -69,6 +79,7 @@ class InstructorProfile(TimeStampedModel):
     background_colors = models.JSONField(default=list, blank=True)
     background_image = models.ImageField(upload_to="site_backgrounds/", blank=True, null=True)
     background_motion = models.BooleanField(default=True)
+    background_speed = models.CharField(max_length=10, choices=BackgroundSpeed.choices, default=BackgroundSpeed.SLOW)
 
     class Meta:
         ordering = ("-created_at",)

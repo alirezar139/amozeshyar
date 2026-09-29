@@ -26,7 +26,7 @@ const logoInput = ref<HTMLInputElement | null>(null)
 // Site background — every change previews live on this very page via the
 // draft in useSiteBackground, and the draft is dropped on leaving.
 const { draft: backgroundDraft } = useSiteBackground()
-const bg = reactive({ style: 'aurora' as BackgroundStyle, colors: [] as string[], motion: true })
+const bg = reactive({ style: 'aurora' as BackgroundStyle, colors: [] as string[], motion: true, speed: 'slow' as BackgroundSpeed })
 const currentBgImage = ref<string | null>(null)
 const removeBgImage = ref(false)
 const bgImageFile = ref<File | null>(null)
@@ -54,6 +54,7 @@ const { pending } = await useAsyncData('admin-site-settings', async () => {
   bg.style = data.background_style
   bg.colors = [...(data.background_colors ?? [])]
   bg.motion = data.background_motion
+  bg.speed = data.background_speed
   currentBgImage.value = data.background_image
   savedSnapshot.value = snapshot()
   return data
@@ -78,7 +79,7 @@ const shownColors = computed(() => (bg.colors.length ? bg.colors : themeColors.v
 watch(
   [() => ({ ...bg, colors: [...bg.colors] }), shownBgImage],
   ([value, image]) => {
-    backgroundDraft.value = { style: value.style, colors: value.colors, motion: value.motion, image }
+    backgroundDraft.value = { style: value.style, colors: value.colors, motion: value.motion, speed: value.speed, image }
   },
   { deep: true },
 )
@@ -132,7 +133,17 @@ function tileStyle(style: BackgroundStyle) {
     case 'waves':
       return { background: `radial-gradient(120% 60% at 50% 115%, ${c3}99 60%, transparent 61%), radial-gradient(120% 60% at 30% 100%, ${c2}88 60%, transparent 61%), radial-gradient(120% 60% at 70% 90%, ${c1}77 60%, transparent 61%)` }
     case 'particles':
-      return { background: `radial-gradient(circle at 20% 70%, ${c1} 2px, transparent 3px), radial-gradient(circle at 45% 35%, ${c2} 2.5px, transparent 3.5px), radial-gradient(circle at 70% 60%, ${c3} 2px, transparent 3px), radial-gradient(circle at 85% 25%, ${c1} 1.5px, transparent 2.5px), radial-gradient(circle at 30% 20%, ${c2} 1.5px, transparent 2.5px), radial-gradient(circle at 60% 85%, ${c1}55, transparent 50%)` }
+      return { background: `radial-gradient(circle at 60% 85%, ${c1}44, transparent 55%)` }
+    case 'stars':
+      return { background: `radial-gradient(circle at 15% 25%, ${c1} 1.2px, transparent 2px), radial-gradient(circle at 40% 60%, ${c2} 1.5px, transparent 2.5px), radial-gradient(circle at 70% 20%, ${c3} 1px, transparent 2px), radial-gradient(circle at 85% 70%, ${c1} 1.5px, transparent 2.5px), radial-gradient(circle at 55% 40%, ${c1} 1px, transparent 2px), radial-gradient(circle at 25% 80%, ${c3} 1.2px, transparent 2px), linear-gradient(160deg, ${c1}22, ${c2}22)` }
+    case 'bokeh':
+      return { background: `radial-gradient(circle at 25% 35%, ${c1}66 0 18%, transparent 19%), radial-gradient(circle at 70% 60%, ${c2}55 0 24%, transparent 25%), radial-gradient(circle at 55% 20%, ${c3}55 0 12%, transparent 13%), radial-gradient(circle at 85% 25%, ${c1}44 0 9%, transparent 10%)` }
+    case 'shapes':
+      return { background: `radial-gradient(circle at 25% 35%, transparent 0 9%, ${c1}aa 10% 12%, transparent 13%), linear-gradient(${c2}55, ${c2}55) 65% 30% / 14% 22% no-repeat, radial-gradient(circle at 75% 72%, ${c3}66 0 8%, transparent 9%), linear-gradient(135deg, transparent 45%, ${c1}66 46% 54%, transparent 55%) 20% 75% / 18% 18% no-repeat` }
+    case 'ribbons':
+      return { background: `linear-gradient(170deg, transparent 30%, ${c1}66 38%, transparent 46%), linear-gradient(190deg, transparent 50%, ${c2}55 56%, transparent 62%), linear-gradient(175deg, transparent 66%, ${c3}66 70%, transparent 74%)` }
+    case 'grid':
+      return { background: `linear-gradient(${c1}55 1px, transparent 1px) 0 0 / 14px 14px, linear-gradient(90deg, ${c1}55 1px, transparent 1px) 0 0 / 14px 14px, radial-gradient(circle at 50% 30%, ${c2}44, transparent 60%)` }
     case 'image':
       return shownBgImage.value
         ? { backgroundImage: `url(${shownBgImage.value})`, backgroundSize: 'cover', backgroundPosition: 'center' }
@@ -208,6 +219,7 @@ async function save() {
       background_style: bg.style,
       background_colors: bg.colors,
       background_motion: bg.motion,
+      background_speed: bg.speed,
     }
     if (removeCover.value) body.cover_image = null
     if (removeLogo.value) body.logo = null
@@ -346,6 +358,25 @@ async function save() {
             </label>
           </div>
 
+          <div class="mt-4 flex flex-wrap items-center gap-3">
+            <span class="text-sm text-gray-700 dark:text-gray-200">سرعت حرکت</span>
+            <div class="flex gap-1 rounded-full bg-black/[0.05] p-1 dark:bg-white/[0.06]">
+              <button
+                v-for="speed in BACKGROUND_SPEEDS"
+                :key="speed.value"
+                type="button"
+                :disabled="!bg.motion"
+                :class="[
+                  'rounded-full px-4 py-1 text-xs font-semibold transition disabled:opacity-40',
+                  bg.speed === speed.value ? 'bg-white text-primary-700 shadow-sm dark:bg-white/15 dark:text-white' : 'text-gray-500 hover:text-gray-800 dark:text-gray-400',
+                ]"
+                @click="bg.speed = speed.value"
+              >
+                {{ speed.label }}
+              </button>
+            </div>
+          </div>
+
           <div class="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
             <button
               v-for="option in BACKGROUND_STYLES"
@@ -360,6 +391,13 @@ async function save() {
               @click="option.value === 'image' && !shownBgImage ? bgImageInput?.click() : (bg.style = option.value)"
             >
               <div class="relative aspect-[16/10] bg-gray-100 dark:bg-gray-900" :style="tileStyle(option.value)">
+                <svg v-if="option.value === 'particles'" viewBox="0 0 160 100" class="absolute inset-0 h-full w-full">
+                  <g v-for="(p, pi) in [[40, 60, 1], [95, 30, 0.8], [125, 70, 0.65]]" :key="pi" :transform="`translate(${p[0]} ${p[1]}) scale(${p[2]})`" :style="{ color: shownColors[pi % 3] }">
+                    <line v-for="a in 9" :key="a" x1="0" y1="0" :x2="14 * Math.cos(Math.PI * (a - 1) / 8 + Math.PI)" :y2="14 * Math.sin(Math.PI * (a - 1) / 8 + Math.PI)" stroke="currentColor" stroke-width="0.8" />
+                    <line x1="0" y1="0" x2="0" y2="20" stroke="currentColor" stroke-width="0.9" />
+                    <ellipse cx="0" cy="23" rx="1.6" ry="3.5" fill="currentColor" />
+                  </g>
+                </svg>
                 <span v-if="bg.style === option.value" class="absolute end-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary-600 text-white">
                   <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
                 </span>
