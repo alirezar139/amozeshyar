@@ -13,7 +13,7 @@ function toggle() {
   if (audio.value.paused) {
     // Only one voice note plays at a time across the page.
     document.querySelectorAll('audio').forEach((a) => a !== audio.value && a.pause())
-    audio.value.play()
+    audio.value.play().catch(() => (playing.value = false))
   } else {
     audio.value.pause()
   }

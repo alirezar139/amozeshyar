@@ -142,8 +142,10 @@ function onDeleted() {
 
 // ---- polling ----
 let timer: ReturnType<typeof setInterval> | null = null
+let unmounted = false
 onMounted(async () => {
   await loadList()
+  if (unmounted) return
   // A student lands on their teacher chat by default on wide screens.
   if (!activeId.value && !isTeacher.value && window.matchMedia('(min-width: 768px)').matches) {
     const direct = conversations.value.find((c) => c.kind === 'direct')
@@ -151,7 +153,27 @@ onMounted(async () => {
   }
   timer = setInterval(() => document.visibilityState === 'visible' && loadList(), 10000)
 })
-onBeforeUnmount(() => timer && clearInterval(timer))
+onBeforeUnmount(() => {
+  unmounted = true
+  if (timer) clearInterval(timer)
+})
+
+// the «+» menu closes on an outside click or Escape
+const menuBox = ref<HTMLElement | null>(null)
+function onDocDown(e: MouseEvent) {
+  if (showMenu.value && !menuBox.value?.contains(e.target as Node)) showMenu.value = false
+}
+function onKey(e: KeyboardEvent) {
+  if (e.key === 'Escape') showMenu.value = false
+}
+onMounted(() => {
+  document.addEventListener('mousedown', onDocDown)
+  document.addEventListener('keydown', onKey)
+})
+onBeforeUnmount(() => {
+  document.removeEventListener('mousedown', onDocDown)
+  document.removeEventListener('keydown', onKey)
+})
 
 function onActivity() {
   loadList()
@@ -183,7 +205,7 @@ function onActivity() {
             >
               <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
             </button>
-            <div class="relative">
+            <div v-if="isTeacher || peerAllowed" ref="menuBox" class="relative">
               <button
                 type="button"
                 data-tour="chat-new"
@@ -203,7 +225,7 @@ function onActivity() {
                     <span class="flex h-8 w-8 items-center justify-center rounded-full bg-primary-500/15 text-primary-600">👤</span>
                     {{ isTeacher ? 'گفت‌وگو با دانشجو' : 'گفت‌وگو با هم‌کلاسی' }}
                   </button>
-                  <button v-if="isTeacher || peerAllowed" type="button" class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-start text-sm text-gray-800 hover:bg-black/5 dark:text-gray-100 dark:hover:bg-white/10" @click="showNewGroup = true">
+                  <button type="button" class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-start text-sm text-gray-800 hover:bg-black/5 dark:text-gray-100 dark:hover:bg-white/10" @click="showNewGroup = true">
                     <span class="flex h-8 w-8 items-center justify-center rounded-full bg-accent-500/15 text-accent-600">👥</span>
                     گروه جدید
                   </button>

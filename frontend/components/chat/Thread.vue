@@ -174,9 +174,22 @@ const viewersFor = ref<ChatMessage | null>(null)
 const viewers = ref<any[]>([])
 const viewersLoading = ref(false)
 
-function toggleMenu(m: ChatMessage) {
+const menuUp = ref(false)
+function toggleMenu(m: ChatMessage, e: MouseEvent) {
   if (m.id < 0 || m.is_deleted) return
-  menuFor.value = menuFor.value === m.id ? null : m.id
+  // Clicks on the bubble's own controls (voice player, links, image, file,
+  // reaction chips) do their own thing instead of opening the menu.
+  const target = e.target as HTMLElement
+  const bubble = e.currentTarget as HTMLElement
+  if (e.type === 'click' && target.closest('a, button, input') && bubble.contains(target.closest('a, button, input'))) return
+  if (menuFor.value === m.id) {
+    menuFor.value = null
+    return
+  }
+  // Open upwards for bubbles in the lower half, so the menu isn't cut off.
+  const box = scroller.value?.getBoundingClientRect()
+  menuUp.value = !!box && bubble.getBoundingClientRect().top - box.top > box.height / 2
+  menuFor.value = m.id
 }
 function closeMenu(e: MouseEvent) {
   if (!(e.target as HTMLElement).closest('[data-msg-menu]')) menuFor.value = null
@@ -208,8 +221,13 @@ async function showViewers(m: ChatMessage) {
 }
 async function deleteMessage(m: ChatMessage) {
   menuFor.value = null
-  if (!confirm('این پیام حذف شود؟')) return
-  await request(`/conversations/${props.conversation.id}/messages/${m.id}/`, { method: 'DELETE' })
+  if (!confirm('این پیام برای همه حذف شود؟')) return
+  try {
+    await request(`/conversations/${props.conversation.id}/messages/${m.id}/`, { method: 'DELETE' })
+  } catch (err) {
+    alert(getErrorMessage(err, 'حذف پیام انجام نشد.'))
+    return
+  }
   Object.assign(m, { is_deleted: true, text: '', attachment_kind: '', attachment_url: null, reply_to: null, reactions: [] })
   for (const x of messages.value) {
     if (x.reply_to?.id === m.id) x.reply_to = { ...x.reply_to, text: '', attachment_kind: '', deleted: true }
@@ -219,11 +237,15 @@ async function deleteMessage(m: ChatMessage) {
 const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏', '🔥', '👏']
 async function react(m: ChatMessage, emoji: string) {
   menuFor.value = null
-  const updated = await request<ChatMessage>(`/conversations/${props.conversation.id}/messages/${m.id}/react/`, {
-    method: 'POST',
-    body: { emoji },
-  })
-  m.reactions = updated.reactions
+  try {
+    const updated = await request<ChatMessage>(`/conversations/${props.conversation.id}/messages/${m.id}/react/`, {
+      method: 'POST',
+      body: { emoji },
+    })
+    m.reactions = updated.reactions
+  } catch {
+    /* e.g. the message was just deleted; the next poll shows that */
+  }
 }
 
 function canDelete(m: ChatMessage) {
@@ -322,15 +344,10 @@ function showDay(i: number) {
 }
 function showSender(i: number) {
   const m = messages.value[i]
-  if (m.is_mine || props.conversation.kind !== 'course') return false
+  if (m.is_mine || !isGroup.value) return false
   const prev = messages.value[i - 1]
   return !prev || showDay(i) || prev.sender.id !== m.sender.id
 }
-
-watch(() => props.conversation.id, () => {
-  messages.value = []
-  loadInitial()
-})
 </script>
 
 <template>
@@ -420,8 +437,8 @@ watch(() => props.conversation.id, () => {
                 menuFor === m.id ? 'ring-2 ring-primary-400/70' : '',
                 m.id > 0 ? 'cursor-pointer' : '',
               ]"
-              @click="toggleMenu(m)"
-              @contextmenu.prevent="toggleMenu(m)"
+              @click="toggleMenu(m, $event)"
+              @contextmenu.prevent="toggleMenu(m, $event)"
             >
               <!-- action menu -->
               <Transition name="fade">
@@ -429,7 +446,9 @@ watch(() => props.conversation.id, () => {
                   v-if="menuFor === m.id"
                   data-msg-menu
                   :class="[
-                    'absolute top-full z-30 mt-1 w-48 overflow-hidden rounded-2xl bg-white p-1 text-sm text-gray-800 shadow-2xl ring-1 ring-black/10 dark:bg-gray-800 dark:text-gray-100 dark:ring-white/10',
+                    'absolute z-30 w-60',
+                    menuUp ? 'bottom-full mb-1' : 'top-full mt-1',
+                    ' overflow-hidden rounded-2xl bg-white p-1 text-sm text-gray-800 shadow-2xl ring-1 ring-black/10 dark:bg-gray-800 dark:text-gray-100 dark:ring-white/10',
                     m.is_mine ? 'start-0' : 'end-0',
                   ]"
                   @click.stop
@@ -439,7 +458,7 @@ watch(() => props.conversation.id, () => {
                       v-for="e in QUICK_REACTIONS"
                       :key="e"
                       type="button"
-                      :class="['flex h-8 w-8 items-center justify-center rounded-full text-lg transition hover:scale-125 hover:bg-black/5 dark:hover:bg-white/10', m.reactions?.some((r) => r.mine && r.emoji === e) ? 'bg-primary-500/15' : '']"
+                      :class="['flex h-7 w-7 items-center justify-center rounded-full text-lg transition hover:scale-125 hover:bg-black/5 dark:hover:bg-white/10', m.reactions?.some((r) => r.mine && r.emoji === e) ? 'bg-primary-500/15' : '']"
                       @click="react(m, e)"
                     >
                       {{ e }}
