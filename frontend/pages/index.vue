@@ -1,6 +1,8 @@
 <script setup lang="ts">
 const { request } = useApi()
 const { owner, siteName } = useSite()
+const authStore = useAuthStore()
+const { openRegister } = useAuthModal()
 
 const seoDescription = computed(() => owner.value?.bio || owner.value?.headline || 'دوره‌های آموزشی با پیش‌نمایش رایگان.')
 useSeoMeta({
@@ -19,145 +21,257 @@ const { data: categories } = await useAsyncData('home-categories', async () => {
   return page.results.filter((c) => c.course_count > 0).slice(0, 6)
 })
 
-const { data: featuredCourses } = await useAsyncData('home-featured-courses', async () => {
-  const page = await request<{ results: any[] }>('/courses/')
-  return page.results.slice(0, 4)
+const { data: catalog } = await useAsyncData('home-featured-courses', async () => {
+  const page = await request<{ count: number; results: any[] }>('/courses/')
+  return { total: page.count, featured: page.results.slice(0, 3) }
 })
+const featuredCourses = computed(() => catalog.value?.featured ?? [])
+
+const socialLinks = computed(() => publicSocialLinks(owner.value?.social_links))
+const firstName = computed(() => siteName.value.split(' ')[0])
+
+// Only numbers that are actually true about this site — a "0 students" badge hurts more than no badge.
+const stats = computed(() => {
+  const rows: { value: string; label: string }[] = []
+  if (catalog.value?.total) rows.push({ value: catalog.value.total.toLocaleString('fa-IR'), label: 'دوره‌ی آموزشی' })
+  if (owner.value?.total_students) rows.push({ value: owner.value.total_students.toLocaleString('fa-IR'), label: 'دانشجو' })
+  if (Number(owner.value?.rating_avg)) rows.push({ value: Number(owner.value!.rating_avg).toLocaleString('fa-IR', { maximumFractionDigits: 1 }), label: 'امتیاز دانشجوها' })
+  return rows
+})
+
+function formatPrice(value: number | string) {
+  const n = Number(value)
+  return n === 0 ? 'رایگان' : `${n.toLocaleString('fa-IR')} تومان`
+}
+
+const levelLabels: Record<string, string> = { beginner: 'مقدماتی', intermediate: 'متوسط', advanced: 'پیشرفته' }
 </script>
 
 <template>
   <div class="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-    <!-- Hero: one large glass panel, gradient body shows through -->
-    <section class="glass overflow-hidden rounded-3xl">
-      <div class="grid grid-cols-1 items-center gap-10 p-8 sm:p-12 lg:grid-cols-2 lg:p-16">
-        <div>
-          <span v-if="owner?.headline" class="glass inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold text-primary-800 dark:text-primary-300">
-            <span class="h-1.5 w-1.5 rounded-full bg-primary-500" />
-            {{ owner.headline }}
+    <!-- Hero: who teaches here. Text on the reading side, portrait opposite. -->
+    <section class="relative grid grid-cols-1 items-center gap-12 py-6 lg:grid-cols-12 lg:gap-8 lg:py-12">
+      <div class="lg:col-span-7">
+        <span class="glass inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold text-gray-700 dark:text-gray-200">
+          <span class="relative flex h-2 w-2">
+            <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+            <span class="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
           </span>
-          <h1 class="mt-5 text-4xl font-extrabold leading-[1.15] tracking-tight text-gray-900 sm:text-5xl dark:text-white">
-            آموزش با
-            <span class="relative inline-block text-primary-700 dark:text-primary-300">{{ siteName }}</span>
-          </h1>
-          <p class="mt-5 max-w-lg whitespace-pre-line text-base leading-7 text-gray-700 sm:text-lg dark:text-gray-300">
-            {{ owner?.bio || 'دوره‌های تخصصی با پیش‌نمایش رایگان — قبل از خرید، خودتان کیفیت تدریس را ببینید.' }}
-          </p>
-          <div class="mt-8 flex flex-col gap-3 sm:flex-row">
-            <NuxtLink
-              to="/courses"
-              data-tour="hero-cta"
-              class="rounded-lg bg-primary-600 px-7 py-3 text-center text-sm font-semibold text-white shadow-lg shadow-primary-600/30 transition hover:bg-primary-500"
-            >
-              مشاهده‌ی دوره‌ها
-            </NuxtLink>
-            <NuxtLink
-              to="/auth/register"
-              class="glass rounded-lg px-7 py-3 text-center text-sm font-semibold text-gray-800 transition hover:bg-white/70 dark:text-gray-100"
-            >
-              شروع رایگان
-            </NuxtLink>
+          دوره‌های ویدیویی و کلاس آنلاین زنده
+        </span>
+
+        <h1 class="mt-6 text-4xl font-black leading-[1.2] tracking-tight text-gray-900 sm:text-6xl dark:text-white">
+          {{ siteName }}
+        </h1>
+        <p v-if="owner?.headline" class="mt-3 bg-gradient-to-l from-primary-600 to-accent-500 bg-clip-text text-xl font-bold text-transparent sm:text-2xl dark:from-primary-300 dark:to-accent-300">
+          {{ owner.headline }}
+        </p>
+        <p class="mt-5 line-clamp-4 max-w-xl whitespace-pre-line text-base leading-8 text-gray-600 sm:text-lg dark:text-gray-300">
+          {{ owner?.bio || 'دوره‌های تخصصی با پیش‌نمایش رایگان — قبل از خرید، خودتان کیفیت تدریس را ببینید.' }}
+        </p>
+
+        <div class="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <NuxtLink
+            to="/courses"
+            data-tour="hero-cta"
+            class="group inline-flex items-center justify-center gap-2 rounded-xl bg-primary-600 px-7 py-3.5 text-sm font-semibold text-white shadow-xl shadow-primary-600/30 transition hover:-translate-y-0.5 hover:bg-primary-500"
+          >
+            مشاهده‌ی دوره‌ها
+            <svg class="h-4 w-4 transition group-hover:-translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg>
+          </NuxtLink>
+          <button
+            v-if="!authStore.isAuthenticated"
+            type="button"
+            class="glass rounded-xl px-7 py-3.5 text-sm font-semibold text-gray-800 transition hover:-translate-y-0.5 hover:bg-white/70 dark:text-gray-100 dark:hover:bg-white/10"
+            @click="openRegister"
+          >
+            ثبت‌نام رایگان
+          </button>
+        </div>
+
+        <div v-if="socialLinks.length" class="mt-8 flex flex-wrap items-center gap-2">
+          <a
+            v-for="link in socialLinks"
+            :key="link.label"
+            :href="link.url"
+            target="_blank"
+            rel="noopener"
+            class="glass inline-flex items-center gap-2 rounded-full py-1 pe-3 ps-1 text-xs font-medium text-gray-700 transition hover:-translate-y-0.5 dark:text-gray-200"
+          >
+            <span :class="['flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold text-white', socialBadgeClass(link)]">
+              {{ link.label[0] }}
+            </span>
+            {{ link.label }}
+          </a>
+        </div>
+      </div>
+
+      <!-- Portrait: a tilted color card behind, floating badges in front, so even a plain ID photo reads as a designed hero -->
+      <div class="relative mx-auto w-full max-w-[22rem] lg:col-span-5">
+        <div class="absolute inset-0 rotate-6 rounded-[2.5rem] bg-gradient-to-br from-primary-500 to-accent-500 opacity-80 blur-[1px]" />
+        <div class="absolute -inset-6 -z-10 rounded-full bg-primary-500/20 blur-3xl" />
+        <div class="relative overflow-hidden rounded-[2.5rem] bg-gray-100 shadow-2xl ring-1 ring-black/5 dark:bg-gray-800 dark:ring-white/10">
+          <NuxtImg
+            v-if="owner?.cover_image"
+            :src="owner.cover_image"
+            :alt="siteName"
+            class="aspect-[4/5] w-full object-cover object-top"
+          />
+          <IllustrationTeachingScene v-else class="aspect-[4/5] w-full p-6" />
+        </div>
+
+        <div class="glass absolute -bottom-5 -start-6 flex items-center gap-3 rounded-2xl px-4 py-3 shadow-xl sm:-start-10">
+          <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+          </span>
+          <div>
+            <p class="text-sm font-bold text-gray-900 dark:text-white">کلاس زنده</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400">پرسش و پاسخ مستقیم</p>
           </div>
         </div>
-
-        <!-- The instructor's own photo when they've set one; the teaching-scene illustration otherwise -->
-        <NuxtImg
-          v-if="owner?.cover_image"
-          :src="owner.cover_image"
-          :alt="siteName"
-          class="mx-auto aspect-[4/3] w-full max-w-md rounded-2xl object-cover lg:mx-0 lg:ms-auto"
-        />
-        <IllustrationTeachingScene v-else class="mx-auto aspect-[4/3] w-full max-w-md lg:mx-0 lg:ms-auto" />
+        <div v-if="catalog?.total" class="glass absolute -end-4 top-8 rounded-2xl px-4 py-3 text-center shadow-xl sm:-end-8">
+          <p class="text-2xl font-black text-primary-700 dark:text-primary-300">{{ catalog.total.toLocaleString('fa-IR') }}</p>
+          <p class="text-xs text-gray-600 dark:text-gray-300">دوره‌ی آموزشی</p>
+        </div>
       </div>
     </section>
 
-    <!-- Category grid — big photo cards, one click into a filtered course list -->
-    <section v-if="categories && categories.length" data-tour="categories" class="mt-12">
-      <h2 class="text-xl font-bold text-gray-900 dark:text-white">دسته‌بندی دوره‌ها</h2>
-      <CourseCategoryCarousel :categories="categories" class="mt-5" />
-    </section>
-
-    <!-- Feature panels — glass cards, varied sizes -->
-    <section data-tour="features" class="mt-8 grid grid-cols-1 gap-5 md:grid-cols-3">
-      <div class="glass rounded-2xl p-8 md:col-span-2">
-        <p class="text-sm font-semibold text-primary-700 dark:text-primary-300">پیش‌نمایش رایگان</p>
-        <p class="mt-3 max-w-md text-xl font-bold leading-relaxed text-gray-900 dark:text-white">
-          قبل از خرید هر دوره، بخشی از تدریس را رایگان تماشا کنید — بدون سورپرایز، بدون ریسک.
-        </p>
-      </div>
-      <div class="glass rounded-2xl p-6">
-        <div class="glass flex h-9 w-9 items-center justify-center rounded-lg text-emerald-700 dark:text-emerald-300">
-          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
-        </div>
-        <p class="mt-3 font-semibold text-gray-900 dark:text-white">کلاس آنلاین زنده</p>
-        <p class="mt-1 text-sm text-gray-700 dark:text-gray-300">سر کلاس زنده حاضر شوید و سوال‌هایتان را همان‌جا بپرسید.</p>
-      </div>
-      <div class="glass rounded-2xl p-6">
-        <div class="glass flex h-9 w-9 items-center justify-center rounded-lg text-accent-700 dark:text-accent-300">
-          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V6m0 10v2" /></svg>
-        </div>
-        <p class="mt-3 font-semibold text-gray-900 dark:text-white">پرداخت امن</p>
-        <p class="mt-1 text-sm text-gray-700 dark:text-gray-300">خرید سریع با درگاه زرین‌پال.</p>
-      </div>
-      <div class="glass rounded-2xl p-6 md:col-span-2">
-        <div class="glass flex h-9 w-9 items-center justify-center rounded-lg text-primary-700 dark:text-primary-300">
-          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.42A12.083 12.083 0 0112 21a12.083 12.083 0 01-6.16-10.42L12 14z" /></svg>
-        </div>
-        <p class="mt-3 font-semibold text-gray-900 dark:text-white">دسترسی همیشگی</p>
-        <p class="mt-1 text-sm text-gray-700 dark:text-gray-300">بعد از خرید، دوره برای همیشه در حساب شما باقی می‌ماند.</p>
+    <!-- Stats strip — only rendered when there's something real to show -->
+    <section v-if="stats.length > 1" class="glass mt-16 grid grid-cols-1 divide-y divide-white/30 rounded-2xl sm:grid-cols-3 sm:divide-x sm:divide-y-0 sm:divide-x-reverse dark:divide-white/10">
+      <div v-for="stat in stats" :key="stat.label" class="px-6 py-5 text-center">
+        <p class="text-3xl font-black text-gray-900 dark:text-white">{{ stat.value }}</p>
+        <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">{{ stat.label }}</p>
       </div>
     </section>
 
-    <!-- Featured courses — real data, with a play-icon hint that a video preview exists -->
-    <section v-if="featuredCourses && featuredCourses.length" data-tour="featured-courses" class="mt-12">
-      <div class="flex items-center justify-between">
-        <h2 class="text-xl font-bold text-gray-900 dark:text-white">دوره‌ها</h2>
-        <NuxtLink to="/courses" class="text-sm font-medium text-primary-600 hover:underline dark:text-primary-400">
-          مشاهده‌ی همه
+    <!-- Courses first: that's what a visitor came for -->
+    <section v-if="featuredCourses.length" data-tour="featured-courses" class="mt-20">
+      <div class="flex items-end justify-between gap-4">
+        <div>
+          <p class="text-sm font-semibold text-primary-600 dark:text-primary-400">دوره‌ها</p>
+          <h2 class="mt-1 text-2xl font-extrabold text-gray-900 sm:text-3xl dark:text-white">از کجا شروع کنم؟</h2>
+        </div>
+        <NuxtLink to="/courses" class="shrink-0 text-sm font-medium text-primary-600 hover:underline dark:text-primary-400">
+          همه‌ی دوره‌ها ←
         </NuxtLink>
       </div>
-      <div class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      <div class="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
         <NuxtLink
           v-for="course in featuredCourses"
           :key="course.slug"
           :to="`/courses/${course.slug}`"
-          class="glass group flex flex-col overflow-hidden rounded-xl transition hover:-translate-y-0.5 hover:shadow-lg"
+          class="glass group flex flex-col overflow-hidden rounded-2xl transition hover:-translate-y-1 hover:shadow-xl"
         >
-          <div class="relative aspect-video w-full overflow-hidden bg-black/10">
+          <div class="relative aspect-video w-full overflow-hidden bg-gradient-to-br from-primary-500/20 to-accent-500/20">
             <NuxtImg
               v-if="course.cover_image"
               :src="course.cover_image"
               :alt="course.title"
-              class="h-full w-full object-cover transition group-hover:scale-105"
+              class="h-full w-full object-cover transition duration-500 group-hover:scale-105"
               loading="lazy"
             />
-            <div class="absolute inset-0 flex items-center justify-center">
-              <span class="glass flex h-10 w-10 items-center justify-center rounded-full">
-                <svg class="h-4 w-4 text-primary-700 dark:text-primary-300" fill="currentColor" viewBox="0 0 20 20"><path d="M6 4l10 6-10 6V4z" /></svg>
+            <span class="absolute inset-0 flex items-center justify-center opacity-0 transition group-hover:opacity-100">
+              <span class="flex h-12 w-12 items-center justify-center rounded-full bg-white/90 shadow-lg">
+                <svg class="h-5 w-5 text-primary-700" fill="currentColor" viewBox="0 0 20 20"><path d="M6 4l10 6-10 6V4z" /></svg>
               </span>
-            </div>
+            </span>
+            <span class="absolute start-3 top-3 rounded-full bg-black/55 px-2.5 py-0.5 text-[11px] font-medium text-white backdrop-blur">
+              پیش‌نمایش رایگان
+            </span>
           </div>
-          <div class="flex flex-1 flex-col p-4">
-            <h3 class="line-clamp-2 text-sm font-semibold text-gray-900 dark:text-white">{{ course.title }}</h3>
-            <div class="mt-auto pt-3 text-sm font-bold text-accent-600 dark:text-accent-400">
-              {{ Number(course.effective_price) === 0 ? 'رایگان' : `${Number(course.effective_price).toLocaleString('fa-IR')} تومان` }}
+          <div class="flex flex-1 flex-col p-5">
+            <div class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+              <span v-if="course.category_name">{{ course.category_name }}</span>
+              <span v-if="course.category_name && levelLabels[course.level]">·</span>
+              <span v-if="levelLabels[course.level]">{{ levelLabels[course.level] }}</span>
+            </div>
+            <h3 class="mt-2 line-clamp-2 font-bold text-gray-900 dark:text-white">{{ course.title }}</h3>
+            <p v-if="course.subtitle" class="mt-1 line-clamp-2 text-sm text-gray-600 dark:text-gray-400">{{ course.subtitle }}</p>
+            <div class="mt-auto flex items-center justify-between pt-4">
+              <span class="font-bold text-accent-600 dark:text-accent-400">{{ formatPrice(course.effective_price) }}</span>
+              <span
+                v-if="Number(course.discount_price) && Number(course.price) > Number(course.effective_price)"
+                class="text-xs text-gray-400 line-through"
+              >
+                {{ formatPrice(course.price) }}
+              </span>
             </div>
           </div>
         </NuxtLink>
       </div>
     </section>
 
-    <!-- CTA panel -->
-    <section class="glass mt-8 flex flex-col items-center gap-6 rounded-3xl p-10 text-center sm:p-16">
-      <h2 class="text-2xl font-bold text-gray-900 sm:text-3xl dark:text-white">آماده‌ی شروع هستید؟</h2>
-      <p class="max-w-xl text-gray-700 dark:text-gray-300">
-        ثبت‌نام کنید تا به دوره‌ها و کلاس‌های آنلاین {{ siteName }} دسترسی داشته باشید.
+    <!-- Why learn here -->
+    <section data-tour="features" class="mt-20">
+      <p class="text-sm font-semibold text-primary-600 dark:text-primary-400">چرا اینجا؟</p>
+      <h2 class="mt-1 text-2xl font-extrabold text-gray-900 sm:text-3xl dark:text-white">یادگیری بدون ریسک، با پشتیبانی واقعی</h2>
+      <div class="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="glass rounded-2xl p-6">
+          <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-primary-500/15 text-primary-700 dark:text-primary-300">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+          </span>
+          <p class="mt-4 font-bold text-gray-900 dark:text-white">اول ببین، بعد بخر</p>
+          <p class="mt-1.5 text-sm leading-6 text-gray-600 dark:text-gray-400">از هر دوره بخشی از تدریس رایگان پخش می‌شود.</p>
+        </div>
+        <div class="glass rounded-2xl p-6">
+          <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
+          </span>
+          <p class="mt-4 font-bold text-gray-900 dark:text-white">کلاس آنلاین زنده</p>
+          <p class="mt-1.5 text-sm leading-6 text-gray-600 dark:text-gray-400">سر کلاس حاضر شوید و سوال‌هایتان را مستقیم از {{ firstName }} بپرسید.</p>
+        </div>
+        <div class="glass rounded-2xl p-6">
+          <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-accent-500/15 text-accent-600 dark:text-accent-400">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          </span>
+          <p class="mt-4 font-bold text-gray-900 dark:text-white">ادامه از همان‌جا</p>
+          <p class="mt-1.5 text-sm leading-6 text-gray-600 dark:text-gray-400">هر ویدیو دقیقاً از جایی که رها کردید ادامه پیدا می‌کند.</p>
+        </div>
+        <div class="glass rounded-2xl p-6">
+          <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-sky-500/15 text-sky-600 dark:text-sky-400">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+          </span>
+          <p class="mt-4 font-bold text-gray-900 dark:text-white">دسترسی همیشگی</p>
+          <p class="mt-1.5 text-sm leading-6 text-gray-600 dark:text-gray-400">یک بار بخرید؛ دوره برای همیشه در حساب شما می‌ماند. پرداخت امن با زرین‌پال.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Topics -->
+    <section v-if="categories && categories.length > 1" data-tour="categories" class="mt-20">
+      <h2 class="text-xl font-bold text-gray-900 dark:text-white">موضوع‌ها</h2>
+      <CourseCategoryCarousel :categories="categories" class="mt-5" />
+    </section>
+
+    <!-- Closing CTA -->
+    <section class="relative mt-20 overflow-hidden rounded-3xl bg-gradient-to-br from-primary-600 to-primary-800 px-8 py-14 text-center sm:px-16">
+      <div class="absolute -end-16 -top-16 h-56 w-56 rounded-full bg-accent-400/30 blur-3xl" />
+      <div class="absolute -bottom-20 -start-10 h-56 w-56 rounded-full bg-white/10 blur-3xl" />
+      <h2 class="relative text-2xl font-extrabold text-white sm:text-4xl">
+        {{ authStore.isAuthenticated ? 'یادگیری را ادامه بده' : 'امروز شروع کن' }}
+      </h2>
+      <p class="relative mx-auto mt-4 max-w-xl text-primary-50/90">
+        {{ authStore.isAuthenticated
+          ? 'دوره‌هایت و کلاس‌های پیش رو در داشبورد منتظرت هستند.'
+          : `ثبت‌نام رایگان است؛ پیش‌نمایش دوره‌ها را ببین و هر وقت آماده بودی، با ${firstName} شروع کن.` }}
       </p>
-      <NuxtLink
-        to="/auth/register"
-        class="rounded-lg bg-accent-500 px-7 py-3 text-sm font-semibold text-white shadow-lg shadow-accent-500/30 transition hover:bg-accent-400"
-      >
-        ثبت‌نام رایگان
-      </NuxtLink>
+      <div class="relative mt-8 flex justify-center">
+        <NuxtLink
+          v-if="authStore.isAuthenticated"
+          to="/dashboard"
+          class="rounded-xl bg-white px-8 py-3.5 text-sm font-bold text-primary-700 shadow-xl transition hover:-translate-y-0.5"
+        >
+          رفتن به داشبورد
+        </NuxtLink>
+        <button
+          v-else
+          type="button"
+          class="rounded-xl bg-white px-8 py-3.5 text-sm font-bold text-primary-700 shadow-xl transition hover:-translate-y-0.5"
+          @click="openRegister"
+        >
+          ثبت‌نام رایگان
+        </button>
+      </div>
     </section>
   </div>
 </template>

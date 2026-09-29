@@ -2,16 +2,7 @@
 const { openLogin, openRegister } = useAuthModal()
 const currentYear = new Date().getFullYear()
 const { owner, siteName } = useSite()
-
-const LEGACY_LABELS: Record<string, string> = {
-  instagram: 'اینستاگرام', telegram: 'تلگرام', youtube: 'یوتیوب', website: 'وب‌سایت', linkedin: 'لینکدین',
-}
-// Only http(s) links — the owner types these in freely, and a javascript: URL here would run on click.
-const socialLinks = computed(() =>
-  Object.entries(owner.value?.social_links ?? {})
-    .filter(([, url]) => /^https?:\/\//i.test(String(url)))
-    .map(([key, url]) => ({ label: LEGACY_LABELS[key] ?? key, url: String(url) })),
-)
+const socialLinks = computed(() => publicSocialLinks(owner.value?.social_links))
 </script>
 
 <template>
