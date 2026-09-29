@@ -112,12 +112,13 @@ def test_site_background_settings(site):
     client = client_for(site.user)
     ok = client.patch(
         "/api/v1/site/settings/",
-        {"background_style": "waves", "background_colors": ["#112233", "#AABBCC"], "background_motion": False},
+        {"background_style": "bokeh", "background_colors": ["#112233", "#AABBCC"], "background_motion": False, "background_speed": "normal"},
         format="json",
     )
     assert ok.status_code == 200
     public = APIClient().get("/api/v1/site/").data
-    assert public["background_style"] == "waves"
+    assert public["background_style"] == "bokeh"
+    assert public["background_speed"] == "normal"
     assert public["background_colors"] == ["#112233", "#AABBCC"]
     assert public["background_motion"] is False
 
