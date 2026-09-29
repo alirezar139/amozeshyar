@@ -3,6 +3,10 @@ export interface SiteOwner {
   display_name: string
   site_name: string
   logo: string | null
+  background_style: string
+  background_colors: string[]
+  background_image: string | null
+  background_motion: boolean
   headline: string
   bio: string
   credentials: { title: string; issuer?: string; year?: string | number }[]

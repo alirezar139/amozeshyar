@@ -22,6 +22,17 @@ const removeLogo = ref(false)
 const logoFile = ref<File | null>(null)
 const logoPreview = ref<string | null>(null)
 const logoInput = ref<HTMLInputElement | null>(null)
+
+// Site background — every change previews live on this very page via the
+// draft in useSiteBackground, and the draft is dropped on leaving.
+const { draft: backgroundDraft } = useSiteBackground()
+const bg = reactive({ style: 'aurora' as BackgroundStyle, colors: [] as string[], motion: true })
+const currentBgImage = ref<string | null>(null)
+const removeBgImage = ref(false)
+const bgImageFile = ref<File | null>(null)
+const bgImagePreview = ref<string | null>(null)
+const bgImageInput = ref<HTMLInputElement | null>(null)
+const themeColors = ref<string[]>(['#157e6c', '#f98307', '#6ee7b7'])
 const dragging = ref(false)
 const saving = ref(false)
 const savedAt = ref(false)
@@ -29,7 +40,7 @@ const error = ref('')
 const savedSnapshot = ref('')
 
 function snapshot() {
-  return JSON.stringify({ form, links: links.value.filter((l) => l.label.trim() && l.url.trim()) })
+  return JSON.stringify({ form, bg, links: links.value.filter((l) => l.label.trim() && l.url.trim()) })
 }
 
 const { pending } = await useAsyncData('admin-site-settings', async () => {
@@ -40,12 +51,20 @@ const { pending } = await useAsyncData('admin-site-settings', async () => {
   links.value = Object.entries(data.social_links ?? {}).map(([key, url]) => ({ label: socialLinkLabel(key), url: String(url) }))
   currentCover.value = data.cover_image
   currentLogo.value = data.logo
+  bg.style = data.background_style
+  bg.colors = [...(data.background_colors ?? [])]
+  bg.motion = data.background_motion
+  currentBgImage.value = data.background_image
   savedSnapshot.value = snapshot()
   return data
 })
 
 const isDirty = computed(
-  () => snapshot() !== savedSnapshot.value || !!coverFile.value || removeCover.value || !!logoFile.value || removeLogo.value,
+  () =>
+    snapshot() !== savedSnapshot.value ||
+    !!coverFile.value || removeCover.value ||
+    !!logoFile.value || removeLogo.value ||
+    !!bgImageFile.value || removeBgImage.value,
 )
 watch(isDirty, (dirty) => {
   if (dirty) savedAt.value = false
@@ -53,7 +72,76 @@ watch(isDirty, (dirty) => {
 
 const shownLogo = computed(() => (removeLogo.value ? null : logoPreview.value || currentLogo.value))
 const shownSiteName = computed(() => form.site_name.trim() || teacherName.value)
-const shownCover = computed(() => (removeCover.value ? null : coverPreview.value || currentCover.value))
+const shownBgImage = computed(() => (removeBgImage.value ? null : bgImagePreview.value || currentBgImage.value))
+const shownColors = computed(() => (bg.colors.length ? bg.colors : themeColors.value))
+
+watch(
+  [() => ({ ...bg, colors: [...bg.colors] }), shownBgImage],
+  ([value, image]) => {
+    backgroundDraft.value = { style: value.style, colors: value.colors, motion: value.motion, image }
+  },
+  { deep: true },
+)
+onBeforeUnmount(() => {
+  backgroundDraft.value = null
+})
+
+onMounted(() => {
+  // Show the theme's actual colors in the pickers until the owner picks their own.
+  const css = getComputedStyle(document.documentElement)
+  const toHex = (name: string) => {
+    const parts = css.getPropertyValue(name).trim().split(/\s+/).map(Number)
+    return parts.length === 3 && parts.every((n) => !Number.isNaN(n))
+      ? `#${parts.map((n) => n.toString(16).padStart(2, '0')).join('')}`
+      : null
+  }
+  const found = [toHex('--c-primary-500'), toHex('--c-accent-500'), toHex('--c-primary-300')]
+  if (found.every(Boolean)) themeColors.value = found as string[]
+})
+
+function setBgColor(index: number, value: string) {
+  const next = [...shownColors.value]
+  next[index] = value
+  bg.colors = next
+}
+
+function onBgImageChange(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0]
+  ;(e.target as HTMLInputElement).value = ''
+  if (!file || !file.type.startsWith('image/')) return
+  bgImageFile.value = file
+  bgImagePreview.value = URL.createObjectURL(file)
+  removeBgImage.value = false
+  bg.style = 'image'
+}
+
+function onRemoveBgImage() {
+  bgImageFile.value = null
+  bgImagePreview.value = null
+  removeBgImage.value = !!currentBgImage.value
+}
+
+// Small static swatch per style for the picker tiles.
+function tileStyle(style: BackgroundStyle) {
+  const [c1, c2, c3] = shownColors.value
+  switch (style) {
+    case 'aurora':
+      return { background: `radial-gradient(circle at 25% 30%, ${c1}aa, transparent 55%), radial-gradient(circle at 75% 70%, ${c2}aa, transparent 55%), radial-gradient(circle at 60% 20%, ${c3}88, transparent 45%)` }
+    case 'gradient':
+      return { background: `linear-gradient(120deg, ${c1}, ${c2}, ${c3})`, opacity: 0.85 }
+    case 'waves':
+      return { background: `radial-gradient(120% 60% at 50% 115%, ${c3}99 60%, transparent 61%), radial-gradient(120% 60% at 30% 100%, ${c2}88 60%, transparent 61%), radial-gradient(120% 60% at 70% 90%, ${c1}77 60%, transparent 61%)` }
+    case 'particles':
+      return { background: `radial-gradient(circle at 20% 70%, ${c1} 2px, transparent 3px), radial-gradient(circle at 45% 35%, ${c2} 2.5px, transparent 3.5px), radial-gradient(circle at 70% 60%, ${c3} 2px, transparent 3px), radial-gradient(circle at 85% 25%, ${c1} 1.5px, transparent 2.5px), radial-gradient(circle at 30% 20%, ${c2} 1.5px, transparent 2.5px), radial-gradient(circle at 60% 85%, ${c1}55, transparent 50%)` }
+    case 'image':
+      return shownBgImage.value
+        ? { backgroundImage: `url(${shownBgImage.value})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+        : { background: 'repeating-linear-gradient(45deg, rgb(148 163 184 / 0.15) 0 6px, transparent 6px 12px)' }
+    default:
+      return { background: 'rgb(148 163 184 / 0.12)' }
+  }
+}
+(() => (removeCover.value ? null : coverPreview.value || currentCover.value))
 const previewLinks = computed(() => links.value.filter((l) => l.label.trim() && l.url.trim()))
 const unusedSuggestions = computed(() => SUGGESTED_LABELS.filter((s) => !links.value.some((l) => l.label.trim() === s)))
 
@@ -114,9 +202,16 @@ async function save() {
     // JSON for the text fields (social_links is a JSON object, which a
     // multipart body can't carry), then multipart only if a new image was picked.
     const social_links = Object.fromEntries(previewLinks.value.map((l) => [l.label.trim(), l.url.trim()]))
-    const body: Record<string, unknown> = { ...form, social_links }
+    const body: Record<string, unknown> = {
+      ...form,
+      social_links,
+      background_style: bg.style,
+      background_colors: bg.colors,
+      background_motion: bg.motion,
+    }
     if (removeCover.value) body.cover_image = null
     if (removeLogo.value) body.logo = null
+    if (removeBgImage.value) body.background_image = null
     await request('/site/settings/', { method: 'PATCH', body })
     if (removeCover.value) {
       currentCover.value = null
@@ -126,13 +221,21 @@ async function save() {
       currentLogo.value = null
       removeLogo.value = false
     }
-    if (coverFile.value || logoFile.value) {
+    if (removeBgImage.value) {
+      currentBgImage.value = null
+      removeBgImage.value = false
+    }
+    if (coverFile.value || logoFile.value || bgImageFile.value) {
       const formData = new FormData()
       if (coverFile.value) formData.append('cover_image', coverFile.value)
       if (logoFile.value) formData.append('logo', logoFile.value)
+      if (bgImageFile.value) formData.append('background_image', bgImageFile.value)
       const updated = await request<any>('/site/settings/', { method: 'PATCH', body: formData })
       currentCover.value = updated.cover_image
       currentLogo.value = updated.logo
+      currentBgImage.value = updated.background_image
+      bgImageFile.value = null
+      bgImagePreview.value = null
       coverFile.value = null
       coverPreview.value = null
       logoFile.value = null
@@ -213,6 +316,95 @@ async function save() {
                 <span class="truncate text-lg font-bold text-header-700 dark:text-header-400">{{ shownSiteName }}</span>
                 <span class="ms-auto shrink-0 text-[11px] text-gray-400">پیش‌نمایش هدر</span>
               </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Background -->
+        <section class="glass rounded-2xl p-6">
+          <div class="flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+              <span class="glass flex h-9 w-9 items-center justify-center rounded-lg text-accent-700 dark:text-accent-300">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>
+              </span>
+              <div>
+                <h2 class="font-semibold text-gray-900 dark:text-white">پس‌زمینه‌ی سایت</h2>
+                <p class="text-xs text-gray-500 dark:text-gray-400">همین حالا پشت همین صفحه پیش‌نمایش می‌شود</p>
+              </div>
+            </div>
+            <label class="flex shrink-0 cursor-pointer items-center gap-2 text-sm text-gray-700 dark:text-gray-200">
+              <span>حرکت</span>
+              <button
+                type="button"
+                role="switch"
+                :aria-checked="bg.motion"
+                :class="['relative h-6 w-11 rounded-full transition', bg.motion ? 'bg-primary-600' : 'bg-gray-300 dark:bg-white/15']"
+                @click="bg.motion = !bg.motion"
+              >
+                <span :class="['absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all', bg.motion ? 'start-[1.375rem]' : 'start-0.5']" />
+              </button>
+            </label>
+          </div>
+
+          <div class="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <button
+              v-for="option in BACKGROUND_STYLES"
+              :key="option.value"
+              type="button"
+              :class="[
+                'group overflow-hidden rounded-xl text-start transition',
+                bg.style === option.value
+                  ? 'ring-2 ring-primary-500 ring-offset-2 ring-offset-transparent'
+                  : 'ring-1 ring-black/5 hover:-translate-y-0.5 dark:ring-white/10',
+              ]"
+              @click="option.value === 'image' && !shownBgImage ? bgImageInput?.click() : (bg.style = option.value)"
+            >
+              <div class="relative aspect-[16/10] bg-gray-100 dark:bg-gray-900" :style="tileStyle(option.value)">
+                <span v-if="bg.style === option.value" class="absolute end-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary-600 text-white">
+                  <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+                </span>
+              </div>
+              <div class="px-3 py-2">
+                <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ option.label }}</p>
+                <p class="line-clamp-1 text-[11px] text-gray-500 dark:text-gray-400">{{ option.hint }}</p>
+              </div>
+            </button>
+          </div>
+
+          <input ref="bgImageInput" type="file" accept="image/*" class="hidden" @change="onBgImageChange">
+          <div v-if="bg.style === 'image'" class="mt-4 flex flex-wrap items-center gap-3 text-sm">
+            <button type="button" class="glass rounded-lg px-3 py-1.5 font-medium text-gray-800 dark:text-gray-100" @click="bgImageInput?.click()">
+              {{ shownBgImage ? 'تغییر عکس پس‌زمینه' : 'انتخاب عکس پس‌زمینه' }}
+            </button>
+            <button v-if="shownBgImage" type="button" class="rounded-lg px-3 py-1.5 font-medium text-red-600 hover:bg-red-500/10" @click="onRemoveBgImage">
+              حذف عکس
+            </button>
+            <span class="text-xs text-gray-500 dark:text-gray-400">یک لایه‌ی نیمه‌شفاف رویش می‌آید تا متن‌ها خوانا بمانند.</span>
+          </div>
+
+          <div v-if="bg.style !== 'image' && bg.style !== 'plain'" class="mt-5">
+            <div class="flex items-center justify-between">
+              <p class="text-sm font-medium text-gray-700 dark:text-gray-200">رنگ‌ها</p>
+              <button v-if="bg.colors.length" type="button" class="text-xs text-primary-600 hover:underline dark:text-primary-400" @click="bg.colors = []">
+                برگشت به رنگ‌های قالب
+              </button>
+            </div>
+            <div class="mt-2 flex flex-wrap gap-3">
+              <label
+                v-for="(color, i) in shownColors"
+                :key="i"
+                class="glass flex cursor-pointer items-center gap-2 rounded-xl py-1.5 pe-3 ps-1.5"
+              >
+                <span class="relative h-8 w-8 overflow-hidden rounded-lg ring-1 ring-black/10" :style="{ background: color }">
+                  <input
+                    type="color"
+                    :value="color"
+                    class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                    @input="setBgColor(i, ($event.target as HTMLInputElement).value)"
+                  >
+                </span>
+                <span class="font-mono text-xs text-gray-600 dark:text-gray-300" dir="ltr">{{ color }}</span>
+              </label>
             </div>
           </div>
         </section>
