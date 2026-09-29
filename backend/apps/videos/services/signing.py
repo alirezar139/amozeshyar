@@ -7,9 +7,9 @@ caller's permissions have already been checked by the view.
 from urllib.parse import quote
 
 from django.conf import settings
-from storages.backends.s3 import S3Storage
+from apps.common.storage import SharedSessionS3Storage
 
-_storage = S3Storage()
+_storage = SharedSessionS3Storage()
 
 
 def get_presigned_url(storage_key: str, expires_in: int = 600) -> str:

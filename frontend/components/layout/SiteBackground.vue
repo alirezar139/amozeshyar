@@ -61,16 +61,16 @@ onBeforeUnmount(() => {
     <!-- شفق -->
     <template v-if="background.style === 'aurora'">
       <div class="layer depth-1">
-        <div class="blob aurora-a" style="top: -12%; right: -8%; width: 42rem; height: 42rem; background: var(--bg-1)" />
+        <div class="blob aurora-a" style="top: -12%; right: -8%; width: 42rem; height: 42rem; --c: var(--bg-1)" />
       </div>
       <div class="layer depth-2">
-        <div class="blob aurora-b" style="top: 30%; left: -14%; width: 38rem; height: 38rem; background: var(--bg-2)" />
+        <div class="blob aurora-b" style="top: 30%; left: -14%; width: 38rem; height: 38rem; --c: var(--bg-2)" />
       </div>
       <div class="layer depth-3">
-        <div class="blob aurora-c" style="bottom: -18%; right: 22%; width: 34rem; height: 34rem; background: var(--bg-3)" />
+        <div class="blob aurora-c" style="bottom: -18%; right: 22%; width: 34rem; height: 34rem; --c: var(--bg-3)" />
       </div>
       <div class="layer depth-2">
-        <div class="blob aurora-a" style="top: 8%; left: 30%; width: 22rem; height: 22rem; background: var(--bg-2); animation-delay: -9s" />
+        <div class="blob aurora-a" style="top: 8%; left: 30%; width: 22rem; height: 22rem; --c: var(--bg-2); animation-delay: -9s" />
       </div>
     </template>
 
@@ -83,7 +83,7 @@ onBeforeUnmount(() => {
     <!-- موج -->
     <template v-else-if="background.style === 'waves'">
       <div class="layer depth-1">
-        <div class="blob aurora-b" style="top: -15%; left: 10%; width: 36rem; height: 36rem; background: var(--bg-1)" />
+        <div class="blob aurora-b" style="top: -15%; left: 10%; width: 36rem; height: 36rem; --c: var(--bg-1)" />
       </div>
       <div class="absolute inset-x-0 bottom-0 h-[45vh]">
         <svg v-for="(wave, i) in 3" :key="i" :class="['wave', `wave-${i + 1}`]" viewBox="0 0 2880 320" preserveAspectRatio="none">
@@ -98,7 +98,7 @@ onBeforeUnmount(() => {
     <!-- ذرات شناور -->
     <template v-else-if="background.style === 'particles'">
       <div class="layer depth-1">
-        <div class="blob aurora-c" style="top: 20%; left: 25%; width: 40rem; height: 40rem; background: var(--bg-1); opacity: 0.18" />
+        <div class="blob aurora-c" style="top: 20%; left: 25%; width: 40rem; height: 40rem; --c: var(--bg-1); opacity: 0.18" />
       </div>
       <div class="layer depth-2">
         <span
@@ -144,14 +144,18 @@ onBeforeUnmount(() => {
 .depth-2 { transform: translate3d(calc(var(--px) * -28px), calc(var(--py) * -20px), 0); }
 .depth-3 { transform: translate3d(calc(var(--px) * -44px), calc(var(--py) * -30px), 0); }
 
+/* A radial gradient instead of filter: blur() — same soft glow, but a
+   blur over elements this large and always moving kept the GPU busy
+   repainting and made scrolling janky on modest machines. */
 .blob {
   position: absolute;
   border-radius: 9999px;
-  filter: blur(80px);
-  opacity: 0.35;
+  background: radial-gradient(closest-side, var(--c), transparent);
+  opacity: 0.5;
+  will-change: transform;
 }
 html.dark .blob {
-  opacity: 0.22;
+  opacity: 0.32;
 }
 .aurora-a { animation: aurora-a 22s ease-in-out infinite; }
 .aurora-b { animation: aurora-b 28s ease-in-out infinite; }

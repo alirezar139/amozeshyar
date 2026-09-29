@@ -10,7 +10,7 @@ useSeoMeta({
 
 const categorySlug = computed(() => (route.query.category as string) || '')
 
-const { data: categories } = await useAsyncData('courses-page-categories', async () => {
+const categoriesAsync = useAsyncData('courses-page-categories', async () => {
   const page = await request<{ results: any[] }>('/categories/')
   return page.results
 })
@@ -23,9 +23,13 @@ async function fetchCourses() {
   return page.results
 }
 
-const { data: courses, pending, error } = await useAsyncData('courses-list', fetchCourses, {
+const coursesAsync = useAsyncData('courses-list', fetchCourses, {
   watch: [categorySlug],
 })
+// Independent fetches: started together, awaited as a group.
+await Promise.all([categoriesAsync, coursesAsync])
+const { data: categories } = categoriesAsync
+const { data: courses, pending, error } = coursesAsync
 </script>
 
 <template>

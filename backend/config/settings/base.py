@@ -80,6 +80,10 @@ ASGI_APPLICATION = "config.asgi.application"
 DATABASES = {
     "default": env.db("DATABASE_URL", default="postgres://postgres:postgres@localhost:5432/amozeshyar"),
 }
+# Reuse DB connections across requests (each new one costs ~40 ms) and
+# check them before use so a restarted Postgres doesn't surface as errors.
+DATABASES["default"]["CONN_MAX_AGE"] = env.int("DB_CONN_MAX_AGE", default=60)
+DATABASES["default"]["CONN_HEALTH_CHECKS"] = True
 
 # --- Custom user model ---
 AUTH_USER_MODEL = "accounts.User"
@@ -174,7 +178,7 @@ CELERY_TIMEZONE = TIME_ZONE
 # --- Object storage (S3-compatible; MinIO in dev, Iranian cloud provider in prod) ---
 STORAGES = {
     "default": {
-        "BACKEND": "storages.backends.s3.S3Storage",
+        "BACKEND": "apps.common.storage.SharedSessionS3Storage",
     },
     "staticfiles": {
         "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",

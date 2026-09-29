@@ -14,17 +14,20 @@ useSeoMeta({
   ogType: 'website',
 })
 
-const { data: categories } = await useAsyncData('home-categories', async () => {
+// Independent fetches: started together, awaited as a group.
+const categoriesAsync = useAsyncData('home-categories', async () => {
   const page = await request<{ results: any[] }>('/categories/')
   // Skip categories with no published course yet — no point linking
   // to a filtered course list that would just come back empty.
   return page.results.filter((c) => c.course_count > 0).slice(0, 6)
 })
-
-const { data: catalog } = await useAsyncData('home-featured-courses', async () => {
+const catalogAsync = useAsyncData('home-featured-courses', async () => {
   const page = await request<{ count: number; results: any[] }>('/courses/')
   return { total: page.count, featured: page.results.slice(0, 3) }
 })
+await Promise.all([categoriesAsync, catalogAsync])
+const { data: categories } = categoriesAsync
+const { data: catalog } = catalogAsync
 const featuredCourses = computed(() => catalog.value?.featured ?? [])
 
 const socialLinks = computed(() => publicSocialLinks(owner.value?.social_links))
