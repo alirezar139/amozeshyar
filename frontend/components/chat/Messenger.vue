@@ -239,8 +239,8 @@ function onActivity() {
               @click="open(c)"
             >
               <span v-if="c.id === activeId" class="absolute inset-y-3 start-0 w-1 rounded-full bg-primary-500" />
-              <span :class="['rounded-full p-0.5', c.unread ? 'bg-gradient-to-br from-primary-400 to-accent-500' : '']">
-                <span :class="['block rounded-full', c.unread ? 'bg-white p-0.5 dark:bg-gray-900' : '']">
+              <span :class="['inline-flex shrink-0 rounded-full p-0.5', c.unread ? 'bg-gradient-to-br from-primary-400 to-accent-500' : '']">
+                <span :class="['inline-flex rounded-full', c.unread ? 'bg-white p-0.5 dark:bg-gray-900' : '']">
                   <ChatAvatar :src="c.avatar" :name="c.title" :group="c.kind === 'course'" size="lg" />
                 </span>
               </span>
