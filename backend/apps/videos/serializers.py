@@ -16,6 +16,8 @@ class VideoUploadSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         file_obj = validated_data.pop("file")
         lesson = validated_data["lesson"]
+        # Re-uploading replaces the lesson's video (the relation is one-to-one).
+        VideoAsset.objects.filter(lesson=lesson).delete()
         storage_key = f"lessons/{lesson.id}/original_{file_obj.name}"
 
         from django.core.files.storage import default_storage

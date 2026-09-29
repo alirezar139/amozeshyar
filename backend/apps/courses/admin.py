@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Category, Course, Lesson
+from .models import Category, Course, Lesson, LessonFile
 
 
 class LessonInline(admin.TabularInline):
@@ -25,3 +25,8 @@ class CourseAdmin(admin.ModelAdmin):
 @admin.register(Lesson)
 class LessonAdmin(admin.ModelAdmin):
     list_display = ("course", "title", "order", "is_free_preview")
+
+
+@admin.register(LessonFile)
+class LessonFileAdmin(admin.ModelAdmin):
+    list_display = ("lesson", "title", "original_name", "size_bytes", "created_at")

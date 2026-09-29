@@ -4,6 +4,8 @@ Every object is private; the only way to reach a video byte is through one
 of these short-lived, single-object URLs, minted per-request after the
 caller's permissions have already been checked by the view.
 """
+from urllib.parse import quote
+
 from django.conf import settings
 from storages.backends.s3 import S3Storage
 
@@ -22,7 +24,10 @@ def get_presigned_url(storage_key: str, expires_in: int = 600) -> str:
 
 def get_download_url(storage_key: str, filename: str, expires_in: int = 300) -> str:
     """Presigned URL forcing a browser download (Content-Disposition), for the owner/admin download endpoint."""
-    params = {"ResponseContentDisposition": f'attachment; filename="{filename}"'}
+    # RFC 6266: an ASCII fallback plus the real (often Persian) name as UTF-8.
+    ascii_name = filename.encode("ascii", "ignore").decode().replace('"', "").strip() or "download"
+    disposition = f"attachment; filename=\"{ascii_name}\"; filename*=UTF-8''{quote(filename)}"
+    params = {"ResponseContentDisposition": disposition}
     return _storage.bucket.meta.client.generate_presigned_url(
         "get_object",
         Params={"Bucket": settings.AWS_STORAGE_BUCKET_NAME, "Key": storage_key, **params},
