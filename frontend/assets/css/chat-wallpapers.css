@@ -1,0 +1,38 @@
+/* Chat wallpapers (chosen in messenger settings). */
+.chat-bg.wp-dots {
+  background-color: rgb(var(--c-primary-500) / 0.03);
+  background-image:
+    radial-gradient(rgb(var(--c-primary-500) / 0.09) 1px, transparent 1px),
+    radial-gradient(circle at 10% 0%, rgb(var(--c-primary-500) / 0.08), transparent 45%),
+    radial-gradient(circle at 90% 100%, rgb(var(--c-accent-500) / 0.08), transparent 45%);
+  background-size: 18px 18px, 100% 100%, 100% 100%;
+}
+.chat-bg.wp-plain {
+  background: rgb(var(--c-primary-500) / 0.02);
+}
+.chat-bg.wp-gradient {
+  background: linear-gradient(160deg, rgb(var(--c-primary-500) / 0.16), rgb(var(--c-accent-500) / 0.12) 55%, rgb(var(--c-primary-300) / 0.14));
+}
+.chat-bg.wp-waves {
+  background-color: rgb(var(--c-primary-500) / 0.04);
+  background-image:
+    radial-gradient(ellipse 120% 60% at 50% 120%, rgb(var(--c-primary-500) / 0.14) 40%, transparent 41%),
+    radial-gradient(ellipse 120% 60% at 30% 135%, rgb(var(--c-accent-500) / 0.12) 40%, transparent 41%);
+  background-attachment: local;
+}
+.chat-bg.wp-grid {
+  background-color: rgb(255 255 255 / 0.4);
+  background-image:
+    linear-gradient(rgb(var(--c-primary-500) / 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(var(--c-primary-500) / 0.1) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+html.dark .chat-bg.wp-grid {
+  background-color: transparent;
+}
+/* Study doodles: pencils, books, stars and bulbs, drawn once as an inline SVG tile. */
+.chat-bg.wp-doodle {
+  background-color: rgb(var(--c-primary-500) / 0.04);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' fill='none' stroke='%2394a3b8' stroke-opacity='0.35' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 30 l22-22 6 6-22 22-8 2z'/%3E%3Cpath d='M92 20h26v34H92zM98 28h14M98 36h14M98 44h8'/%3E%3Cpath d='M40 100l4 9 10 1-7 7 2 10-9-5-9 5 2-10-7-7 10-1z'/%3E%3Cpath d='M118 102a12 12 0 1 1 14 12v6h-8v-6M122 128h6'/%3E%3Ccircle cx='80' cy='80' r='3'/%3E%3Cpath d='M10 140h24M22 128v24'/%3E%3Cpath d='M140 60q10 8 0 16'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
+}

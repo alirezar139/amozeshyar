@@ -4,12 +4,37 @@
 const emit = defineEmits<{
   send: [payload: { text: string; file?: File; voice?: boolean; duration?: number }]
 }>()
-defineProps<{ disabled?: boolean }>()
+const props = defineProps<{ disabled?: boolean; readonlyNote?: string }>()
 
 const text = ref('')
 const file = ref<File | null>(null)
 const filePreview = ref<string | null>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
+const imageInput = ref<HTMLInputElement | null>(null)
+const showEmoji = ref(false)
+const emojiBox = ref<HTMLElement | null>(null)
+
+function insertEmoji(emoji: string) {
+  const el = textarea.value
+  if (!el) {
+    text.value += emoji
+    return
+  }
+  const start = el.selectionStart ?? text.value.length
+  const end = el.selectionEnd ?? text.value.length
+  text.value = text.value.slice(0, start) + emoji + text.value.slice(end)
+  nextTick(() => {
+    el.focus()
+    el.selectionStart = el.selectionEnd = start + emoji.length
+    autoGrow()
+  })
+}
+
+function onDocClick(e: MouseEvent) {
+  if (showEmoji.value && emojiBox.value && !emojiBox.value.contains(e.target as Node)) showEmoji.value = false
+}
+onMounted(() => document.addEventListener('mousedown', onDocClick))
+onBeforeUnmount(() => document.removeEventListener('mousedown', onDocClick))
 const textarea = ref<HTMLTextAreaElement | null>(null)
 const error = ref('')
 
@@ -140,18 +165,51 @@ onBeforeUnmount(() => stopRecording(true))
       </button>
     </div>
 
-    <div v-else class="flex items-end gap-2">
+    <div v-else-if="readonlyNote" class="flex items-center justify-center gap-2 rounded-2xl bg-black/[0.04] px-4 py-3 text-sm text-gray-500 dark:bg-white/5 dark:text-gray-400">
+      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg>
+      {{ readonlyNote }}
+    </div>
+
+    <div v-else class="flex items-end gap-1.5">
+      <input ref="imageInput" type="file" accept="image/*" class="hidden" @change="pickFile">
       <input ref="fileInput" type="file" class="hidden" @change="pickFile">
-      <button
-        type="button"
-        :disabled="disabled"
-        class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-gray-500 transition hover:bg-black/5 hover:text-primary-600 disabled:opacity-40 dark:hover:bg-white/10"
-        aria-label="پیوست فایل یا عکس"
-        title="پیوست فایل یا عکس"
-        @click="fileInput?.click()"
-      >
-        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
-      </button>
+      <div class="flex shrink-0 items-center">
+        <button
+          type="button"
+          :disabled="disabled"
+          class="flex h-10 w-10 items-center justify-center rounded-full text-gray-500 transition hover:bg-black/5 hover:text-primary-600 disabled:opacity-40 dark:hover:bg-white/10"
+          aria-label="ارسال تصویر"
+          title="ارسال تصویر"
+          @click="imageInput?.click()"
+        >
+          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+        </button>
+        <button
+          type="button"
+          :disabled="disabled"
+          class="flex h-10 w-10 items-center justify-center rounded-full text-gray-500 transition hover:bg-black/5 hover:text-primary-600 disabled:opacity-40 dark:hover:bg-white/10"
+          aria-label="ارسال فایل"
+          title="ارسال فایل"
+          @click="fileInput?.click()"
+        >
+          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
+        </button>
+        <div ref="emojiBox" class="relative">
+          <button
+            type="button"
+            :disabled="disabled"
+            :class="['flex h-10 w-10 items-center justify-center rounded-full transition hover:bg-black/5 disabled:opacity-40 dark:hover:bg-white/10', showEmoji ? 'text-primary-600' : 'text-gray-500 hover:text-primary-600']"
+            aria-label="ایموجی"
+            title="ایموجی"
+            @click="showEmoji = !showEmoji"
+          >
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          </button>
+          <Transition name="pop">
+            <ChatEmojiPicker v-if="showEmoji" class="absolute bottom-12 start-0 z-30" @pick="insertEmoji" />
+          </Transition>
+        </div>
+      </div>
       <textarea
         ref="textarea"
         v-model="text"
@@ -187,3 +245,15 @@ onBeforeUnmount(() => stopRecording(true))
     <p v-if="error" class="mt-2 text-xs text-red-600">{{ error }}</p>
   </div>
 </template>
+
+<style scoped>
+.pop-enter-active,
+.pop-leave-active {
+  transition: all 0.15s ease;
+}
+.pop-enter-from,
+.pop-leave-to {
+  opacity: 0;
+  transform: translateY(6px) scale(0.97);
+}
+</style>
