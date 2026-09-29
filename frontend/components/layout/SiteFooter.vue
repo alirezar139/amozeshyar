@@ -9,7 +9,7 @@ const socialLinks = computed(() => publicSocialLinks(owner.value?.social_links))
   <footer class="glass mt-16 border-x-0 border-b-0 py-10">
     <div class="mx-auto grid max-w-7xl grid-cols-1 gap-8 px-4 sm:grid-cols-2 sm:px-6 lg:grid-cols-4 lg:px-8">
       <div>
-        <p class="text-lg font-bold text-primary-600">{{ siteName }}</p>
+        <LayoutSiteBrand size="lg" />
         <p v-if="owner?.headline" class="mt-2 text-sm text-gray-600 dark:text-gray-400">{{ owner.headline }}</p>
       </div>
       <div>

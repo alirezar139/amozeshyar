@@ -1,6 +1,5 @@
 <script setup lang="ts">
 const authStore = useAuthStore()
-const { siteName } = useSite()
 const { openLogin, openRegister } = useAuthModal()
 const mobileMenuOpen = ref(false)
 
@@ -22,9 +21,8 @@ function onRegisterClick() {
 <template>
   <header class="glass sticky top-0 z-40">
     <div class="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-      <NuxtLink to="/" class="flex items-center gap-2 text-xl font-bold text-header-700 dark:text-header-400">
-        <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-header-600 text-sm font-extrabold text-white">{{ siteName[0] }}</span>
-        {{ siteName }}
+      <NuxtLink to="/" class="min-w-0">
+        <LayoutSiteBrand />
       </NuxtLink>
 
       <nav class="hidden items-center gap-6 md:flex">

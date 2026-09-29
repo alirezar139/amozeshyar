@@ -51,6 +51,10 @@ class InstructorProfile(TimeStampedModel):
     rating_avg = models.DecimalField(max_digits=3, decimal_places=2, default=0)
     total_students = models.PositiveIntegerField(default=0)
     is_site_owner = models.BooleanField(default=False)
+    # Site branding (header, footer, page titles). Blank name falls back to
+    # the instructor's own name; blank logo to their initial.
+    site_name = models.CharField(max_length=100, blank=True)
+    logo = models.ImageField(upload_to="site_logos/", blank=True, null=True)
 
     class Meta:
         ordering = ("-created_at",)

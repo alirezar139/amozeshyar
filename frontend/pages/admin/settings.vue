@@ -1,7 +1,8 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'admin' })
 const { request } = useApi()
-const { refresh: refreshSite, siteName } = useSite()
+const { refresh: refreshSite, teacherName } = useSite()
+const SITE_NAME_MAX = 100
 
 // social_links is stored as { label: url }; edited here as rows so links
 // can be added and removed freely.
@@ -9,13 +10,18 @@ const SUGGESTED_LABELS = ['اینستاگرام', 'تلگرام', 'یوتیوب'
 const HEADLINE_MAX = 255
 const BIO_SOFT_MAX = 400
 
-const form = reactive({ headline: '', bio: '' })
+const form = reactive({ site_name: '', headline: '', bio: '' })
 const links = ref<{ label: string; url: string }[]>([])
 const currentCover = ref<string | null>(null)
 const removeCover = ref(false)
 const coverFile = ref<File | null>(null)
 const coverPreview = ref<string | null>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
+const currentLogo = ref<string | null>(null)
+const removeLogo = ref(false)
+const logoFile = ref<File | null>(null)
+const logoPreview = ref<string | null>(null)
+const logoInput = ref<HTMLInputElement | null>(null)
 const dragging = ref(false)
 const saving = ref(false)
 const savedAt = ref(false)
@@ -28,19 +34,25 @@ function snapshot() {
 
 const { pending } = await useAsyncData('admin-site-settings', async () => {
   const data = await request<any>('/site/settings/')
+  form.site_name = data.site_name
   form.headline = data.headline
   form.bio = data.bio
   links.value = Object.entries(data.social_links ?? {}).map(([key, url]) => ({ label: socialLinkLabel(key), url: String(url) }))
   currentCover.value = data.cover_image
+  currentLogo.value = data.logo
   savedSnapshot.value = snapshot()
   return data
 })
 
-const isDirty = computed(() => snapshot() !== savedSnapshot.value || !!coverFile.value || removeCover.value)
+const isDirty = computed(
+  () => snapshot() !== savedSnapshot.value || !!coverFile.value || removeCover.value || !!logoFile.value || removeLogo.value,
+)
 watch(isDirty, (dirty) => {
   if (dirty) savedAt.value = false
 })
 
+const shownLogo = computed(() => (removeLogo.value ? null : logoPreview.value || currentLogo.value))
+const shownSiteName = computed(() => form.site_name.trim() || teacherName.value)
 const shownCover = computed(() => (removeCover.value ? null : coverPreview.value || currentCover.value))
 const previewLinks = computed(() => links.value.filter((l) => l.label.trim() && l.url.trim()))
 const unusedSuggestions = computed(() => SUGGESTED_LABELS.filter((s) => !links.value.some((l) => l.label.trim() === s)))
@@ -72,6 +84,21 @@ function onRemoveCover() {
   removeCover.value = !!currentCover.value
 }
 
+function onLogoChange(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0]
+  ;(e.target as HTMLInputElement).value = ''
+  if (!file || !file.type.startsWith('image/')) return
+  logoFile.value = file
+  logoPreview.value = URL.createObjectURL(file)
+  removeLogo.value = false
+}
+
+function onRemoveLogo() {
+  logoFile.value = null
+  logoPreview.value = null
+  removeLogo.value = !!currentLogo.value
+}
+
 function addLink(label = '') {
   links.value.push({ label, url: '' })
 }
@@ -85,22 +112,31 @@ async function save() {
   error.value = ''
   try {
     // JSON for the text fields (social_links is a JSON object, which a
-    // multipart body can't carry), then multipart only if a new photo was picked.
+    // multipart body can't carry), then multipart only if a new image was picked.
     const social_links = Object.fromEntries(previewLinks.value.map((l) => [l.label.trim(), l.url.trim()]))
     const body: Record<string, unknown> = { ...form, social_links }
     if (removeCover.value) body.cover_image = null
+    if (removeLogo.value) body.logo = null
     await request('/site/settings/', { method: 'PATCH', body })
     if (removeCover.value) {
       currentCover.value = null
       removeCover.value = false
     }
-    if (coverFile.value) {
+    if (removeLogo.value) {
+      currentLogo.value = null
+      removeLogo.value = false
+    }
+    if (coverFile.value || logoFile.value) {
       const formData = new FormData()
-      formData.append('cover_image', coverFile.value)
+      if (coverFile.value) formData.append('cover_image', coverFile.value)
+      if (logoFile.value) formData.append('logo', logoFile.value)
       const updated = await request<any>('/site/settings/', { method: 'PATCH', body: formData })
       currentCover.value = updated.cover_image
+      currentLogo.value = updated.logo
       coverFile.value = null
       coverPreview.value = null
+      logoFile.value = null
+      logoPreview.value = null
     }
     links.value = [...previewLinks.value]
     savedSnapshot.value = snapshot()
@@ -126,6 +162,61 @@ async function save() {
     <div v-if="pending" class="mt-6 text-gray-500">در حال بارگذاری...</div>
     <div v-else class="mt-6 grid grid-cols-1 items-start gap-6 lg:grid-cols-5">
       <form data-tour="site-settings-form" class="space-y-5 lg:col-span-3" @submit.prevent="save">
+        <!-- Brand -->
+        <section class="glass rounded-2xl p-6">
+          <div class="flex items-center gap-3">
+            <span class="glass flex h-9 w-9 items-center justify-center rounded-lg text-header-700 dark:text-header-300">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
+            </span>
+            <div>
+              <h2 class="font-semibold text-gray-900 dark:text-white">نام و لوگوی سایت</h2>
+              <p class="text-xs text-gray-500 dark:text-gray-400">بالای همه‌ی صفحه‌ها، در فوتر و عنوان تب مرورگر</p>
+            </div>
+          </div>
+          <div class="mt-5 flex flex-col gap-5 sm:flex-row sm:items-start">
+            <input ref="logoInput" type="file" accept="image/*" class="hidden" @change="onLogoChange">
+            <div class="flex shrink-0 flex-col items-center gap-2">
+              <button
+                type="button"
+                class="group relative flex h-24 w-24 items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-gray-300 transition hover:border-primary-400 dark:border-white/15"
+                aria-label="انتخاب لوگو"
+                @click="logoInput?.click()"
+              >
+                <img v-if="shownLogo" :src="shownLogo" alt="" class="h-full w-full object-contain p-2">
+                <span v-else class="flex flex-col items-center gap-1 text-gray-400">
+                  <svg class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg>
+                  <span class="text-[11px]">لوگو</span>
+                </span>
+              </button>
+              <button v-if="shownLogo" type="button" class="text-xs text-red-600 hover:underline" @click="onRemoveLogo">حذف لوگو</button>
+              <span v-else class="text-[11px] text-gray-500 dark:text-gray-400">PNG شفاف، مربعی</span>
+            </div>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-baseline justify-between">
+                <label for="site-name" class="text-sm font-medium text-gray-700 dark:text-gray-200">نام سایت</label>
+                <span class="text-xs text-gray-400">{{ form.site_name.length.toLocaleString('fa-IR') }}/{{ SITE_NAME_MAX.toLocaleString('fa-IR') }}</span>
+              </div>
+              <input
+                id="site-name"
+                v-model="form.site_name"
+                :maxlength="SITE_NAME_MAX"
+                :placeholder="`مثلاً: آکادمی ${teacherName.split(' ').slice(-1)[0]}`"
+                class="glass mt-1.5 block w-full rounded-lg px-3 py-2.5 text-sm text-gray-900 outline-none transition focus:ring-2 focus:ring-primary-500/50 dark:text-white"
+              >
+              <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">اگر خالی بماند، نام خودتان نمایش داده می‌شود.</p>
+              <!-- How the header will look -->
+              <div class="glass mt-4 flex items-center gap-2.5 rounded-xl px-4 py-3">
+                <img v-if="shownLogo" :src="shownLogo" alt="" class="h-9 w-9 shrink-0 object-contain">
+                <span v-else class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-header-600 text-sm font-extrabold text-white">
+                  {{ shownSiteName[0] }}
+                </span>
+                <span class="truncate text-lg font-bold text-header-700 dark:text-header-400">{{ shownSiteName }}</span>
+                <span class="ms-auto shrink-0 text-[11px] text-gray-400">پیش‌نمایش هدر</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <!-- About -->
         <section class="glass rounded-2xl p-6">
           <div class="flex items-center gap-3">
@@ -348,7 +439,7 @@ async function save() {
             <IllustrationPortraitStack :src="shownCover" size="sm" class="w-40" />
           </div>
           <div class="p-5">
-            <p class="text-2xl font-black text-gray-900 dark:text-white">{{ siteName }}</p>
+            <p class="text-2xl font-black text-gray-900 dark:text-white">{{ teacherName }}</p>
             <p v-if="form.headline" class="mt-1 bg-gradient-to-l from-primary-600 to-accent-500 bg-clip-text font-bold text-transparent dark:from-primary-300 dark:to-accent-300">
               {{ form.headline }}
             </p>
