@@ -14,21 +14,33 @@ defineProps<{
   <div :class="['portrait-stack group relative', size === 'sm' ? 'is-sm' : '']">
     <div class="page page-back absolute inset-0 bg-gradient-to-br from-accent-400 to-accent-600 opacity-70" />
     <div class="page page-mid absolute inset-0 bg-gradient-to-br from-primary-500 to-primary-700 opacity-85" />
-    <div class="page page-front relative overflow-hidden bg-gray-100 shadow-2xl ring-1 ring-black/5 dark:bg-gray-800 dark:ring-white/10">
-      <img v-if="src" :src="src" :alt="alt ?? ''" class="aspect-[4/5] w-full object-cover object-top">
-      <IllustrationTeachingScene v-else class="aspect-[4/5] w-full !rounded-none !p-3 !shadow-none" />
+    <div class="page page-front relative shadow-2xl">
+      <div class="page-clip bg-gray-100 dark:bg-gray-800">
+        <img v-if="src" :src="src" :alt="alt ?? ''" class="aspect-[4/5] w-full object-cover object-top">
+        <IllustrationTeachingScene v-else class="aspect-[4/5] w-full !rounded-none !border-0 !bg-transparent !p-3 !shadow-none !backdrop-blur-none" />
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
+.portrait-stack {
+  --radius: 2.5rem;
+}
+.portrait-stack.is-sm {
+  --radius: 1.75rem;
+}
 .page {
-  border-radius: 2.5rem;
+  border-radius: var(--radius);
   transform-origin: 50% 90%;
   transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
-.is-sm .page {
-  border-radius: 1.75rem;
+/* clip-path, not overflow:hidden: Chrome stops honoring border-radius
+   clipping on a transformed parent when a child has backdrop-filter
+   (the illustration's glass), which let square corners show through. */
+.page-clip {
+  clip-path: inset(0 round var(--radius));
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.05);
 }
 
 .page-back {
