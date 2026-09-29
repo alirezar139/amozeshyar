@@ -85,6 +85,7 @@ class Message(TimeStampedModel):
     attachment_size = models.PositiveBigIntegerField(default=0)
     # Voice notes: length in seconds, as measured by the recorder.
     duration_seconds = models.PositiveIntegerField(null=True, blank=True)
+    reply_to = models.ForeignKey("self", null=True, blank=True, on_delete=models.SET_NULL, related_name="replies")
 
     class Meta:
         ordering = ("created_at", "id")
@@ -100,6 +101,8 @@ class ConversationRead(models.Model):
     conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE, related_name="reads")
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="conversation_reads")
     last_read_message_id = models.PositiveBigIntegerField(default=0)
+    # When the marker last moved forward — i.e. roughly when they saw it.
+    read_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=("conversation", "user"), name="one_read_marker_per_user")]
