@@ -83,7 +83,7 @@ onUnmounted(() => {
   <div class="fixed inset-0 flex flex-col bg-gray-950">
     <div v-if="status !== 'error'" class="flex items-center justify-between px-4 py-2 text-sm text-gray-300">
       <span>{{ info ? `${info.course_title} — ${info.title}` : 'در حال اتصال...' }}</span>
-      <NuxtLink :to="backTo" class="text-gray-400 hover:text-white">بازگشت ✕</NuxtLink>
+      <NuxtLink :to="backTo" data-tour="classroom-back" class="text-gray-400 hover:text-white">بازگشت ✕</NuxtLink>
     </div>
 
     <div v-if="status === 'loading'" class="flex flex-1 items-center justify-center text-gray-400">

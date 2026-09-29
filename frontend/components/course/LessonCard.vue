@@ -204,7 +204,7 @@ async function downloadFile(file: any) {
 </script>
 
 <template>
-  <article class="glass overflow-hidden rounded-2xl" :class="{ 'opacity-60': busy }">
+  <article data-tour="lesson-card" class="glass overflow-hidden rounded-2xl" :class="{ 'opacity-60': busy }">
     <!-- Header -->
     <header class="flex flex-wrap items-center gap-3 border-b border-white/30 px-5 py-4 dark:border-white/10">
       <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-600 text-sm font-black text-white">
@@ -246,7 +246,7 @@ async function downloadFile(file: any) {
         {{ lesson.is_free_preview ? '✓ رایگان برای همه' : 'رایگان کردن' }}
       </button>
 
-      <div class="flex items-center gap-0.5">
+      <div data-tour="lesson-tools" class="flex items-center gap-0.5">
         <button type="button" :disabled="isFirst" class="rounded-lg p-1.5 text-gray-500 transition hover:bg-black/5 disabled:opacity-30 dark:hover:bg-white/10" aria-label="بالا" @click="emit('move', 'up')">
           <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7" /></svg>
         </button>
@@ -262,7 +262,7 @@ async function downloadFile(file: any) {
 
     <div class="grid grid-cols-1 gap-5 p-5 lg:grid-cols-2">
       <!-- ============ Video ============ -->
-      <section>
+      <section data-tour="lesson-video">
         <h3 class="mb-2.5 flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-200">
           <svg class="h-4 w-4 text-primary-600 dark:text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
           ویدیوی جلسه
@@ -353,7 +353,7 @@ async function downloadFile(file: any) {
       </section>
 
       <!-- ============ Files ============ -->
-      <section>
+      <section data-tour="lesson-files">
         <h3 class="mb-2.5 flex items-center justify-between gap-2 text-sm font-semibold text-gray-700 dark:text-gray-200">
           <span class="flex items-center gap-2">
             <svg class="h-4 w-4 text-accent-600 dark:text-accent-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>

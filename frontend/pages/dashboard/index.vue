@@ -53,7 +53,7 @@ function timeOf(date: Date) {
     </div>
 
     <!-- Stats -->
-    <section v-if="summary" class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+    <section v-if="summary" data-tour="dashboard-stats" class="grid grid-cols-1 gap-4 sm:grid-cols-3">
       <div class="glass flex items-center gap-4 rounded-2xl p-5">
         <CourseProgressRing :percent="lessonPercent" :size="60" />
         <div>
@@ -105,7 +105,7 @@ function timeOf(date: Date) {
       </NuxtLink>
 
       <!-- Next class -->
-      <section v-if="summary?.next_session && countdown" class="glass rounded-2xl p-6">
+      <section v-if="summary?.next_session && countdown" data-tour="next-session" class="glass rounded-2xl p-6">
         <div class="flex items-center gap-2 text-xs font-medium text-emerald-600 dark:text-emerald-400">
           <span class="relative flex h-2 w-2">
             <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
@@ -138,14 +138,14 @@ function timeOf(date: Date) {
           {{ countdown.soon ? 'ورود به دوره‌ی آنلاین' : 'جزئیات' }}
         </NuxtLink>
       </section>
-      <section v-else-if="summary" class="glass flex flex-col justify-center rounded-2xl p-6">
+      <section v-else-if="summary" data-tour="next-session" class="glass flex flex-col justify-center rounded-2xl p-6">
         <p class="font-semibold text-gray-800 dark:text-gray-100">فعلاً دوره‌ی آنلاینی در پیش ندارید</p>
         <NuxtLink to="/dashboard/calendar" class="mt-2 text-sm text-primary-600 hover:underline dark:text-primary-400">تقویم دوره‌های آنلاین ←</NuxtLink>
       </section>
     </div>
 
     <!-- Latest files -->
-    <section v-if="summary?.recent_files?.length" class="glass rounded-2xl p-6">
+    <section v-if="summary?.recent_files?.length" data-tour="recent-files" class="glass rounded-2xl p-6">
       <h2 class="font-semibold text-gray-900 dark:text-white">تازه‌ترین فایل‌ها</h2>
       <ul class="mt-3 divide-y divide-black/5 dark:divide-white/5">
         <li v-for="file in summary.recent_files" :key="file.id" class="flex items-center gap-3 py-3">
@@ -170,7 +170,7 @@ function timeOf(date: Date) {
     </section>
 
     <!-- Teacher -->
-    <section class="glass flex flex-col gap-5 rounded-2xl p-6 sm:flex-row sm:items-center">
+    <section data-tour="teacher-card" class="glass flex flex-col gap-5 rounded-2xl p-6 sm:flex-row sm:items-center">
       <img
         v-if="owner?.cover_image"
         :src="owner.cover_image"

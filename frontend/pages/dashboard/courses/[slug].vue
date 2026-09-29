@@ -78,7 +78,7 @@ useSeoMeta({ title: () => course.value?.title ?? 'یادگیری' })
             {{ completedCount.toLocaleString('fa-IR') }} از {{ lessons.length.toLocaleString('fa-IR') }} جلسه تکمیل شده
           </p>
         </div>
-        <CourseProgressRing :percent="percent" :size="64" />
+        <CourseProgressRing data-tour="learn-progress" :percent="percent" :size="64" />
       </div>
 
       <div v-if="!course.is_enrolled" class="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-accent-500/10 px-5 py-4 ring-1 ring-accent-500/25">
@@ -91,7 +91,7 @@ useSeoMeta({ title: () => course.value?.title ?? 'یادگیری' })
       <div class="mt-6 grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
         <!-- Player + current lesson -->
         <section class="space-y-5 lg:col-span-8">
-          <div v-if="active" class="glass overflow-hidden rounded-2xl">
+          <div v-if="active" data-tour="learn-player" class="glass overflow-hidden rounded-2xl">
             <ClientOnly v-if="active.has_video && active.video_status === 'ready' && canAccess(active)">
               <PlayerVideoPlayer
                 :key="active.video_id"
@@ -122,6 +122,7 @@ useSeoMeta({ title: () => course.value?.title ?? 'یادگیری' })
               </div>
               <button
                 v-if="course.is_enrolled"
+                data-tour="learn-complete"
                 type="button"
                 :disabled="toggling"
                 :class="[
@@ -145,7 +146,7 @@ useSeoMeta({ title: () => course.value?.title ?? 'یادگیری' })
           </div>
 
           <!-- Files of the current lesson -->
-          <div v-if="active?.files?.length" class="glass rounded-2xl p-5">
+          <div v-if="active?.files?.length" data-tour="learn-files" class="glass rounded-2xl p-5">
             <h3 class="font-semibold text-gray-900 dark:text-white">فایل‌های این جلسه</h3>
             <ul class="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
               <li v-for="file in active.files" :key="file.id">
@@ -172,7 +173,7 @@ useSeoMeta({ title: () => course.value?.title ?? 'یادگیری' })
         </section>
 
         <!-- Lesson list -->
-        <aside class="glass overflow-hidden rounded-2xl lg:sticky lg:top-6 lg:col-span-4">
+        <aside data-tour="learn-lessons" class="glass overflow-hidden rounded-2xl lg:sticky lg:top-6 lg:col-span-4">
           <div class="border-b border-white/30 px-5 py-4 dark:border-white/10">
             <p class="font-semibold text-gray-900 dark:text-white">جلسه‌ها</p>
             <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-black/5 dark:bg-white/10">

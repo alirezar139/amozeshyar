@@ -89,7 +89,7 @@ onUnmounted(() => {
   <div>
     <!-- Summary + add lesson -->
     <div class="glass rounded-2xl p-5">
-      <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div data-tour="lesson-stats" class="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <div class="rounded-xl bg-black/[0.03] px-4 py-3 dark:bg-white/5">
           <p class="text-xs text-gray-500 dark:text-gray-400">جلسه</p>
           <p class="mt-0.5 text-xl font-black text-gray-900 dark:text-white">{{ stats.lessons.toLocaleString('fa-IR') }}</p>
@@ -108,7 +108,7 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <form class="mt-5 flex flex-col gap-3 sm:flex-row" @submit.prevent="addLesson">
+      <form data-tour="lesson-add" class="mt-5 flex flex-col gap-3 sm:flex-row" @submit.prevent="addLesson">
         <input
           v-model="newTitle"
           required
