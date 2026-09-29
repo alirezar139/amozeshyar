@@ -26,7 +26,7 @@ async function onSubmit() {
     await request('/courses/manage/', { method: 'POST', body: form })
     success.value = true
   } catch (err) {
-    error.value = getErrorMessage(err, 'ثبت دوره ناموفق بود.')
+    error.value = getErrorMessage(err, 'ثبت دوره انجام نشد.')
   } finally {
     loading.value = false
   }
@@ -37,7 +37,7 @@ async function onSubmit() {
   <div class="max-w-2xl">
     <h1 class="text-xl font-bold text-gray-900 dark:text-white">دوره‌ی جدید</h1>
     <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-      دوره بلافاصله روی سایت منتشر می‌شود؛ بعداً از لیست دوره‌ها می‌توانید آن را به پیش‌نویس برگردانید.
+      دوره بلافاصله در سایت منتشر می‌شود؛ در صورت نیاز می‌توانید بعداً از فهرست دوره‌ها آن را به پیش‌نویس بازگردانید.
     </p>
 
     <form data-tour="admin-course-create-form" class="glass mt-6 space-y-4 rounded-2xl p-6" @submit.prevent="onSubmit">
@@ -85,7 +85,7 @@ async function onSubmit() {
           {{ loading ? 'در حال ثبت...' : 'ثبت دوره' }}
         </button>
         <NuxtLink to="/admin/courses" class="glass rounded-md px-5 py-2 text-sm text-gray-700 dark:text-gray-200">
-          بازگشت به لیست
+          بازگشت به فهرست
         </NuxtLink>
       </div>
     </form>

@@ -3,7 +3,7 @@
 // within) columns on desktop; on touch devices, open a card and pick its
 // column. Positions are fractional, so a move is a single PATCH.
 definePageMeta({ layout: 'admin' })
-useSeoMeta({ title: 'تخته‌ی کارها' })
+useSeoMeta({ title: 'برنامه‌ی کارها' })
 
 const { request } = useApi()
 const { formatGregorianDate } = useJalali()
@@ -187,8 +187,8 @@ function dueState(date: string | null) {
   <div>
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div>
-        <h1 class="text-xl font-bold text-gray-900 dark:text-white">تخته‌ی کارها</h1>
-        <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">کارهای آماده‌سازی دوره‌ها را بکشید و بین ستون‌ها جابه‌جا کنید.</p>
+        <h1 class="text-xl font-bold text-gray-900 dark:text-white">برنامه‌ی کارها</h1>
+        <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">کارهای آماده‌سازی دوره‌ها را با کشیدن کارت‌ها میان ستون‌ها مدیریت کنید.</p>
       </div>
     </div>
     <p v-if="error" class="mt-3 text-sm text-red-600">{{ error }}</p>

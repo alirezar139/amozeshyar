@@ -68,13 +68,13 @@ function pickMime() {
 async function startRecording() {
   error.value = ''
   if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
-    error.value = 'مرورگر شما ضبط صدا را پشتیبانی نمی‌کند.'
+    error.value = 'مرورگر شما از ضبط صدا پشتیبانی نمی‌کند.'
     return
   }
   try {
     stream = await navigator.mediaDevices.getUserMedia({ audio: true })
   } catch {
-    error.value = 'اجازه‌ی دسترسی به میکروفون داده نشد.'
+    error.value = 'اجازه‌ی دسترسی به میکروفون داده نشد؛ لطفاً آن را در تنظیمات مرورگر فعال کنید.'
     return
   }
   const mimeType = pickMime()
@@ -119,7 +119,7 @@ onBeforeUnmount(() => stopRecording(true))
       <CourseFileIcon v-else :extension="file.name.split('.').pop()" size="sm" />
       <div class="min-w-0 flex-1">
         <p class="truncate text-sm font-medium text-gray-800 dark:text-gray-100" dir="auto">{{ file.name }}</p>
-        <p class="text-[11px] text-gray-500">{{ formatBytes(file.size) }} — می‌توانید توضیح هم بنویسید</p>
+        <p class="text-[11px] text-gray-500">{{ formatBytes(file.size) }} — در صورت تمایل، توضیحی هم بنویسید</p>
       </div>
       <button type="button" class="rounded-lg p-1.5 text-gray-400 hover:text-red-600" aria-label="حذف پیوست" @click="clearFile">
         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
@@ -157,7 +157,7 @@ onBeforeUnmount(() => stopRecording(true))
         v-model="text"
         rows="1"
         :disabled="disabled"
-        placeholder="پیام بنویسید…"
+        placeholder="پیام خود را بنویسید…"
         class="max-h-40 min-h-[2.75rem] flex-1 resize-none rounded-3xl bg-black/[0.05] px-4 py-2.5 text-sm leading-6 text-gray-900 outline-none transition focus:bg-white focus:ring-2 focus:ring-primary-500/40 dark:bg-white/[0.07] dark:text-white dark:focus:bg-white/10"
         @input="autoGrow"
         @keydown="onKeydown"

@@ -32,7 +32,7 @@ async function addSession() {
     Object.assign(form, { title: '', starts_at: '', is_online: true, location_note: '' })
     await refresh()
   } catch (err) {
-    error.value = getErrorMessage(err, 'ثبت دوره‌ی آنلاین ناموفق بود.')
+    error.value = getErrorMessage(err, 'ثبت جلسه‌ی آنلاین انجام نشد.')
   } finally {
     creating.value = false
   }
@@ -72,7 +72,7 @@ async function copyLink(id: number) {
 <template>
   <div>
     <div class="glass rounded-2xl p-6">
-      <h2 class="font-semibold text-gray-900 dark:text-white">افزودن دوره‌ی آنلاین</h2>
+      <h2 class="font-semibold text-gray-900 dark:text-white">افزودن جلسه‌ی آنلاین</h2>
       <form class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2" @submit.prevent="addSession">
         <input
           v-model="form.title"
@@ -143,7 +143,7 @@ async function copyLink(id: number) {
           </button>
         </div>
       </div>
-      <p v-if="sessions && sessions.length === 0" class="text-gray-600 dark:text-gray-400">هنوز دوره‌ی آنلاینی زمان‌بندی نشده است.</p>
+      <p v-if="sessions && sessions.length === 0" class="text-gray-600 dark:text-gray-400">هنوز جلسه‌ی آنلاینی زمان‌بندی نشده است.</p>
     </div>
   </div>
 </template>

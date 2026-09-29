@@ -20,14 +20,14 @@ function rank(e: any) {
 <template>
   <div>
     <h1 class="text-xl font-bold text-gray-900 dark:text-white">دوره‌های من</h1>
-    <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">روی هر دوره بزنید تا وارد صفحه‌ی یادگیری‌اش شوید.</p>
+    <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">برای ورود به صفحه‌ی یادگیری، دوره‌ی مورد نظر را انتخاب کنید.</p>
 
     <div v-if="pending" class="mt-6 text-gray-500">در حال بارگذاری...</div>
 
     <div v-else-if="!enrollments?.length" class="glass mt-6 rounded-2xl px-6 py-12 text-center">
       <p class="font-semibold text-gray-800 dark:text-gray-100">هنوز در دوره‌ای ثبت‌نام نکرده‌اید</p>
       <NuxtLink to="/courses" class="mt-4 inline-block rounded-xl bg-primary-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary-500">
-        دیدن دوره‌ها
+        مشاهده‌ی دوره‌ها
       </NuxtLink>
     </div>
 
@@ -51,7 +51,7 @@ function rank(e: any) {
             class="absolute start-3 top-3 flex items-center gap-1 rounded-full bg-emerald-500 px-2.5 py-0.5 text-[11px] font-semibold text-white"
           >
             <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
-            تمام شد
+            تکمیل‌شده
           </span>
           <span class="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition group-hover:bg-black/25 group-hover:opacity-100">
             <span class="flex h-12 w-12 items-center justify-center rounded-full bg-white/90 shadow-lg">

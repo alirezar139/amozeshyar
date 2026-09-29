@@ -47,13 +47,13 @@ function clearFilter() {
 
       <div data-tour="upcoming-sessions">
         <h2 class="text-sm font-semibold text-gray-900 dark:text-white">
-          {{ selectedDay ? 'جلسات این روز' : 'جلسات پیش رو' }}
+          {{ selectedDay ? 'جلسه‌های این روز' : 'جلسه‌های پیش‌رو' }}
         </h2>
         <p v-if="!sessions?.length" class="mt-4 text-sm text-gray-500 dark:text-gray-400">
-          فعلاً هیچ دوره‌ی آنلاین زمان‌بندی‌شده‌ای برای شما ثبت نشده است.
+          در حال حاضر هیچ جلسه‌ی آنلاینی برای شما زمان‌بندی نشده است.
         </p>
         <p v-else-if="!visibleSessions.length" class="mt-4 text-sm text-gray-500 dark:text-gray-400">
-          برای این روز دوره‌ی آنلاینی زمان‌بندی نشده است.
+          برای این روز جلسه‌ی آنلاینی زمان‌بندی نشده است.
         </p>
         <div v-else class="mt-4 space-y-3">
           <div v-for="session in visibleSessions" :key="session.id" class="glass rounded-xl p-4">
@@ -88,7 +88,7 @@ function clearFilter() {
               :to="`/classroom/${session.id}`"
               class="mt-3 inline-flex items-center gap-1.5 rounded-md bg-primary-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-primary-500"
             >
-              ورود به دوره‌ی آنلاین
+              ورود به جلسه‌ی آنلاین
             </NuxtLink>
           </div>
         </div>

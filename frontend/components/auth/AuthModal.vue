@@ -33,7 +33,7 @@ function onCaptchaPassed(token: string) {
 async function onLoginSubmit() {
   error.value = ''
   if (!captchaPassToken.value) {
-    error.value = 'لطفاً اول پازل امنیتی را کامل کنید.'
+    error.value = 'لطفاً ابتدا پازل امنیتی را کامل کنید.'
     return
   }
   loading.value = true
@@ -65,7 +65,7 @@ async function onRegisterSubmit() {
     Object.assign(registerForm, { first_name: '', last_name: '', email: '', password: '', interests: '' })
     await navigateTo('/dashboard')
   } catch (err) {
-    error.value = getErrorMessage(err, 'ثبت‌نام ناموفق بود. لطفاً اطلاعات را بررسی کنید.')
+    error.value = getErrorMessage(err, 'ثبت‌نام انجام نشد. لطفاً اطلاعات واردشده را بررسی کنید.')
   } finally {
     loading.value = false
   }

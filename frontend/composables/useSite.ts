@@ -35,5 +35,7 @@ export function useSite() {
   })
   const teacherName = computed(() => owner.value?.display_name || 'آموزش‌یار')
   const siteName = computed(() => owner.value?.site_name || teacherName.value)
-  return { owner, siteName, teacherName, refresh }
+  // «استاد روستا»: how the site refers to the teacher in running text.
+  const teacherTitle = computed(() => `استاد ${teacherName.value.trim().split(/\s+/).pop()}`)
+  return { owner, siteName, teacherName, teacherTitle, refresh }
 }

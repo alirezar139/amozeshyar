@@ -75,14 +75,14 @@ useSeoMeta({ title: () => course.value?.title ?? 'یادگیری' })
         <div class="min-w-0">
           <h1 class="text-2xl font-extrabold text-gray-900 dark:text-white">{{ course.title }}</h1>
           <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            {{ completedCount.toLocaleString('fa-IR') }} از {{ lessons.length.toLocaleString('fa-IR') }} جلسه تکمیل شده
+            {{ completedCount.toLocaleString('fa-IR') }} از {{ lessons.length.toLocaleString('fa-IR') }} جلسه تکمیل شده است
           </p>
         </div>
         <CourseProgressRing data-tour="learn-progress" :percent="percent" :size="64" />
       </div>
 
       <div v-if="!course.is_enrolled" class="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-accent-500/10 px-5 py-4 ring-1 ring-accent-500/25">
-        <p class="text-sm text-gray-800 dark:text-gray-100">در این دوره ثبت‌نام نکرده‌اید؛ فقط جلسه‌های رایگان باز هستند.</p>
+        <p class="text-sm text-gray-800 dark:text-gray-100">هنوز در این دوره ثبت‌نام نکرده‌اید؛ در حال حاضر تنها جلسه‌های رایگان در دسترس است.</p>
         <NuxtLink :to="`/courses/${course.slug}`" class="rounded-lg bg-accent-500 px-4 py-2 text-sm font-semibold text-white hover:bg-accent-400">
           ثبت‌نام در دوره
         </NuxtLink>
@@ -109,9 +109,9 @@ useSeoMeta({ title: () => course.value?.title ?? 'یادگیری' })
                 <svg v-else class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
               </span>
               <p class="font-semibold text-gray-800 dark:text-gray-100">
-                {{ !canAccess(active) ? 'این جلسه مخصوص دانشجوهای ثبت‌نام‌شده است'
+                {{ !canAccess(active) ? 'این جلسه ویژه‌ی دانشجویان ثبت‌نام‌شده است'
                   : active.has_video ? 'ویدیوی این جلسه در حال آماده‌سازی است'
-                  : 'این جلسه ویدیو ندارد؛ فایل‌هایش را از پایین دانلود کنید' }}
+                  : 'این جلسه ویدیو ندارد؛ فایل‌های آن را از بخش پایین دریافت کنید' }}
               </p>
             </div>
 
@@ -134,7 +134,7 @@ useSeoMeta({ title: () => course.value?.title ?? 'یادگیری' })
                 @click="toggleComplete"
               >
                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
-                {{ active.completed ? 'تکمیل شده' : 'علامت تکمیل' }}
+                {{ active.completed ? 'تکمیل شد' : 'علامت‌گذاری به‌عنوان تکمیل‌شده' }}
               </button>
             </div>
 
