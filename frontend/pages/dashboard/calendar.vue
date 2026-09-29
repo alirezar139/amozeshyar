@@ -33,7 +33,7 @@ function clearFilter() {
 <template>
   <div>
     <div class="flex flex-wrap items-center justify-between gap-3">
-      <h1 class="text-xl font-bold text-gray-900 dark:text-white">تقویم کلاس‌ها</h1>
+      <h1 class="text-xl font-bold text-gray-900 dark:text-white">تقویم دوره‌های آنلاین</h1>
       <button v-if="selectedDay" type="button" class="glass rounded-md px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200" @click="clearFilter">
         نمایش همه ✕
       </button>
@@ -50,10 +50,10 @@ function clearFilter() {
           {{ selectedDay ? 'جلسات این روز' : 'جلسات پیش رو' }}
         </h2>
         <p v-if="!sessions?.length" class="mt-4 text-sm text-gray-500 dark:text-gray-400">
-          فعلاً هیچ کلاس زمان‌بندی‌شده‌ای برای دوره‌های شما ثبت نشده است.
+          فعلاً هیچ دوره‌ی آنلاین زمان‌بندی‌شده‌ای برای شما ثبت نشده است.
         </p>
         <p v-else-if="!visibleSessions.length" class="mt-4 text-sm text-gray-500 dark:text-gray-400">
-          برای این روز کلاسی زمان‌بندی نشده است.
+          برای این روز دوره‌ی آنلاینی زمان‌بندی نشده است.
         </p>
         <div v-else class="mt-4 space-y-3">
           <div v-for="session in visibleSessions" :key="session.id" class="glass rounded-xl p-4">
@@ -88,7 +88,7 @@ function clearFilter() {
               :to="`/classroom/${session.id}`"
               class="mt-3 inline-flex items-center gap-1.5 rounded-md bg-primary-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-primary-500"
             >
-              پیوستن به کلاس آنلاین
+              ورود به دوره‌ی آنلاین
             </NuxtLink>
           </div>
         </div>

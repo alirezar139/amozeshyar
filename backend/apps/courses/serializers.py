@@ -210,7 +210,7 @@ class ClassSessionSerializer(serializers.ModelSerializer):
         # defend against garbage dates forever.
         now = timezone.now()
         if not (now - timedelta(days=365) <= value <= now + timedelta(days=365 * 5)):
-            raise serializers.ValidationError("زمان کلاس باید بین یک سال گذشته تا پنج سال آینده باشد.")
+            raise serializers.ValidationError("زمان دوره‌ی آنلاین باید بین یک سال گذشته تا پنج سال آینده باشد.")
         return value
 
 

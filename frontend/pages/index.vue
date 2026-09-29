@@ -116,7 +116,7 @@ const levelLabels: Record<string, string> = { beginner: 'مقدماتی', interm
             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
           </span>
           <div>
-            <p class="text-sm font-bold text-gray-900 dark:text-white">کلاس زنده</p>
+            <p class="text-sm font-bold text-gray-900 dark:text-white">دوره‌ی آنلاین</p>
             <p class="text-xs text-gray-500 dark:text-gray-400">پرسش و پاسخ مستقیم</p>
           </div>
         </div>
@@ -208,8 +208,8 @@ const levelLabels: Record<string, string> = { beginner: 'مقدماتی', interm
           <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
           </span>
-          <p class="mt-4 font-bold text-gray-900 dark:text-white">کلاس آنلاین زنده</p>
-          <p class="mt-1.5 text-sm leading-6 text-gray-600 dark:text-gray-400">سر کلاس حاضر شوید و سوال‌هایتان را مستقیم از {{ firstName }} بپرسید.</p>
+          <p class="mt-4 font-bold text-gray-900 dark:text-white">دوره‌های آنلاین</p>
+          <p class="mt-1.5 text-sm leading-6 text-gray-600 dark:text-gray-400">در دوره‌های آنلاین شرکت کنید و سوال‌هایتان را مستقیم از {{ firstName }} بپرسید.</p>
         </div>
         <div class="glass rounded-2xl p-6">
           <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-accent-500/15 text-accent-600 dark:text-accent-400">
@@ -243,7 +243,7 @@ const levelLabels: Record<string, string> = { beginner: 'مقدماتی', interm
       </h2>
       <p class="relative mx-auto mt-4 max-w-xl text-primary-50/90">
         {{ authStore.isAuthenticated
-          ? 'دوره‌هایت و کلاس‌های پیش رو در داشبورد منتظرت هستند.'
+          ? 'دوره‌هایت و دوره‌های آنلاین پیش رو در داشبورد منتظرت هستند.'
           : `ثبت‌نام رایگان است؛ پیش‌نمایش دوره‌ها را ببین و هر وقت آماده بودی، با ${firstName} شروع کن.` }}
       </p>
       <div class="relative mt-8 flex justify-center">

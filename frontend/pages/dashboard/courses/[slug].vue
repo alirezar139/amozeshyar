@@ -57,7 +57,7 @@ function onPlayerProgress(saved: { lesson_id: number; position_seconds: number; 
   lesson.completed = saved.completed
 }
 
-useSeoMeta({ title: () => course.value?.title ?? 'کلاس درس' })
+useSeoMeta({ title: () => course.value?.title ?? 'یادگیری' })
 </script>
 
 <template>

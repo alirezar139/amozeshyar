@@ -173,7 +173,7 @@ class ClassSessionViewSet(viewsets.ModelViewSet):
         user = request.user
         is_enrolled = session.course.enrollments.filter(student=user, is_active=True).exists()
         if not (user.role == "admin" or is_enrolled):
-            raise PermissionDenied("شما به این کلاس دسترسی ندارید.")
+            raise PermissionDenied("شما به این دوره‌ی آنلاین دسترسی ندارید.")
         return Response({
             "room_name": session.room_slug,
             "display_name": user.get_full_name() or user.email,
