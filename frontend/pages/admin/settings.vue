@@ -271,33 +271,42 @@ async function save() {
             </span>
             <div>
               <h2 class="font-semibold text-gray-900 dark:text-white">عکس صفحه‌ی اول</h2>
-              <p class="text-xs text-gray-500 dark:text-gray-400">افقی (۴ به ۳) بهتر دیده می‌شود</p>
+              <p class="text-xs text-gray-500 dark:text-gray-400">عکس پرتره‌ی خودتان؛ قاب عمودی است (۴ به ۵) و از بالا برش می‌خورد</p>
             </div>
           </div>
 
           <input ref="fileInput" type="file" accept="image/*" class="hidden" @change="onCoverChange">
 
-          <div v-if="shownCover" class="group relative mt-5 overflow-hidden rounded-xl">
-            <img :src="shownCover" alt="" class="aspect-[4/3] w-full object-cover sm:aspect-[16/9]">
-            <div class="absolute inset-x-0 bottom-0 flex justify-end gap-2 bg-gradient-to-t from-black/70 to-transparent p-3">
-              <button
-                type="button"
-                class="rounded-lg bg-white/90 px-3 py-1.5 text-sm font-medium text-gray-900 transition hover:bg-white"
-                @click="fileInput?.click()"
-              >
-                تغییر عکس
-              </button>
-              <button
-                type="button"
-                class="rounded-lg bg-red-600/90 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-red-600"
-                @click="onRemoveCover"
-              >
-                حذف
-              </button>
+          <!-- Shown in the exact frame and crop the homepage uses (4:5, object-top), so what you see here is what visitors get -->
+          <div v-if="shownCover" class="mt-5 flex flex-col gap-4 sm:flex-row sm:items-end">
+            <div class="relative w-full max-w-[13rem] shrink-0 overflow-hidden rounded-[1.75rem] shadow-lg ring-1 ring-black/5 dark:ring-white/10">
+              <img :src="shownCover" alt="" class="aspect-[4/5] w-full object-cover object-top">
+              <span v-if="coverFile" class="absolute inset-x-2 top-2 rounded-full bg-primary-600/95 px-2 py-0.5 text-center text-[11px] font-medium text-white">
+                جدید — هنوز ذخیره نشده
+              </span>
             </div>
-            <span v-if="coverFile" class="absolute start-3 top-3 rounded-full bg-primary-600 px-2.5 py-0.5 text-xs font-medium text-white">
-              عکس جدید — هنوز ذخیره نشده
-            </span>
+            <div class="flex flex-col gap-2">
+              <p class="text-xs leading-6 text-gray-500 dark:text-gray-400">
+                در صفحه‌ی اول دقیقاً همین قسمت از عکس دیده می‌شود. اگر بخش مهمی بریده شده، عکس دیگری انتخاب کنید.
+                برای لوگو از بخش «نام و لوگوی سایت» استفاده کنید.
+              </p>
+              <div class="flex gap-2">
+                <button
+                  type="button"
+                  class="glass rounded-lg px-3 py-1.5 text-sm font-medium text-gray-800 transition hover:-translate-y-0.5 dark:text-gray-100"
+                  @click="fileInput?.click()"
+                >
+                  تغییر عکس
+                </button>
+                <button
+                  type="button"
+                  class="rounded-lg px-3 py-1.5 text-sm font-medium text-red-600 transition hover:bg-red-500/10"
+                  @click="onRemoveCover"
+                >
+                  حذف
+                </button>
+              </div>
+            </div>
           </div>
           <button
             v-else
