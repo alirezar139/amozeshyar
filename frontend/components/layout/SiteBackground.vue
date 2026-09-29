@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { SHADER_EFFECTS } from '~/utils/shaders'
+
 // Site-wide animated backdrop, chosen by the owner in «تنظیمات سایت».
 // Mounted once in app.vue behind every layout. Layers drift on their own
 // and, on devices with a mouse, lean slightly toward the pointer (parallax)
@@ -116,8 +118,17 @@ onBeforeUnmount(() => {
     :class="['site-bg pointer-events-none fixed inset-0 -z-10 overflow-hidden', { 'is-still': !background.motion }]"
     :style="rootStyle"
   >
+    <!-- زنده (WebGL) -->
+    <BgShader
+      v-if="(SHADER_EFFECTS as string[]).includes(background.style)"
+      :effect="(background.style as any)"
+      :colors="background.colors"
+      :motion="background.motion"
+      :speed="SPEED[background.speed] ?? SPEED.slow"
+    />
+
     <!-- شفق -->
-    <template v-if="background.style === 'aurora'">
+    <template v-else-if="background.style === 'aurora'">
       <div class="layer depth-1">
         <div class="blob aurora-a" style="top: -12%; right: -8%; width: 42rem; height: 42rem; --c: var(--bg-1)" />
       </div>

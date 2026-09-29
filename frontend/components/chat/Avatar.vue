@@ -3,8 +3,10 @@ defineProps<{ src?: string | null; name: string; group?: boolean; size?: 'md' | 
 </script>
 
 <template>
-  <span :class="['relative shrink-0', size === 'lg' ? 'h-12 w-12' : 'h-10 w-10']">
-    <img v-if="src" :src="src" :alt="name" class="h-full w-full rounded-full object-cover object-top">
+  <!-- inline-flex, not a plain span: an inline box ignores width/height,
+       which let a course cover render at its natural size -->
+  <span :class="['relative inline-flex shrink-0 overflow-hidden rounded-full', size === 'lg' ? 'h-12 w-12' : 'h-10 w-10']">
+    <img v-if="src" :src="src" :alt="name" class="h-full w-full object-cover object-top">
     <span
       v-else
       :class="[

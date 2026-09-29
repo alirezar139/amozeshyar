@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { SHADER_EFFECTS, parseColor, shaderSnapshot, type ShaderEffect } from '~/utils/shaders'
 definePageMeta({ layout: 'admin' })
 const { request } = useApi()
 const { refresh: refreshSite, teacherName } = useSite()
@@ -124,12 +125,27 @@ function onRemoveBgImage() {
 
 // Small static swatch per style for the picker tiles.
 const BACKGROUND_GROUPS = [
+  { key: 'live', label: 'زنده — پویانمایی سه‌بعدی' },
   { key: 'nature', label: 'طبیعت' },
   { key: 'abstract', label: 'انتزاعی' },
   { key: 'other', label: 'سایر' },
 ] as const
 
+// Live (WebGL) styles preview as a still frame rendered by the real shader.
+const isDark = ref(false)
+onMounted(() => {
+  isDark.value = document.documentElement.classList.contains('dark')
+})
+function shaderTile(style: BackgroundStyle) {
+  if (!import.meta.client || !(SHADER_EFFECTS as string[]).includes(style)) return null
+  const colors = shownColors.value.map((c) => parseColor(c)) as [number, number, number][]
+  const url = shaderSnapshot(style as ShaderEffect, colors, isDark.value)
+  return url ? { backgroundImage: `url(${url})`, backgroundSize: 'cover' } : null
+}
+
 function tileStyle(style: BackgroundStyle) {
+  const live = shaderTile(style)
+  if (live) return live
   const [c1, c2, c3] = shownColors.value
   switch (style) {
     case 'aurora':

@@ -1,6 +1,7 @@
 export type BackgroundStyle =
   | 'aurora' | 'gradient' | 'waves' | 'particles' | 'stars' | 'bokeh' | 'shapes' | 'ribbons' | 'grid'
   | 'mountains' | 'clouds' | 'ocean' | 'forest' | 'dunes' | 'sakura' | 'leaves' | 'snow' | 'rain' | 'fireflies'
+  | 'mesh' | 'liquid' | 'northern' | 'silk' | 'nebula' | 'caustics' | 'lava' | 'lines'
   | 'image' | 'plain'
 export type BackgroundSpeed = 'slow' | 'normal' | 'fast'
 
@@ -12,7 +13,15 @@ export interface SiteBackground {
   speed: BackgroundSpeed
 }
 
-export const BACKGROUND_STYLES: { value: BackgroundStyle; label: string; hint: string; group: 'nature' | 'abstract' | 'other' }[] = [
+export const BACKGROUND_STYLES: { value: BackgroundStyle; label: string; hint: string; group: 'live' | 'nature' | 'abstract' | 'other' }[] = [
+  { value: 'mesh', label: 'مخمل رنگی', hint: 'رنگ‌ها چون مِه در هم حل می‌شوند', group: 'live' },
+  { value: 'liquid', label: 'مرمر مایع', hint: 'رگه‌هایی روان که پیوسته شکل عوض می‌کنند', group: 'live' },
+  { value: 'northern', label: 'شفق قطبی', hint: 'پرده‌های نور با پرتوهای لرزان', group: 'live' },
+  { value: 'silk', label: 'ابریشم', hint: 'چین‌های نرم پارچه با برق نور', group: 'live' },
+  { value: 'nebula', label: 'کهکشان', hint: 'سحابی رنگین و ستارگان چشمک‌زن', group: 'live' },
+  { value: 'caustics', label: 'نور زیر آب', hint: 'بازی نور در کف آب', group: 'live' },
+  { value: 'lava', label: 'لامپ گدازه', hint: 'حباب‌هایی که به هم می‌پیوندند و جدا می‌شوند', group: 'live' },
+  { value: 'lines', label: 'خطوط موجی', hint: 'رشته‌های نور که آرام موج برمی‌دارند', group: 'live' },
   { value: 'mountains', label: 'کوهستان', hint: 'رشته‌کوه لایه‌لایه با مه و ابر', group: 'nature' },
   { value: 'clouds', label: 'آسمان ابری', hint: 'ابرهایی که آرام می‌گذرند و پرنده‌ها', group: 'nature' },
   { value: 'ocean', label: 'دریا', hint: 'افق دریا، موج و درخشش آفتاب', group: 'nature' },
