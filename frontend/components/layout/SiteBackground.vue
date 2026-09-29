@@ -7,6 +7,8 @@
 const { background } = useSiteBackground()
 
 const SPEED: Record<string, number> = { slow: 2.2, normal: 1.4, fast: 0.85 }
+const LANDSCAPES = ['mountains', 'clouds', 'ocean', 'forest', 'dunes']
+const FALLING = ['sakura', 'leaves', 'snow', 'rain', 'fireflies']
 
 // Owner colors, else the theme's primary/accent ramps.
 const rootStyle = computed(() => {
@@ -298,6 +300,10 @@ onBeforeUnmount(() => {
       <div class="grid-floor" />
       <div class="grid-horizon" />
     </template>
+
+    <!-- طبیعت: منظره‌ها و ریزش‌ها -->
+    <BgLandscape v-else-if="LANDSCAPES.includes(background.style)" :scene="(background.style as any)" />
+    <BgFalling v-else-if="FALLING.includes(background.style)" :kind="(background.style as any)" />
 
     <!-- عکس دلخواه -->
     <template v-else-if="background.style === 'image' && background.image">
