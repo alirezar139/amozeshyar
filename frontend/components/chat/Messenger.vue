@@ -31,7 +31,7 @@ function open(conversation: any) {
   conversation.unread = 0
 }
 function close() {
-  const { c, ...rest } = route.query
+  const { c: _closed, ...rest } = route.query
   router.replace({ query: rest })
 }
 

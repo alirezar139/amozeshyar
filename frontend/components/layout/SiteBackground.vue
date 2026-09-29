@@ -119,7 +119,7 @@ onBeforeUnmount(() => {
     :style="rootStyle"
   >
     <!-- زنده (WebGL) -->
-    <BgShader
+    <BackgroundShader
       v-if="(SHADER_EFFECTS as string[]).includes(background.style)"
       :effect="(background.style as any)"
       :colors="background.colors"
@@ -313,8 +313,8 @@ onBeforeUnmount(() => {
     </template>
 
     <!-- طبیعت: منظره‌ها و ریزش‌ها -->
-    <BgLandscape v-else-if="LANDSCAPES.includes(background.style)" :scene="(background.style as any)" />
-    <BgFalling v-else-if="FALLING.includes(background.style)" :kind="(background.style as any)" />
+    <BackgroundLandscape v-else-if="LANDSCAPES.includes(background.style)" :scene="(background.style as any)" />
+    <BackgroundFalling v-else-if="FALLING.includes(background.style)" :kind="(background.style as any)" />
 
     <!-- عکس دلخواه -->
     <template v-else-if="background.style === 'image' && background.image">

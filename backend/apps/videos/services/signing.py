@@ -7,6 +7,7 @@ caller's permissions have already been checked by the view.
 from urllib.parse import quote
 
 from django.conf import settings
+
 from apps.common.storage import SharedSessionS3Storage
 
 _storage = SharedSessionS3Storage()

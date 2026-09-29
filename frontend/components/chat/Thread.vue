@@ -4,7 +4,6 @@
 // receipts (✓ sent, ✓✓ seen) and date separators.
 const props = defineProps<{ conversation: any }>()
 const emit = defineEmits<{ back: []; activity: []; updated: [row: any]; deleted: [] }>()
-const { wallpaper } = useChatWallpaper()
 const { prefs } = useChatPrefs()
 const showInfo = ref(false)
 const isGroup = computed(() => ['course', 'custom'].includes(props.conversation.kind))
@@ -356,7 +355,7 @@ watch(() => props.conversation.id, () => {
 
     <!-- messages -->
     <div class="relative flex min-h-0 flex-1">
-    <div ref="scroller" data-tour="chat-messages" :class="['chat-bg relative min-h-0 flex-1 overflow-y-auto px-3 py-4 sm:px-6', `wp-${wallpaper}`]" @scroll.passive="onScroll">
+    <div ref="scroller" data-tour="chat-messages" :class="['chat-bg relative min-h-0 flex-1 overflow-y-auto px-3 py-4 sm:px-6', `wp-${prefs.wallpaper}`]" @scroll.passive="onScroll">
       <div v-if="loading" class="flex h-full items-center justify-center">
         <span class="h-6 w-6 animate-spin rounded-full border-2 border-primary-500/30 border-t-primary-500" />
       </div>

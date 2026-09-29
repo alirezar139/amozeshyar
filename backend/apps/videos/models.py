@@ -64,6 +64,9 @@ class PreviewPolicy(models.Model):
     class Meta:
         verbose_name_plural = "Preview policy"
 
+    def __str__(self):
+        return f"Preview policy: {self.default_preview_seconds}s"
+
     def save(self, *args, **kwargs):
         self.pk = 1
         super().save(*args, **kwargs)
