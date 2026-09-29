@@ -11,17 +11,12 @@ class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ("id", "email", "password", "first_name", "last_name", "role", "phone_number", "interests")
-        read_only_fields = ("id",)
-
-    def validate_role(self, value):
-        # Public registration may only self-select student/instructor;
-        # admin accounts are provisioned separately (createsuperuser / admin panel).
-        if value == User.Role.ADMIN:
-            raise serializers.ValidationError("Cannot self-register as admin.")
-        return value
+        read_only_fields = ("id", "role")
 
     def create(self, validated_data):
-        return User.objects.create_user(**validated_data)
+        # Public sign-up is always a student of this site's instructor; the
+        # instructor (admin) and developer accounts come from `setup_site`.
+        return User.objects.create_user(**validated_data, role=User.Role.STUDENT)
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -46,6 +41,11 @@ class AdminUserSerializer(serializers.ModelSerializer):
         model = User
         fields = ("id", "email", "first_name", "last_name", "role", "is_active", "date_joined", "phone_number")
         read_only_fields = ("id", "email", "first_name", "last_name", "date_joined", "phone_number")
+
+    def validate_role(self, value):
+        if value == User.Role.INSTRUCTOR:
+            raise serializers.ValidationError("This site has a single instructor; pick student or admin.")
+        return value
 
 
 class CaptchaChallengeSerializer(serializers.Serializer):

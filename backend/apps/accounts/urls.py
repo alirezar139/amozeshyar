@@ -12,7 +12,6 @@ urlpatterns = [
     path("refresh/", views.RefreshView.as_view(), name="auth-refresh"),
     path("logout/", views.LogoutView.as_view(), name="auth-logout"),
     path("me/", views.MeView.as_view(), name="auth-me"),
-    path("admin/create-user/", views.AdminCreateUserView.as_view(), name="admin-create-user"),
     path("captcha/challenge/", views.CaptchaChallengeView.as_view(), name="captcha-challenge"),
     path("captcha/verify/", views.CaptchaVerifyView.as_view(), name="captcha-verify"),
     path("captcha/verify-number/", views.CaptchaVerifyNumberView.as_view(), name="captcha-verify-number"),

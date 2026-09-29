@@ -57,8 +57,6 @@ class LessonSerializer(serializers.ModelSerializer):
 
 
 class PublicCourseListSerializer(serializers.ModelSerializer):
-    instructor_name = serializers.CharField(source="instructor.user.get_full_name", read_only=True)
-    instructor_slug = serializers.CharField(source="instructor.slug", read_only=True)
     category_name = serializers.CharField(source="category.name", read_only=True)
     is_enrolled = serializers.SerializerMethodField()
 
@@ -67,7 +65,7 @@ class PublicCourseListSerializer(serializers.ModelSerializer):
         fields = (
             "id", "slug", "title", "subtitle", "category_name", "level", "price",
             "discount_price", "effective_price", "cover_image", "rating_avg",
-            "total_duration_seconds", "instructor_name", "instructor_slug", "is_enrolled",
+            "total_duration_seconds", "is_enrolled",
         )
 
     def get_is_enrolled(self, obj) -> bool:
@@ -87,99 +85,56 @@ class PublicCourseDetailSerializer(PublicCourseListSerializer):
         fields = PublicCourseListSerializer.Meta.fields + ("description", "lessons")
 
 
-class CourseWriteSerializer(serializers.ModelSerializer):
-    """Used by the instructor panel to create/edit a course.
-
-    Any create/edit forces the course back to `pending_review` — this is
-    intentional: the admin-approval gate applies to every published change,
-    not just the first submission, so an instructor can't sneak edits past
-    moderation once approved.
-    """
+class CourseManageSerializer(serializers.ModelSerializer):
+    """Admin (the site's instructor): create/edit any course. New courses
+    belong to the site owner and go live immediately unless created as a
+    draft; flipping `status` to published stamps `published_at`."""
 
     class Meta:
         model = Course
         fields = (
-            "id", "category", "title", "subtitle", "description", "level",
+            "id", "slug", "category", "title", "subtitle", "description", "level",
             "price", "discount_price", "cover_image", "preview_seconds_override", "status",
         )
-        read_only_fields = ("id", "status")
+        read_only_fields = ("id", "slug")
+
+    def validate_status(self, value):
+        if value not in (Course.Status.DRAFT, Course.Status.PUBLISHED):
+            raise serializers.ValidationError("Status must be draft or published.")
+        return value
 
     def create(self, validated_data):
-        validated_data["instructor"] = self.context["request"].user.instructor_profile
-        validated_data["status"] = Course.Status.PENDING_REVIEW
+        from apps.instructors.site import get_site_owner
+
+        owner = get_site_owner()
+        if owner is None:
+            raise serializers.ValidationError("Site owner not set up yet — run `manage.py setup_site`.")
+        validated_data["instructor"] = owner
+        validated_data.setdefault("status", Course.Status.PUBLISHED)
+        if validated_data["status"] == Course.Status.PUBLISHED:
+            validated_data["published_at"] = timezone.now()
         return super().create(validated_data)
 
     def update(self, instance, validated_data):
-        validated_data["status"] = Course.Status.PENDING_REVIEW
+        if validated_data.get("status") == Course.Status.PUBLISHED and instance.status != Course.Status.PUBLISHED:
+            validated_data["published_at"] = timezone.now()
         return super().update(instance, validated_data)
 
 
-class AdminCourseWriteSerializer(serializers.ModelSerializer):
-    """Admin-only: create a course directly, on behalf of any instructor.
-
-    Unlike CourseWriteSerializer, the admin picks the instructor explicitly
-    and the course is published immediately — the admin creating it *is*
-    the review, so there's no point routing it back through the moderation
-    queue the admin would just approve themselves.
-    """
-
-    class Meta:
-        model = Course
-        fields = (
-            "id", "instructor", "category", "title", "subtitle", "description", "level",
-            "price", "discount_price", "cover_image", "preview_seconds_override", "status",
-        )
-        read_only_fields = ("id", "status")
-
-    def create(self, validated_data):
-        from django.utils import timezone
-
-        validated_data["status"] = Course.Status.PUBLISHED
-        validated_data["published_at"] = timezone.now()
-        return super().create(validated_data)
-
-
-class CourseModerationSerializer(serializers.ModelSerializer):
-    instructor_name = serializers.CharField(source="instructor.user.get_full_name", read_only=True)
-    instructor_resume = serializers.FileField(source="instructor.resume", read_only=True)
-
-    class Meta:
-        model = Course
-        fields = (
-            "id", "title", "subtitle", "price", "instructor_name", "instructor_resume",
-            "status", "rejection_reason",
-        )
-        read_only_fields = ("title", "subtitle", "price", "instructor_name", "instructor_resume")
-
-    def validate(self, attrs):
-        if attrs.get("status") == Course.Status.REJECTED and not attrs.get("rejection_reason"):
-            raise serializers.ValidationError({"rejection_reason": "Required when rejecting a course."})
-        return attrs
-
-    def save(self, **kwargs):
-        from django.utils import timezone
-
-        if self.validated_data.get("status") == Course.Status.PUBLISHED:
-            kwargs["published_at"] = timezone.now()
-        return super().save(**kwargs)
-
-
 class ClassSessionSerializer(serializers.ModelSerializer):
-    """Instructor/admin-facing CRUD for a course's scheduled sessions.
+    """Admin-facing CRUD for a course's scheduled sessions.
 
     `course` stays a writable id (needed to create/move a session), while
-    `course_title`/`instructor_name` are read-only conveniences so a
-    calendar view (e.g. the admin's, spanning every course) doesn't need a
-    second lookup per session just to label it.
+    `course_title` is a read-only convenience so a calendar view spanning
+    every course doesn't need a second lookup per session just to label it.
     """
 
     course_title = serializers.CharField(source="course.title", read_only=True)
-    instructor_name = serializers.CharField(source="course.instructor.user.get_full_name", read_only=True)
 
     class Meta:
         model = ClassSession
         fields = (
-            "id", "course", "course_title", "instructor_name",
+            "id", "course", "course_title",
             "title", "starts_at", "ends_at", "is_online", "location_note",
         )
         read_only_fields = ("id",)
@@ -208,11 +163,10 @@ class StudentScheduleSerializer(serializers.ModelSerializer):
 
     course_title = serializers.CharField(source="course.title", read_only=True)
     course_slug = serializers.CharField(source="course.slug", read_only=True)
-    instructor_name = serializers.CharField(source="course.instructor.user.get_full_name", read_only=True)
 
     class Meta:
         model = ClassSession
         fields = (
             "id", "title", "starts_at", "ends_at", "is_online", "location_note",
-            "course_title", "course_slug", "instructor_name",
+            "course_title", "course_slug",
         )
