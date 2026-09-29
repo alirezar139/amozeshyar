@@ -19,7 +19,6 @@ export function useAuth() {
     password: string
     first_name: string
     last_name: string
-    role: 'student' | 'instructor'
     interests?: string
   }) {
     // RegisterView logs the new account straight in and returns the same

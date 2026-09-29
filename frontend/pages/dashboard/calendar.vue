@@ -60,7 +60,7 @@ function clearFilter() {
             <div class="flex flex-wrap items-start justify-between gap-2">
               <div>
                 <p class="font-semibold text-gray-900 dark:text-white">{{ session.title }}</p>
-                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ session.course_title }} — {{ session.instructor_name }}</p>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ session.course_title }}</p>
               </div>
               <span
                 v-if="hoursUntil(session.startsAt) <= 24"

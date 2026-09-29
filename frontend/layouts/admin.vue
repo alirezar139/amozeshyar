@@ -15,7 +15,7 @@ async function onLogout() {
       <div class="flex items-center justify-between px-4 py-4">
         <NuxtLink to="/admin" class="flex items-center gap-2 text-lg font-bold text-header-700 dark:text-header-400">
           <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-header-600 text-xs font-extrabold text-white">آ</span>
-          پنل ادمین
+          پنل مدیریت
         </NuxtLink>
         <div class="flex items-center gap-2">
           <LayoutThemeToggle />
@@ -32,28 +32,12 @@ async function onLogout() {
           نمای کلی
         </NuxtLink>
         <NuxtLink
-          to="/admin/board"
-          class="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-gray-700 transition hover:bg-nav-500/10 hover:text-nav-700 dark:text-gray-200 dark:hover:bg-nav-500/10 dark:hover:text-nav-300"
-          active-class="bg-nav-500/15 text-nav-700 dark:bg-nav-500/15 dark:text-nav-300"
-        >
-          <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 3v18M3 5a2 2 0 012-2h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5z" /></svg>
-          تخته‌ی دوره‌ها
-        </NuxtLink>
-        <NuxtLink
           to="/admin/courses"
           class="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-gray-700 transition hover:bg-nav-500/10 hover:text-nav-700 dark:text-gray-200 dark:hover:bg-nav-500/10 dark:hover:text-nav-300"
           active-class="bg-nav-500/15 text-nav-700 dark:bg-nav-500/15 dark:text-nav-300"
         >
           <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg>
-          تایید دوره‌ها
-        </NuxtLink>
-        <NuxtLink
-          to="/admin/instructors"
-          class="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-gray-700 transition hover:bg-nav-500/10 hover:text-nav-700 dark:text-gray-200 dark:hover:bg-nav-500/10 dark:hover:text-nav-300"
-          active-class="bg-nav-500/15 text-nav-700 dark:bg-nav-500/15 dark:text-nav-300"
-        >
-          <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m5-3.13a4 4 0 100-8 4 4 0 000 8zm6 3.13a4 4 0 010 6.74M9 12.13a4 4 0 000 6.74" /></svg>
-          تایید مدرس‌ها
+          دوره‌ها
         </NuxtLink>
         <NuxtLink
           to="/admin/calendar"
@@ -70,6 +54,14 @@ async function onLogout() {
         >
           <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
           مدیریت دسترسی کاربران
+        </NuxtLink>
+        <NuxtLink
+          to="/admin/settings"
+          class="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-gray-700 transition hover:bg-nav-500/10 hover:text-nav-700 dark:text-gray-200 dark:hover:bg-nav-500/10 dark:hover:text-nav-300"
+          active-class="bg-nav-500/15 text-nav-700 dark:bg-nav-500/15 dark:text-nav-300"
+        >
+          <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+          تنظیمات سایت
         </NuxtLink>
         <NuxtLink
           to="/profile"

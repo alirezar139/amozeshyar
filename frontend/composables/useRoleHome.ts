@@ -1,6 +1,5 @@
 const roleHome: Record<string, string> = {
   admin: '/admin',
-  instructor: '/instructor-panel/courses',
   student: '/dashboard',
 }
 

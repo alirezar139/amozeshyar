@@ -2,9 +2,10 @@
 const { request } = useApi()
 const route = useRoute()
 
+const { siteName } = useSite()
 useSeoMeta({
-  title: 'دوره‌ها | آموزش‌یار',
-  description: 'مرور همه‌ی دوره‌های آموزشی منتشرشده روی آموزش‌یار.',
+  title: () => `دوره‌ها | ${siteName.value}`,
+  description: () => `همه‌ی دوره‌های ${siteName.value}`,
 })
 
 const categorySlug = computed(() => (route.query.category as string) || '')

@@ -2,17 +2,12 @@
 definePageMeta({ layout: 'admin' })
 const { request } = useApi()
 
-const { data: instructors } = await useAsyncData('admin-create-course-instructors', async () => {
-  const page = await request<{ results: any[] }>('/instructors/moderation/')
-  return page.results
-})
 const { data: categories } = await useAsyncData('admin-create-course-categories', async () => {
   const page = await request<{ results: any[] }>('/categories/')
   return page.results
 })
 
 const form = reactive({
-  instructor: null as number | null,
   category: null as number | null,
   title: '',
   subtitle: '',
@@ -28,7 +23,7 @@ async function onSubmit() {
   error.value = ''
   loading.value = true
   try {
-    await request('/courses/admin-create/', { method: 'POST', body: form })
+    await request('/courses/manage/', { method: 'POST', body: form })
     success.value = true
   } catch (err) {
     error.value = getErrorMessage(err, 'ثبت دوره ناموفق بود.')
@@ -40,21 +35,12 @@ async function onSubmit() {
 
 <template>
   <div class="max-w-2xl">
-    <h1 class="text-xl font-bold text-gray-900 dark:text-white">ثبت مستقیم دوره</h1>
+    <h1 class="text-xl font-bold text-gray-900 dark:text-white">دوره‌ی جدید</h1>
     <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-      دوره‌ای که ادمین می‌سازد بدون نیاز به تایید، بلافاصله منتشر می‌شود.
+      دوره بلافاصله روی سایت منتشر می‌شود؛ بعداً از لیست دوره‌ها می‌توانید آن را به پیش‌نویس برگردانید.
     </p>
 
     <form data-tour="admin-course-create-form" class="glass mt-6 space-y-4 rounded-2xl p-6" @submit.prevent="onSubmit">
-      <div>
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">مدرس</label>
-        <select v-model="form.instructor" required class="glass mt-1 block w-full rounded-md px-3 py-2 text-sm text-gray-900 dark:text-white">
-          <option :value="null" disabled>انتخاب مدرس</option>
-          <option v-for="instructor in instructors" :key="instructor.id" :value="instructor.id">
-            {{ instructor.display_name }}
-          </option>
-        </select>
-      </div>
       <div>
         <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">عنوان دوره</label>
         <input v-model="form.title" required class="glass mt-1 block w-full rounded-md px-3 py-2 text-sm text-gray-900 dark:text-white">

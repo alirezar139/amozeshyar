@@ -1,6 +1,7 @@
 <script setup lang="ts">
 const sidebarOpen = ref(false)
 const { logout } = useAuth()
+const { siteName } = useSite()
 
 async function onLogout() {
   await logout()
@@ -13,7 +14,7 @@ async function onLogout() {
     <LayoutAmbientBackground />
     <aside class="glass w-full shrink-0 border-x-0 border-t-0 md:w-64 md:border-y-0 md:border-e">
       <div class="flex items-center justify-between px-4 py-4">
-        <NuxtLink to="/" class="text-lg font-bold text-header-600 dark:text-header-400">آموزش‌یار</NuxtLink>
+        <NuxtLink to="/" class="text-lg font-bold text-header-600 dark:text-header-400">{{ siteName }}</NuxtLink>
         <div class="flex items-center gap-2">
           <LayoutThemeToggle />
           <button class="md:hidden" aria-label="Toggle sidebar" @click="sidebarOpen = !sidebarOpen">☰</button>
