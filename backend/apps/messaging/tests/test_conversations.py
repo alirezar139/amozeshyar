@@ -211,8 +211,16 @@ def test_reply_seen_count_viewers_and_delete(world):
     bob_msg = send(world["bob"], gid, text="سلام").data
     assert as_(world["teacher"]).delete(f"/api/v1/conversations/{gid}/messages/{bob_msg['id']}/").status_code == 204
     assert as_(world["alice"]).delete(f"/api/v1/conversations/{gid}/messages/{question['id']}/").status_code == 204
-    remaining = as_(world["teacher"]).get(f"/api/v1/conversations/{gid}/messages/").data["messages"]
-    assert [m["id"] for m in remaining] == [answer["id"]] and remaining[0]["reply_to"] is None
+    # delete-for-everyone: placeholders stay in place, content is gone for participants
+    remaining = {m["id"]: m for m in as_(world["bob"]).get(f"/api/v1/conversations/{gid}/messages/").data["messages"]}
+    assert remaining[question["id"]]["is_deleted"] and remaining[question["id"]]["text"] == ""
+    assert remaining[bob_msg["id"]]["is_deleted"]
+    assert remaining[answer["id"]]["reply_to"] == {"id": question["id"], "sender_name": "Alice", "text": "", "attachment_kind": "", "deleted": True}
+
+    # ...but the teacher's report keeps the original and who deleted it
+    audit = {m["id"]: m for m in as_(world["teacher"]).get(f"/api/v1/conversations/report/{gid}/").data["messages"]}
+    assert audit[question["id"]]["text"] == "جلسه‌ی بعد کی است؟" and audit[question["id"]]["deleted_by_name"] == "Alice"
+    assert audit[bob_msg["id"]]["deleted_by_name"] == "مهدی"
 
 
 def test_students_create_private_groups_with_classmates(world):
@@ -244,3 +252,34 @@ def test_students_create_private_groups_with_classmates(world):
     world["teacher"].instructor_profile.save()
     assert all(c["id"] != group["id"] for c in conversations(world["alice"]))
     assert as_(world["alice"]).post("/api/v1/conversations/groups/", {"title": "y"}, format="json").status_code == 403
+
+
+def test_reactions_and_polling_picks_up_changes(world):
+    enroll(world["bob"], world["course"])
+    gid = next(c for c in conversations(world["teacher"]) if c["kind"] == "course")["id"]
+    msg = send(world["teacher"], gid, text="آزمون پنجشنبه است").data
+    first = as_(world["alice"]).get(f"/api/v1/conversations/{gid}/messages/?after={msg['id']}").data
+    since = first["server_time"]
+
+    react = lambda user, emoji: as_(user).post(f"/api/v1/conversations/{gid}/messages/{msg['id']}/react/", {"emoji": emoji}, format="json").data  # noqa: E731
+    assert react(world["alice"], "👍")["reactions"] == [{"emoji": "👍", "count": 1, "mine": True}]
+    react(world["bob"], "👍")
+    changed = react(world["bob"], "🔥")  # changing, not adding a second one
+    assert sorted((r["emoji"], r["count"]) for r in changed["reactions"]) == [("👍", 1), ("🔥", 1)]
+    react(world["bob"], "🔥")  # same again removes it
+    assert as_(world["alice"]).post(f"/api/v1/conversations/{gid}/messages/{msg['id']}/react/", {"emoji": "🍕"}, format="json").status_code == 400
+
+    poll = as_(world["alice"]).get(f"/api/v1/conversations/{gid}/messages/?after={msg['id']}&since={since}").data
+    assert poll["messages"] == [] and [m["id"] for m in poll["changed"]] == [msg["id"]]
+    assert poll["changed"][0]["reactions"] == [{"emoji": "👍", "count": 1, "mine": True}]
+
+
+def test_chat_report_is_teacher_only_and_includes_private_chats(world):
+    enroll(world["bob"], world["course"])
+    peer = as_(world["alice"]).post("/api/v1/conversations/start/", {"student_id": world["bob"].id}).data
+    send(world["alice"], peer["id"], text="سلام بهروز")
+    rows = {r["id"]: r for r in as_(world["teacher"]).get("/api/v1/conversations/report/").data}
+    assert rows[peer["id"]]["private"] and rows[peer["id"]]["messages"] == 1
+    assert as_(world["teacher"]).get(f"/api/v1/conversations/report/{peer['id']}/").data["messages"][0]["text"] == "سلام بهروز"
+    assert as_(world["alice"]).get("/api/v1/conversations/report/").status_code == 403
+    assert as_(world["alice"]).get(f"/api/v1/conversations/report/{peer['id']}/").status_code == 403
