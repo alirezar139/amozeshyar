@@ -196,3 +196,35 @@ def test_course_group_announcement_only(world):
     teacher.patch(f"/api/v1/conversations/{group['id']}/settings/", {"announcement_only": True}, format="json")
     assert send(world["alice"], group["id"], text="hi").status_code == 403
     assert send(world["teacher"], group["id"], text="اطلاعیه").status_code == 201
+
+
+def test_reply_seen_count_viewers_and_delete(world):
+    enroll(world["bob"], world["course"])
+    group = next(c for c in conversations(world["teacher"]) if c["kind"] == "course")
+    gid = group["id"]
+    question = send(world["alice"], gid, text="جلسه‌ی بعد کی است؟").data
+    answer = send(world["teacher"], gid, text="پنجشنبه", reply_to=question["id"]).data
+    assert answer["reply_to"]["id"] == question["id"] and answer["reply_to"]["sender_name"] == "Alice"
+
+    # nobody else has seen the teacher's answer yet
+    mine = as_(world["teacher"]).get(f"/api/v1/conversations/{gid}/messages/").data["messages"]
+    assert next(m for m in mine if m["id"] == answer["id"])["seen_count"] == 0
+    as_(world["alice"]).post(f"/api/v1/conversations/{gid}/read/", {})
+    as_(world["bob"]).post(f"/api/v1/conversations/{gid}/read/", {})
+    as_(world["developer"]).post(f"/api/v1/conversations/{gid}/read/", {})  # doesn't count
+    mine = as_(world["teacher"]).get(f"/api/v1/conversations/{gid}/messages/").data["messages"]
+    assert next(m for m in mine if m["id"] == answer["id"])["seen_count"] == 2
+    assert next(m for m in mine if m["id"] == question["id"])["seen_count"] is None  # not mine
+
+    viewers = as_(world["teacher"]).get(f"/api/v1/conversations/{gid}/messages/{answer['id']}/viewers/").data
+    assert sorted(v["name"] for v in viewers) == ["Alice", "Bob"] and all(v["read_at"] for v in viewers)
+    # a student can't list viewers of someone else's message
+    assert as_(world["bob"]).get(f"/api/v1/conversations/{gid}/messages/{answer['id']}/viewers/").status_code == 403
+
+    # bob can't delete alice's message; alice can; the teacher can delete any in a group
+    assert as_(world["bob"]).delete(f"/api/v1/conversations/{gid}/messages/{question['id']}/").status_code == 403
+    bob_msg = send(world["bob"], gid, text="سلام").data
+    assert as_(world["teacher"]).delete(f"/api/v1/conversations/{gid}/messages/{bob_msg['id']}/").status_code == 204
+    assert as_(world["alice"]).delete(f"/api/v1/conversations/{gid}/messages/{question['id']}/").status_code == 204
+    remaining = as_(world["teacher"]).get(f"/api/v1/conversations/{gid}/messages/").data["messages"]
+    assert [m["id"] for m in remaining] == [answer["id"]] and remaining[0]["reply_to"] is None

@@ -42,17 +42,38 @@ class MessageSerializer(serializers.ModelSerializer):
     sender = SenderSerializer(read_only=True)
     is_mine = serializers.SerializerMethodField()
     attachment_url = serializers.SerializerMethodField()
+    reply_to = serializers.SerializerMethodField()
+    seen_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Message
         fields = (
             "id", "conversation", "sender", "is_mine", "text",
             "attachment_kind", "attachment_name", "attachment_size", "attachment_url", "duration_seconds",
-            "created_at",
+            "reply_to", "seen_count", "created_at",
         )
 
     def get_is_mine(self, obj) -> bool:
         return obj.sender_id == self.context["request"].user.id
+
+    def get_reply_to(self, obj) -> dict | None:
+        quoted = obj.reply_to
+        if not quoted:
+            return None
+        return {
+            "id": quoted.id,
+            "sender_name": display_name(quoted.sender),
+            "text": quoted.text[:200],
+            "attachment_kind": quoted.attachment_kind,
+        }
+
+    def get_seen_count(self, obj) -> int | None:
+        """How many others have seen one of *my* messages (markers passed in
+        by the view, so this is one query per page, not per message)."""
+        markers = self.context.get("read_markers")
+        if markers is None or obj.sender_id != self.context["request"].user.id:
+            return None
+        return sum(1 for user_id, last in markers if user_id != obj.sender_id and last >= obj.id)
 
     def get_attachment_url(self, obj) -> str | None:
         # Private storage: a short-lived signed link, only ever handed to
@@ -65,6 +86,7 @@ class SendMessageSerializer(serializers.Serializer):
     file = serializers.FileField(required=False)
     voice = serializers.BooleanField(required=False, default=False)
     duration_seconds = serializers.IntegerField(required=False, min_value=0, max_value=60 * 30)
+    reply_to = serializers.IntegerField(required=False, allow_null=True)
 
     def validate(self, attrs):
         text = attrs.get("text", "")

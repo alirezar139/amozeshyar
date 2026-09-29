@@ -11,7 +11,7 @@ from apps.accounts.authentication import UploadJWTAuthentication
 from apps.accounts.models import User
 
 from . import services
-from .models import Conversation, ConversationMember, Message
+from .models import Conversation, ConversationMember, ConversationRead, Message
 from .serializers import (
     ConversationSerializer,
     GroupSettingsSerializer,
@@ -194,7 +194,7 @@ class ConversationViewSet(mixins.DestroyModelMixin, viewsets.ReadOnlyModelViewSe
         if request.method == "POST":
             return self._send(request, conversation)
 
-        messages = conversation.messages.select_related("sender")
+        messages = conversation.messages.select_related("sender", "reply_to__sender")
         after, before = request.query_params.get("after"), request.query_params.get("before")
         if after:
             page = list(messages.filter(id__gt=int(after)).order_by("id")[:200])
@@ -204,11 +204,46 @@ class ConversationViewSet(mixins.DestroyModelMixin, viewsets.ReadOnlyModelViewSe
             page = list(messages.order_by("-id")[:PAGE])[::-1]
         row = self._rows(Conversation.objects.filter(pk=conversation.pk)).get()
         return Response({
-            "messages": MessageSerializer(page, many=True, context={"request": request}).data,
+            "messages": MessageSerializer(page, many=True, context={"request": request, "read_markers": self._markers(conversation)}).data,
             "has_more": bool(page) and not after and conversation.messages.filter(id__lt=page[0].id).exists(),
             "others_last_read": row.others_last_read,
             "conversation": self.get_serializer(row).data,
         })
+
+    def _markers(self, conversation):
+        """(user_id, last_read) for everyone but the developer accounts."""
+        return list(
+            ConversationRead.objects.filter(conversation=conversation)
+            .exclude(user__is_superuser=True)
+            .values_list("user_id", "last_read_message_id")
+        )
+
+    @action(detail=True, methods=["get"], url_path=r"messages/(?P<message_id>\d+)/viewers")
+    def viewers(self, request, pk=None, message_id=None):
+        """Who has seen a message, with roughly when — for its sender or the teacher."""
+        conversation = self._conversation(pk)
+        message = get_object_or_404(conversation.messages, pk=message_id)
+        if message.sender_id != request.user.id and not services.is_teacher(request.user):
+            raise PermissionDenied()
+        reads = (
+            ConversationRead.objects.filter(conversation=conversation, last_read_message_id__gte=message.id)
+            .exclude(user=message.sender)
+            .exclude(user__is_superuser=True)
+            .select_related("user")
+            .order_by("-read_at")
+        )
+        return Response([{**MemberSerializer(r.user).data, "read_at": r.read_at} for r in reads])
+
+    @action(detail=True, methods=["delete"], url_path=r"messages/(?P<message_id>\d+)")
+    def delete_message(self, request, pk=None, message_id=None):
+        """The sender can delete their own message; the teacher can delete any
+        message in a group."""
+        conversation = self._conversation(pk)
+        message = get_object_or_404(conversation.messages, pk=message_id)
+        if message.sender_id != request.user.id and not services.can_manage(request.user, conversation):
+            raise PermissionDenied("فقط فرستنده یا استاد می‌تواند این پیام را حذف کند.")
+        message.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     def _send(self, request, conversation):
         if not services.can_send(request.user, conversation):
@@ -217,7 +252,9 @@ class ConversationViewSet(mixins.DestroyModelMixin, viewsets.ReadOnlyModelViewSe
         payload.is_valid(raise_exception=True)
         data = payload.validated_data
         upload = data.get("file")
+        reply_to = conversation.messages.filter(pk=data.get("reply_to")).first() if data.get("reply_to") else None
         message = Message.objects.create(
+            reply_to=reply_to,
             conversation=conversation,
             sender=request.user,
             text=data.get("text", ""),
@@ -229,7 +266,10 @@ class ConversationViewSet(mixins.DestroyModelMixin, viewsets.ReadOnlyModelViewSe
         )
         Conversation.objects.filter(pk=conversation.pk).update(last_message_at=timezone.now())
         services.mark_read(conversation, request.user, message.id)
-        return Response(MessageSerializer(message, context={"request": request}).data, status=status.HTTP_201_CREATED)
+        return Response(
+            MessageSerializer(message, context={"request": request, "read_markers": self._markers(conversation)}).data,
+            status=status.HTTP_201_CREATED,
+        )
 
     @action(detail=True, methods=["post"])
     def read(self, request, pk=None):
