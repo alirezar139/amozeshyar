@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
+from apps.accounts.authentication import UploadJWTAuthentication
 from apps.accounts.permissions import IsAdminRole
 
 from .models import VideoAsset, WatchSession
@@ -20,6 +21,7 @@ class VideoUploadView(generics.CreateAPIView):
 
     serializer_class = VideoUploadSerializer
     permission_classes = (permissions.IsAuthenticated, IsAdminRole)
+    authentication_classes = (UploadJWTAuthentication,)
 
 
 class VideoDeleteView(generics.DestroyAPIView):

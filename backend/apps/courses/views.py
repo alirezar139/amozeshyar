@@ -7,6 +7,7 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
+from apps.accounts.authentication import UploadJWTAuthentication
 from apps.accounts.permissions import IsAdminRole
 
 from .filters import CourseFilter
@@ -110,6 +111,12 @@ class LessonFileViewSet(viewsets.ModelViewSet):
     permission_classes = (permissions.IsAuthenticated, IsAdminRole)
     http_method_names = ("get", "post", "patch", "delete", "head", "options")
     pagination_class = None
+
+    def get_authenticators(self):
+        # Uploads can outlive the access token; see UploadJWTAuthentication.
+        if self.request and self.request.method == "POST":
+            return [UploadJWTAuthentication()]
+        return super().get_authenticators()
 
     def get_queryset(self):
         files = LessonFile.objects.select_related("lesson__course")
