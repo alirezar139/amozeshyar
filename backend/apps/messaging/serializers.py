@@ -168,7 +168,7 @@ class ConversationSerializer(serializers.ModelSerializer):
         if obj.kind == Conversation.Kind.COURSE:
             return "گروه دوره"
         if obj.kind == Conversation.Kind.CUSTOM:
-            return "گروه"
+            return "گروه هم‌کلاسی‌ها" if obj.private else "گروه"
         if obj.kind == Conversation.Kind.PEER:
             return "گفت‌وگوی خصوصی با هم‌کلاسی"
         return obj.student.email if services.is_teacher(self._viewer()) else "گفت‌وگوی خصوصی با استاد"

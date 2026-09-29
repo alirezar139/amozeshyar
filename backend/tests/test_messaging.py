@@ -228,3 +228,34 @@ def test_reply_seen_count_viewers_and_delete(world):
     assert as_(world["alice"]).delete(f"/api/v1/conversations/{gid}/messages/{question['id']}/").status_code == 204
     remaining = as_(world["teacher"]).get(f"/api/v1/conversations/{gid}/messages/").data["messages"]
     assert [m["id"] for m in remaining] == [answer["id"]] and remaining[0]["reply_to"] is None
+
+
+def test_students_create_private_groups_with_classmates(world):
+    enroll(world["bob"], world["course"])
+    outsider = User.objects.create_user(email="o@example.com", password="x", first_name="Out")
+    group = as_(world["alice"]).post(
+        "/api/v1/conversations/groups/",
+        {"title": "گروه مطالعه", "member_ids": [world["bob"].id, outsider.id]},
+        format="json",
+    ).data
+    assert group["kind"] == "custom" and group["can_manage"] and group["subtitle"] == "گروه هم‌کلاسی‌ها"
+    names = sorted(m["name"] for m in as_(world["alice"]).get(f"/api/v1/conversations/{group['id']}/members/").data)
+    assert names == ["Alice", "Bob"]  # the non-classmate was dropped; no teacher in a student group
+    assert group["members"] == 2
+
+    # bob is in it but doesn't manage it; the teacher can't see it
+    bob_view = next(c for c in conversations(world["bob"]) if c["id"] == group["id"])
+    assert not bob_view["can_manage"]
+    assert all(c["id"] != group["id"] for c in conversations(world["teacher"]))
+    assert as_(world["teacher"]).get(f"/api/v1/conversations/{group['id']}/messages/").status_code == 404
+
+    # the creator can switch it to announcement-only; then bob can't post
+    as_(world["alice"]).patch(f"/api/v1/conversations/{group['id']}/settings/", {"announcement_only": True}, format="json")
+    assert send(world["bob"], group["id"], text="x").status_code == 403
+    assert send(world["alice"], group["id"], text="x").status_code == 201
+
+    # switching classmate chat off hides student groups and blocks new ones
+    world["teacher"].instructor_profile.allow_peer_chat = False
+    world["teacher"].instructor_profile.save()
+    assert all(c["id"] != group["id"] for c in conversations(world["alice"]))
+    assert as_(world["alice"]).post("/api/v1/conversations/groups/", {"title": "y"}, format="json").status_code == 403

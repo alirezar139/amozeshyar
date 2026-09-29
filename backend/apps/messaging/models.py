@@ -11,8 +11,9 @@ class Conversation(TimeStampedModel):
       - course: a group per course — the teacher plus every student actively
         enrolled in it (`course` set). Membership is derived from enrollment,
         so it follows purchases and refunds automatically.
-      - custom: a group the teacher created, with explicit members
-        (ConversationMember) plus the teacher side.
+      - custom: a group with explicit members (ConversationMember). Made by
+        the teacher (the teacher side is in it), or by a student for their
+        classmates (`private`: the teacher side isn't in it and can't see it).
       - peer: a private chat between two classmates (two ConversationMember
         rows). The teacher side does not see these.
     """
@@ -37,6 +38,7 @@ class Conversation(TimeStampedModel):
     announcement_only = models.BooleanField(default=False)
     pinned_message = models.ForeignKey("Message", null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    private = models.BooleanField(default=False)
 
     class Meta:
         ordering = ("-last_message_at", "-created_at")
