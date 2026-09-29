@@ -122,7 +122,7 @@ def _draw_seven_segment(rng: Random, digit: str, color: tuple[int, int, int]) ->
     w, h, t = 30, 54, 5
     canvas = Image.new("RGBA", (w + t * 2, h + t * 2), (0, 0, 0, 0))
     draw = ImageDraw.Draw(canvas)
-    x0, y0, x1, y1, xm, ym = t, t, t + w, t + h, t + w / 2, t + h / 2
+    x0, y0, x1, y1, ym = t, t, t + w, t + h, t + h / 2
     segment_lines = {
         "a": [(x0, y0), (x1, y0)],
         "b": [(x1, y0), (x1, ym)],
