@@ -23,6 +23,7 @@ class PublicInstructorSerializer(serializers.ModelSerializer):
             "background_image",
             "background_motion",
             "background_speed",
+            "allow_peer_chat",
             "headline",
             "bio",
             "credentials",
@@ -46,6 +47,7 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
         fields = (
             "site_name", "logo", "headline", "bio", "credentials", "cover_image", "social_links",
             "background_style", "background_colors", "background_image", "background_motion", "background_speed",
+            "allow_peer_chat",
         )
 
     def validate_background_colors(self, value):

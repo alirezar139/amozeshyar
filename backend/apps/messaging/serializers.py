@@ -102,12 +102,16 @@ class ConversationSerializer(serializers.ModelSerializer):
     others_last_read = serializers.IntegerField(read_only=True)
     members = serializers.SerializerMethodField()
     last_message = serializers.SerializerMethodField()
+    pinned = serializers.SerializerMethodField()
+    can_send = serializers.SerializerMethodField()
+    can_manage = serializers.SerializerMethodField()
 
     class Meta:
         model = Conversation
         fields = (
             "id", "kind", "title", "subtitle", "avatar", "members",
             "unread", "others_last_read", "last_message", "last_message_at",
+            "announcement_only", "pinned", "can_send", "can_manage",
         )
 
     def _viewer(self):
@@ -121,9 +125,18 @@ class ConversationSerializer(serializers.ModelSerializer):
             self.context["site_owner"] = get_site_owner()
         return self.context["site_owner"]
 
+    def _peer(self, obj):
+        other = obj.members.exclude(user=self._viewer()).select_related("user").first()
+        return other.user if other else None
+
     def get_title(self, obj) -> str:
         if obj.kind == Conversation.Kind.COURSE:
-            return obj.course.title
+            return obj.title or obj.course.title
+        if obj.kind == Conversation.Kind.CUSTOM:
+            return obj.title or "گروه"
+        if obj.kind == Conversation.Kind.PEER:
+            peer = self._peer(obj)
+            return display_name(peer) if peer else "هم‌کلاسی"
         if services.is_teacher(self._viewer()):
             return display_name(obj.student)
         owner = self._owner()
@@ -132,11 +145,22 @@ class ConversationSerializer(serializers.ModelSerializer):
     def get_subtitle(self, obj) -> str:
         if obj.kind == Conversation.Kind.COURSE:
             return "گروه دوره"
-        return obj.student.email if services.is_teacher(self._viewer()) else "گفتگوی خصوصی با استاد"
+        if obj.kind == Conversation.Kind.CUSTOM:
+            return "گروه"
+        if obj.kind == Conversation.Kind.PEER:
+            return "گفت‌وگوی خصوصی با هم‌کلاسی"
+        return obj.student.email if services.is_teacher(self._viewer()) else "گفت‌وگوی خصوصی با استاد"
 
     def get_avatar(self, obj) -> str | None:
+        if obj.avatar:
+            return obj.avatar.url
         if obj.kind == Conversation.Kind.COURSE:
             return obj.course.cover_image.url if obj.course.cover_image else None
+        if obj.kind == Conversation.Kind.CUSTOM:
+            return None
+        if obj.kind == Conversation.Kind.PEER:
+            peer = self._peer(obj)
+            return peer.avatar.url if peer and peer.avatar else None
         if services.is_teacher(self._viewer()):
             return obj.student.avatar.url if obj.student.avatar else None
         owner = self._owner()
@@ -157,3 +181,48 @@ class ConversationSerializer(serializers.ModelSerializer):
             "is_mine": message.sender_id == self._viewer().id,
             "created_at": message.created_at,
         }
+
+    def get_pinned(self, obj) -> dict | None:
+        message = obj.pinned_message
+        if not message:
+            return None
+        return {
+            "id": message.id,
+            "text": message.text,
+            "attachment_kind": message.attachment_kind,
+            "sender_name": display_name(message.sender),
+        }
+
+    def get_can_send(self, obj) -> bool:
+        return services.can_send(self._viewer(), obj)
+
+    def get_can_manage(self, obj) -> bool:
+        return services.can_manage(self._viewer(), obj)
+
+
+class MemberSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    name = serializers.SerializerMethodField()
+    email = serializers.EmailField()
+    avatar = serializers.SerializerMethodField()
+    is_teacher = serializers.SerializerMethodField()
+
+    def get_name(self, user) -> str:
+        return display_name(user)
+
+    def get_avatar(self, user) -> str | None:
+        return user.avatar.url if user.avatar else None
+
+    def get_is_teacher(self, user) -> bool:
+        return services.is_teacher(user)
+
+
+class GroupSettingsSerializer(serializers.ModelSerializer):
+    """What the teacher can change on a group. `title`/`avatar` apply to
+    custom groups; course groups keep their course's name and cover."""
+
+    member_ids = serializers.ListField(child=serializers.IntegerField(), required=False, write_only=True)
+
+    class Meta:
+        model = Conversation
+        fields = ("title", "avatar", "announcement_only", "member_ids")

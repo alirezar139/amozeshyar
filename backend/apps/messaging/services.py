@@ -3,7 +3,8 @@
 The "teacher side" is every admin account (the site's instructor, plus the
 developer for support). Developer (superuser) activity never counts as the
 teacher having *read* something, so a student's ✓✓ always means the
-instructor saw it.
+instructor saw it. Peer chats between classmates are private: the teacher
+side can't see them (the teacher can switch the feature off instead).
 """
 from django.db.models import Count, Max, OuterRef, Q, Subquery
 from django.db.models.functions import Coalesce
@@ -12,15 +13,36 @@ from apps.accounts.models import User
 from apps.courses.models import Course
 from apps.enrollments.models import Enrollment
 
-from .models import Conversation, ConversationRead, Message
+from .models import Conversation, ConversationMember, ConversationRead, Message
 
 
 def is_teacher(user) -> bool:
     return user.is_authenticated and user.role == User.Role.ADMIN
 
 
+def peer_chat_allowed() -> bool:
+    from apps.instructors.site import get_site_owner
+
+    owner = get_site_owner()
+    return owner.allow_peer_chat if owner else False
+
+
 def enrolled_course_ids(user):
     return Enrollment.objects.filter(student=user, is_active=True).values_list("course_id", flat=True)
+
+
+def classmates(user):
+    """Students sharing at least one active course with `user`."""
+    return (
+        User.objects.filter(
+            role=User.Role.STUDENT,
+            is_active=True,
+            enrollments__course_id__in=list(enrolled_course_ids(user)),
+            enrollments__is_active=True,
+        )
+        .exclude(pk=user.pk)
+        .distinct()
+    )
 
 
 def ensure_course_groups(course_ids) -> None:
@@ -36,28 +58,75 @@ def get_or_create_direct(student) -> Conversation:
     return conversation
 
 
+def get_or_create_peer(a, b) -> Conversation:
+    existing = (
+        Conversation.objects.filter(kind=Conversation.Kind.PEER, members__user=a)
+        .filter(members__user=b)
+        .first()
+    )
+    if existing:
+        return existing
+    conversation = Conversation.objects.create(kind=Conversation.Kind.PEER, created_by=a)
+    ConversationMember.objects.bulk_create([ConversationMember(conversation=conversation, user=u) for u in (a, b)])
+    return conversation
+
+
 def visible_conversations(user):
     """Conversations `user` may open. Also makes sure the groups they should
     see exist (created lazily, the first time anyone looks)."""
     if is_teacher(user):
         ensure_course_groups(Course.objects.filter(status=Course.Status.PUBLISHED).values_list("id", flat=True))
         return Conversation.objects.filter(
-            Q(kind=Conversation.Kind.COURSE) | Q(kind=Conversation.Kind.DIRECT, last_message_at__isnull=False)
+            Q(kind__in=(Conversation.Kind.COURSE, Conversation.Kind.CUSTOM))
+            | Q(kind=Conversation.Kind.DIRECT, last_message_at__isnull=False)
         )
     course_ids = list(enrolled_course_ids(user))
     ensure_course_groups(course_ids)
     get_or_create_direct(user)
+    kinds = [Conversation.Kind.CUSTOM] + ([Conversation.Kind.PEER] if peer_chat_allowed() else [])
     return Conversation.objects.filter(
-        Q(kind=Conversation.Kind.DIRECT, student=user) | Q(kind=Conversation.Kind.COURSE, course_id__in=course_ids)
-    )
+        Q(kind=Conversation.Kind.DIRECT, student=user)
+        | Q(kind=Conversation.Kind.COURSE, course_id__in=course_ids)
+        | Q(kind__in=kinds, members__user=user)
+    ).distinct()
 
 
 def can_access(user, conversation: Conversation) -> bool:
+    kind = conversation.kind
+    if kind == Conversation.Kind.PEER:
+        return peer_chat_allowed() and conversation.members.filter(user=user).exists()
     if is_teacher(user):
         return True
-    if conversation.kind == Conversation.Kind.DIRECT:
+    if kind == Conversation.Kind.DIRECT:
         return conversation.student_id == user.id
+    if kind == Conversation.Kind.CUSTOM:
+        return conversation.members.filter(user=user).exists()
     return Enrollment.objects.filter(student=user, course_id=conversation.course_id, is_active=True).exists()
+
+
+def can_send(user, conversation: Conversation) -> bool:
+    return not (conversation.is_group and conversation.announcement_only and not is_teacher(user))
+
+
+def can_manage(user, conversation: Conversation) -> bool:
+    return is_teacher(user) and conversation.is_group
+
+
+def members(conversation: Conversation):
+    """Everyone in the conversation, the teacher (site owner) first."""
+    from apps.instructors.site import get_site_owner
+
+    owner = get_site_owner()
+    teacher = [owner.user] if owner and conversation.kind != Conversation.Kind.PEER else []
+    if conversation.kind == Conversation.Kind.DIRECT:
+        others = [conversation.student]
+    elif conversation.kind == Conversation.Kind.COURSE:
+        others = list(
+            User.objects.filter(enrollments__course_id=conversation.course_id, enrollments__is_active=True).distinct().order_by("first_name")
+        )
+    else:
+        others = [m.user for m in conversation.members.select_related("user").order_by("added_at")]
+    return teacher + [u for u in others if not teacher or u.pk != teacher[0].pk]
 
 
 def annotate_for(queryset, user):
@@ -99,8 +168,11 @@ def mark_read(conversation: Conversation, user, message_id: int | None = None) -
 
 
 def member_count(conversation: Conversation) -> int:
-    if conversation.kind == Conversation.Kind.DIRECT:
+    kind = conversation.kind
+    if kind in (Conversation.Kind.DIRECT, Conversation.Kind.PEER):
         return 2
+    if kind == Conversation.Kind.CUSTOM:
+        return conversation.members.count() + 1
     return Enrollment.objects.filter(course_id=conversation.course_id, is_active=True).count() + 1
 
 

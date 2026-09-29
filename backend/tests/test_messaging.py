@@ -107,9 +107,11 @@ def test_attachments_image_file_voice_and_rejections(world):
 def test_teacher_can_start_a_conversation_with_a_student(world):
     response = as_(world["teacher"]).post("/api/v1/conversations/start/", {"student_id": world["bob"].id})
     assert response.status_code == 200 and response.data["title"] == "Bob"
-    # students can't start one with someone else
-    other = as_(world["bob"]).post("/api/v1/conversations/start/", {"student_id": world["alice"].id})
-    assert other.data["id"] == response.data["id"]  # always their own
+    # a student who shares no course with alice can't open a chat with her
+    assert as_(world["bob"]).post("/api/v1/conversations/start/", {"student_id": world["alice"].id}).status_code == 403
+    # and without an id, a student gets their own chat with the teacher
+    own = as_(world["bob"]).post("/api/v1/conversations/start/", {})
+    assert own.data["kind"] == "direct" and own.data["id"] == response.data["id"]
 
 
 def test_board_cards_crud_move_and_admin_only(world):
@@ -125,3 +127,72 @@ def test_board_cards_crud_move_and_admin_only(world):
 
     assert as_(world["alice"]).get("/api/v1/board/cards/").status_code == 403
     assert teacher.delete(f"/api/v1/board/cards/{a['id']}/").status_code == 204
+
+
+def enroll(user, course):
+    Enrollment.objects.create(student=user, course=course)
+
+
+def test_classmates_can_chat_privately_and_teacher_cannot_see_it(world):
+    enroll(world["bob"], world["course"])
+    classmates = as_(world["alice"]).get("/api/v1/conversations/classmates/").data
+    assert classmates["allowed"] and [p["email"] for p in classmates["people"]] == ["b@example.com"]
+
+    chat = as_(world["alice"]).post("/api/v1/conversations/start/", {"student_id": world["bob"].id}).data
+    assert chat["kind"] == "peer" and chat["title"] == "Bob"
+    again = as_(world["bob"]).post("/api/v1/conversations/start/", {"student_id": world["alice"].id}).data
+    assert again["id"] == chat["id"]
+
+    send(world["alice"], chat["id"], text="سلام")
+    assert next(c for c in conversations(world["bob"]) if c["kind"] == "peer")["unread"] == 1
+    assert all(c["kind"] != "peer" for c in conversations(world["teacher"]))
+    assert as_(world["teacher"]).get(f"/api/v1/conversations/{chat['id']}/messages/").status_code == 404
+
+    # the teacher switches the feature off: peer chats disappear
+    world["teacher"].instructor_profile.allow_peer_chat = False
+    world["teacher"].instructor_profile.save()
+    assert all(c["kind"] != "peer" for c in conversations(world["alice"]))
+    assert as_(world["alice"]).post("/api/v1/conversations/start/", {"student_id": world["bob"].id}).status_code == 403
+
+
+def test_custom_group_members_settings_pin_and_delete(world):
+    teacher = as_(world["teacher"])
+    group = teacher.post(
+        "/api/v1/conversations/groups/",
+        {"title": "پروژه‌ی نهایی", "member_ids": [world["alice"].id]},
+        format="json",
+    ).data
+    assert group["kind"] == "custom" and group["title"] == "پروژه‌ی نهایی" and group["members"] == 2 and group["can_manage"]
+
+    assert any(c["id"] == group["id"] for c in conversations(world["alice"]))
+    assert all(c["id"] != group["id"] for c in conversations(world["bob"]))
+    assert not next(c for c in conversations(world["alice"]) if c["id"] == group["id"])["can_manage"]
+
+    teacher.post(f"/api/v1/conversations/{group['id']}/members/", {"user_ids": [world["bob"].id]}, format="json")
+    names = [m["name"] for m in teacher.get(f"/api/v1/conversations/{group['id']}/members/").data]
+    assert names == ["مهدی", "Alice", "Bob"]
+
+    msg = send(world["teacher"], group["id"], text="قوانین گروه").data
+    pinned = teacher.post(f"/api/v1/conversations/{group['id']}/pin/", {"message_id": msg["id"]}, format="json").data
+    assert pinned["pinned"]["text"] == "قوانین گروه"
+
+    teacher.patch(f"/api/v1/conversations/{group['id']}/settings/", {"announcement_only": True, "title": "اطلاعیه‌ها"}, format="json")
+    assert send(world["alice"], group["id"], text="سوال").status_code == 403
+    alice_view = next(c for c in conversations(world["alice"]) if c["id"] == group["id"])
+    assert alice_view["title"] == "اطلاعیه‌ها" and not alice_view["can_send"]
+
+    assert as_(world["alice"]).patch(f"/api/v1/conversations/{group['id']}/settings/", {"title": "x"}, format="json").status_code == 403
+    teacher.delete(f"/api/v1/conversations/{group['id']}/members/{world['bob'].id}/")
+    assert all(c["id"] != group["id"] for c in conversations(world["bob"]))
+
+    assert teacher.delete(f"/api/v1/conversations/{group['id']}/").status_code == 204
+    course_group = next(c for c in conversations(world["teacher"]) if c["kind"] == "course")
+    assert teacher.delete(f"/api/v1/conversations/{course_group['id']}/").status_code == 400
+
+
+def test_course_group_announcement_only(world):
+    teacher = as_(world["teacher"])
+    group = next(c for c in conversations(world["teacher"]) if c["kind"] == "course")
+    teacher.patch(f"/api/v1/conversations/{group['id']}/settings/", {"announcement_only": True}, format="json")
+    assert send(world["alice"], group["id"], text="hi").status_code == 403
+    assert send(world["teacher"], group["id"], text="اطلاعیه").status_code == 201
