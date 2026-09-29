@@ -26,6 +26,10 @@ defineProps<{
 <style scoped>
 .portrait-stack {
   --radius: 2.5rem;
+  /* The whole stack drifts gently side to side, slower than the pages'
+     own swing and out of step with it, so the motion never feels mechanical. */
+  transform-origin: 50% 100%;
+  animation: sway 9s ease-in-out infinite;
 }
 .portrait-stack.is-sm {
   --radius: 1.75rem;
@@ -99,6 +103,11 @@ defineProps<{
   99.99% { transform-origin: 50% 0%; transform: rotate(0deg); }
   100% { transform-origin: 50% 100%; transform: rotate(0deg); }
 }
+@keyframes sway {
+  0%, 100% { transform: translateX(0) rotate(0deg); }
+  25% { transform: translateX(-1.5%) rotate(-1.2deg); }
+  75% { transform: translateX(1.5%) rotate(1.2deg); }
+}
 @keyframes float {
   0%, 100% { transform: translateY(0) rotate(0deg); }
   25% { transform: translateY(-6px) rotate(-1deg); }
@@ -106,6 +115,9 @@ defineProps<{
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .portrait-stack {
+    animation: none;
+  }
   .page {
     animation: none !important;
     transition: none;
