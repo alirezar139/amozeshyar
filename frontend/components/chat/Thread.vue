@@ -35,8 +35,10 @@ interface ChatMessage {
   attachment_url: string | null
   duration_seconds: number | null
   created_at: string
-  reply_to?: { id: number; sender_name: string; text: string; attachment_kind: string } | null
+  reply_to?: { id: number; sender_name: string; text: string; attachment_kind: string; deleted?: boolean } | null
   seen_count?: number | null
+  is_deleted?: boolean
+  reactions?: { emoji: string; count: number; mine: boolean }[]
   // client-only, for optimistic sends
   pending?: boolean
   progress?: number
@@ -83,6 +85,7 @@ async function loadInitial() {
   loading.value = true
   try {
     const data = await request<any>(`/conversations/${props.conversation.id}/messages/`)
+    serverTime = data.server_time
     messages.value = data.messages
     hasMore.value = data.has_more
     othersLastRead.value = data.others_last_read
@@ -113,11 +116,23 @@ async function loadOlder() {
   }
 }
 
+let serverTime = ''
+
 async function poll() {
   if (loading.value) return
   try {
-    const data = await request<any>(`/conversations/${props.conversation.id}/messages/?after=${lastServerId.value}`)
+    const since = serverTime ? `&since=${encodeURIComponent(serverTime)}` : ''
+    const data = await request<any>(`/conversations/${props.conversation.id}/messages/?after=${lastServerId.value}${since}`)
+    serverTime = data.server_time
     othersLastRead.value = data.others_last_read
+    // deletions and reactions on messages already on screen
+    for (const changed of (data.changed ?? []) as ChatMessage[]) {
+      const index = messages.value.findIndex((m) => m.id === changed.id)
+      if (index !== -1) messages.value.splice(index, 1, changed)
+      for (const m of messages.value) {
+        if (changed.is_deleted && m.reply_to?.id === changed.id) m.reply_to = { ...m.reply_to, text: '', attachment_kind: '', deleted: true }
+      }
+    }
     if (data.conversation) emit('updated', data.conversation)
     const known = new Set(messages.value.map((m) => m.id))
     const fresh = (data.messages as ChatMessage[]).filter((m) => !known.has(m.id))
@@ -160,7 +175,7 @@ const viewers = ref<any[]>([])
 const viewersLoading = ref(false)
 
 function toggleMenu(m: ChatMessage) {
-  if (m.id < 0) return
+  if (m.id < 0 || m.is_deleted) return
   menuFor.value = menuFor.value === m.id ? null : m.id
 }
 function closeMenu(e: MouseEvent) {
@@ -195,10 +210,22 @@ async function deleteMessage(m: ChatMessage) {
   menuFor.value = null
   if (!confirm('این پیام حذف شود؟')) return
   await request(`/conversations/${props.conversation.id}/messages/${m.id}/`, { method: 'DELETE' })
-  messages.value = messages.value.filter((x) => x.id !== m.id)
-  for (const x of messages.value) if (x.reply_to?.id === m.id) x.reply_to = null
+  Object.assign(m, { is_deleted: true, text: '', attachment_kind: '', attachment_url: null, reply_to: null, reactions: [] })
+  for (const x of messages.value) {
+    if (x.reply_to?.id === m.id) x.reply_to = { ...x.reply_to, text: '', attachment_kind: '', deleted: true }
+  }
   emit('activity')
 }
+const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏', '🔥', '👏']
+async function react(m: ChatMessage, emoji: string) {
+  menuFor.value = null
+  const updated = await request<ChatMessage>(`/conversations/${props.conversation.id}/messages/${m.id}/react/`, {
+    method: 'POST',
+    body: { emoji },
+  })
+  m.reactions = updated.reactions
+}
+
 function canDelete(m: ChatMessage) {
   return m.id > 0 && (m.is_mine || props.conversation.can_manage)
 }
@@ -211,7 +238,8 @@ function jumpTo(id: number) {
   el?.classList.add('flash')
   setTimeout(() => el?.classList.remove('flash'), 1400)
 }
-function quoteLabel(q: { text: string; attachment_kind: string }) {
+function quoteLabel(q: { text: string; attachment_kind: string; deleted?: boolean }) {
+  if (q.deleted) return '🚫 پیام حذف‌شده'
   return q.text || ({ image: '📷 تصویر', file: '📎 فایل', voice: '🎤 پیام صوتی' } as Record<string, string>)[q.attachment_kind] || ''
 }
 function timeAgo(iso: string) {
@@ -337,6 +365,14 @@ watch(() => props.conversation.id, () => {
       </button>
     </header>
 
+    <!-- students are told their private chats are on record for the teacher -->
+    <p
+      v-if="conversation.private"
+      class="border-b border-amber-500/20 bg-amber-500/10 px-4 py-1.5 text-center text-[11px] text-amber-800 dark:text-amber-300"
+    >
+      🛡 برای حفظ امنیت کلاس، گفت‌وگوها در گزارش استاد ثبت می‌شود.
+    </p>
+
     <!-- pinned message -->
     <button
       v-if="conversation.pinned"
@@ -398,6 +434,17 @@ watch(() => props.conversation.id, () => {
                   ]"
                   @click.stop
                 >
+                  <div class="mb-1 flex justify-between gap-0.5 border-b border-black/5 px-1 pb-1.5 dark:border-white/10">
+                    <button
+                      v-for="e in QUICK_REACTIONS"
+                      :key="e"
+                      type="button"
+                      :class="['flex h-8 w-8 items-center justify-center rounded-full text-lg transition hover:scale-125 hover:bg-black/5 dark:hover:bg-white/10', m.reactions?.some((r) => r.mine && r.emoji === e) ? 'bg-primary-500/15' : '']"
+                      @click="react(m, e)"
+                    >
+                      {{ e }}
+                    </button>
+                  </div>
                   <button type="button" class="menu-item" @click="startReply(m)"><span>↩️</span> پاسخ</button>
                   <button v-if="m.text" type="button" class="menu-item" @click="copyText(m)"><span>📋</span> کپی متن</button>
                   <button v-if="conversation.can_manage" type="button" class="menu-item" @click="pinMessage(m); menuFor = null"><span>📌</span> سنجاق کردن</button>
@@ -457,7 +504,30 @@ watch(() => props.conversation.id, () => {
                 </span>
               </a>
 
-              <p v-if="m.text" :class="['whitespace-pre-wrap break-words', `chat-text-${prefs.fontSize}`]" dir="auto">{{ m.text }}</p>
+              <p v-if="m.is_deleted" :class="['flex items-center gap-1.5 italic', m.is_mine ? 'text-white/80' : 'text-gray-500 dark:text-gray-400', `chat-text-${prefs.fontSize}`]">
+                🚫 این پیام حذف شد
+              </p>
+              <ChatText v-else-if="m.text" :text="m.text" :mine="m.is_mine" :class="`chat-text-${prefs.fontSize}`" />
+
+              <!-- reactions -->
+              <div v-if="m.reactions?.length" class="mt-1.5 flex flex-wrap gap-1">
+                <button
+                  v-for="r in m.reactions"
+                  :key="r.emoji"
+                  type="button"
+                  :class="[
+                    'flex items-center gap-1 rounded-full px-2 py-0.5 text-xs transition hover:scale-105',
+                    r.mine
+                      ? (m.is_mine ? 'bg-white text-primary-700 ring-1 ring-white' : 'bg-primary-500/15 text-primary-700 ring-1 ring-primary-400/50 dark:text-primary-300')
+                      : (m.is_mine ? 'bg-white/20 text-white' : 'bg-black/5 text-gray-700 dark:bg-white/10 dark:text-gray-200'),
+                  ]"
+                  :title="r.mine ? 'برداشتن واکنش' : 'افزودن همین واکنش'"
+                  @click.stop="react(m, r.emoji)"
+                >
+                  <span class="text-sm">{{ r.emoji }}</span>
+                  <span class="font-semibold tabular-nums">{{ r.count.toLocaleString('fa-IR') }}</span>
+                </button>
+              </div>
 
               <!-- upload progress -->
               <div v-if="m.pending && m.attachment_kind" class="mt-1.5 h-1 overflow-hidden rounded-full bg-white/25">

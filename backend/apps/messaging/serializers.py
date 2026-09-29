@@ -151,13 +151,14 @@ class ConversationSerializer(serializers.ModelSerializer):
     pinned = serializers.SerializerMethodField()
     can_send = serializers.SerializerMethodField()
     can_manage = serializers.SerializerMethodField()
+    private = serializers.SerializerMethodField()
 
     class Meta:
         model = Conversation
         fields = (
             "id", "kind", "title", "subtitle", "avatar", "members",
             "unread", "others_last_read", "last_message", "last_message_at",
-            "announcement_only", "pinned", "can_send", "can_manage",
+            "announcement_only", "pinned", "can_send", "can_manage", "private",
         )
 
     def _viewer(self):
@@ -238,6 +239,10 @@ class ConversationSerializer(serializers.ModelSerializer):
             "attachment_kind": message.attachment_kind,
             "sender_name": display_name(message.sender),
         }
+
+    def get_private(self, obj) -> bool:
+        """Student-made (classmate chat or classmate group): not joined by the teacher."""
+        return obj.kind == Conversation.Kind.PEER or obj.private
 
     def get_can_send(self, obj) -> bool:
         return services.can_send(self._viewer(), obj)
