@@ -1,93 +1,85 @@
 <script setup lang="ts">
+// Admin course editor: the course's lessons, each with its video and files
+// (see CourseLessonCard). Warns before leaving while anything is uploading.
 const props = defineProps<{ courseId: number }>()
 const { request } = useApi()
-const config = useRuntimeConfig()
-const authStore = useAuthStore()
 
-const { data: lessons, refresh } = await useAsyncData(`course-${props.courseId}-lessons`, async () => {
-  const page = await request<{ results: any[] }>('/lessons/')
-  return page.results.filter((l) => l.course === props.courseId).sort((a, b) => a.order - b.order)
-})
-
-const statusLabels: Record<string, string> = {
-  uploading: 'در حال آپلود',
-  processing: 'در حال پردازش',
-  ready: 'آماده‌ی پخش',
-  failed: 'خطا در پردازش',
-}
+const { data: lessons, refresh, pending } = await useAsyncData(`course-${props.courseId}-lessons`, () =>
+  request<any[]>(`/lessons/?course=${props.courseId}`),
+)
 
 const newTitle = ref('')
 const creatingLesson = ref(false)
 const createError = ref('')
+const moveError = ref('')
 
 async function addLesson() {
+  const title = newTitle.value.trim()
+  if (!title) return
   createError.value = ''
   creatingLesson.value = true
   try {
-    const nextOrder = (lessons.value?.length ?? 0) + 1
     await request('/lessons/', {
       method: 'POST',
-      body: { course: props.courseId, title: newTitle.value, order: nextOrder, is_free_preview: nextOrder === 1 },
+      body: { course: props.courseId, title, is_free_preview: !lessons.value?.length },
     })
     newTitle.value = ''
     await refresh()
   } catch (err) {
-    createError.value = getErrorMessage(err, 'ثبت سرفصل ناموفق بود.')
+    createError.value = getErrorMessage(err, 'ثبت جلسه ناموفق بود.')
   } finally {
     creatingLesson.value = false
   }
 }
 
-const uploadingLessonId = ref<number | null>(null)
-const uploadError = ref('')
-
-async function onFileSelected(lessonId: number, event: Event) {
-  const file = (event.target as HTMLInputElement).files?.[0]
-  if (!file) return
-
-  uploadError.value = ''
-  uploadingLessonId.value = lessonId
+async function move(lessonId: number, direction: 'up' | 'down') {
+  moveError.value = ''
   try {
-    const formData = new FormData()
-    formData.append('lesson', String(lessonId))
-    formData.append('file', file)
-
-    const headers = new Headers()
-    if (authStore.accessToken) headers.set('Authorization', `Bearer ${authStore.accessToken}`)
-
-    await $fetch(`${config.public.apiBase}/videos/upload/`, {
-      method: 'POST',
-      body: formData,
-      headers,
-      credentials: 'include',
-    })
-    await refresh()
-    startPolling()
+    lessons.value = await request<any[]>(`/lessons/${lessonId}/move/`, { method: 'POST', body: { direction } })
   } catch (err) {
-    uploadError.value = getErrorMessage(err, 'آپلود ویدیو ناموفق بود.')
-  } finally {
-    uploadingLessonId.value = null
+    moveError.value = getErrorMessage(err, 'جابه‌جایی ناموفق بود.')
   }
 }
 
+const stats = computed(() => {
+  const list = lessons.value ?? []
+  return {
+    lessons: list.length,
+    videos: list.filter((l) => l.video_status === 'ready').length,
+    files: list.reduce((n, l) => n + l.files.length, 0),
+    minutes: Math.round(list.reduce((n, l) => n + (l.video_duration || 0), 0) / 60),
+  }
+})
+
+// ---- keep the page open while uploads are running ----
+const activeUploads = ref(0)
+function onUploading(delta: number) {
+  activeUploads.value = Math.max(0, activeUploads.value + delta)
+}
+function beforeUnload(e: BeforeUnloadEvent) {
+  if (activeUploads.value) e.preventDefault()
+}
+onMounted(() => window.addEventListener('beforeunload', beforeUnload))
+onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload))
+onBeforeRouteLeave(() => {
+  if (activeUploads.value) return confirm('آپلود هنوز تمام نشده. با ترک صفحه لغو می‌شود. مطمئنید؟')
+})
+
+// ---- poll while a video is processing ----
 let pollTimer: ReturnType<typeof setInterval> | null = null
-function startPolling() {
-  if (pollTimer) return
-  pollTimer = setInterval(async () => {
-    await refresh()
-    const stillProcessing = lessons.value?.some((l) => ['uploading', 'processing'].includes(l.video_status))
-    if (!stillProcessing && pollTimer) {
+const anyProcessing = computed(() => (lessons.value ?? []).some((l) => ['uploading', 'processing'].includes(l.video_status)))
+watch(
+  anyProcessing,
+  (processing) => {
+    if (processing && !pollTimer) {
+      pollTimer = setInterval(() => refresh(), 4000)
+    } else if (!processing && pollTimer) {
       clearInterval(pollTimer)
       pollTimer = null
     }
-  }, 4000)
-}
-
-onMounted(() => {
-  if (lessons.value?.some((l) => ['uploading', 'processing'].includes(l.video_status))) {
-    startPolling()
-  }
-})
+  },
+  { immediate: true },
+)
 onUnmounted(() => {
   if (pollTimer) clearInterval(pollTimer)
 })
@@ -95,60 +87,88 @@ onUnmounted(() => {
 
 <template>
   <div>
-    <div class="glass rounded-2xl p-6">
-      <h2 class="font-semibold text-gray-900 dark:text-white">افزودن سرفصل جدید</h2>
-      <form class="mt-3 flex flex-col gap-3 sm:flex-row" @submit.prevent="addLesson">
+    <!-- Summary + add lesson -->
+    <div class="glass rounded-2xl p-5">
+      <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div class="rounded-xl bg-black/[0.03] px-4 py-3 dark:bg-white/5">
+          <p class="text-xs text-gray-500 dark:text-gray-400">جلسه</p>
+          <p class="mt-0.5 text-xl font-black text-gray-900 dark:text-white">{{ stats.lessons.toLocaleString('fa-IR') }}</p>
+        </div>
+        <div class="rounded-xl bg-black/[0.03] px-4 py-3 dark:bg-white/5">
+          <p class="text-xs text-gray-500 dark:text-gray-400">ویدیوی آماده</p>
+          <p class="mt-0.5 text-xl font-black text-gray-900 dark:text-white">{{ stats.videos.toLocaleString('fa-IR') }}</p>
+        </div>
+        <div class="rounded-xl bg-black/[0.03] px-4 py-3 dark:bg-white/5">
+          <p class="text-xs text-gray-500 dark:text-gray-400">فایل</p>
+          <p class="mt-0.5 text-xl font-black text-gray-900 dark:text-white">{{ stats.files.toLocaleString('fa-IR') }}</p>
+        </div>
+        <div class="rounded-xl bg-black/[0.03] px-4 py-3 dark:bg-white/5">
+          <p class="text-xs text-gray-500 dark:text-gray-400">مدت کل</p>
+          <p class="mt-0.5 text-xl font-black text-gray-900 dark:text-white">{{ stats.minutes.toLocaleString('fa-IR') }} <span class="text-xs font-medium">دقیقه</span></p>
+        </div>
+      </div>
+
+      <form class="mt-5 flex flex-col gap-3 sm:flex-row" @submit.prevent="addLesson">
         <input
           v-model="newTitle"
           required
-          placeholder="عنوان سرفصل، مثلاً «جلسه‌ی اول: آشنایی با پایتون»"
-          class="glass flex-1 rounded-md px-3 py-2 text-sm text-gray-900 dark:text-white"
+          placeholder="عنوان جلسه‌ی جدید، مثلاً «جلسه‌ی اول: آشنایی با پایتون»"
+          class="glass flex-1 rounded-xl px-4 py-2.5 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-primary-500/50 dark:text-white"
         >
         <button
           type="submit"
-          :disabled="creatingLesson"
-          class="rounded-md bg-primary-600 px-5 py-2 text-sm font-semibold text-white hover:bg-primary-500 disabled:opacity-50"
+          :disabled="creatingLesson || !newTitle.trim()"
+          class="rounded-xl bg-primary-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-600/25 transition hover:bg-primary-500 disabled:opacity-50 disabled:shadow-none"
         >
-          {{ creatingLesson ? 'در حال ثبت...' : 'افزودن' }}
+          {{ creatingLesson ? 'در حال ثبت...' : '+ افزودن جلسه' }}
         </button>
       </form>
       <p v-if="createError" class="mt-2 text-sm text-red-600">{{ createError }}</p>
     </div>
 
-    <p v-if="uploadError" class="mt-4 text-sm text-red-600">{{ uploadError }}</p>
+    <div
+      v-if="activeUploads"
+      class="sticky top-3 z-20 mt-4 flex items-center gap-3 rounded-xl bg-primary-600 px-4 py-2.5 text-sm text-white shadow-lg"
+    >
+      <span class="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+      {{ activeUploads.toLocaleString('fa-IR') }} آپلود در جریان است — تا پایان، این صفحه را نبندید.
+    </div>
+    <p v-if="moveError" class="mt-3 text-sm text-red-600">{{ moveError }}</p>
 
-    <div class="mt-6 space-y-3">
-      <div v-for="lesson in lessons" :key="lesson.id" class="glass flex flex-wrap items-center justify-between gap-3 rounded-xl p-4">
-        <div>
-          <p class="font-medium text-gray-900 dark:text-white">{{ lesson.order }}. {{ lesson.title }}</p>
-          <span v-if="lesson.is_free_preview" class="text-xs font-medium text-emerald-700 dark:text-emerald-400">پیش‌نمایش رایگان کامل</span>
-        </div>
+    <div v-if="pending && !lessons" class="mt-6 text-gray-500">در حال بارگذاری...</div>
+    <TransitionGroup v-else tag="div" name="lesson" class="mt-5 space-y-4">
+      <CourseLessonCard
+        v-for="(lesson, i) in lessons"
+        :key="lesson.id"
+        :lesson="lesson"
+        :is-first="i === 0"
+        :is-last="i === (lessons?.length ?? 0) - 1"
+        @changed="refresh"
+        @move="move(lesson.id, $event)"
+        @uploading="onUploading"
+      />
+    </TransitionGroup>
 
-        <div class="flex items-center gap-3">
-          <span
-            v-if="lesson.has_video"
-            class="rounded-full px-3 py-1 text-xs font-medium"
-            :class="{
-              'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300': ['uploading', 'processing'].includes(lesson.video_status),
-              'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300': lesson.video_status === 'ready',
-              'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300': lesson.video_status === 'failed',
-            }"
-          >
-            {{ statusLabels[lesson.video_status] }}
-          </span>
-          <label v-else class="cursor-pointer rounded-md bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-500">
-            {{ uploadingLessonId === lesson.id ? 'در حال آپلود...' : 'آپلود ویدیو' }}
-            <input
-              type="file"
-              accept="video/*"
-              class="hidden"
-              :disabled="uploadingLessonId === lesson.id"
-              @change="onFileSelected(lesson.id, $event)"
-            >
-          </label>
-        </div>
-      </div>
-      <p v-if="lessons && lessons.length === 0" class="text-gray-600 dark:text-gray-400">هنوز سرفصلی ثبت نشده است.</p>
+    <div v-if="lessons && !lessons.length" class="glass mt-5 rounded-2xl px-6 py-12 text-center">
+      <p class="font-semibold text-gray-800 dark:text-gray-100">هنوز جلسه‌ای ندارید</p>
+      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+        از بالا اولین جلسه را اضافه کنید؛ بعد ویدیو و فایل‌هایش را همین‌جا آپلود کنید. جلسه‌ی اول به‌صورت پیش‌فرض برای همه رایگان است.
+      </p>
     </div>
   </div>
 </template>
+
+<style scoped>
+.lesson-move {
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.lesson-enter-active,
+.lesson-leave-active {
+  transition: all 0.25s ease;
+}
+.lesson-enter-from,
+.lesson-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+</style>
