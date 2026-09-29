@@ -123,6 +123,12 @@ function onRemoveBgImage() {
 }
 
 // Small static swatch per style for the picker tiles.
+const BACKGROUND_GROUPS = [
+  { key: 'nature', label: 'طبیعت' },
+  { key: 'abstract', label: 'انتزاعی' },
+  { key: 'other', label: 'سایر' },
+] as const
+
 function tileStyle(style: BackgroundStyle) {
   const [c1, c2, c3] = shownColors.value
   switch (style) {
@@ -144,6 +150,26 @@ function tileStyle(style: BackgroundStyle) {
       return { background: `linear-gradient(170deg, transparent 30%, ${c1}66 38%, transparent 46%), linear-gradient(190deg, transparent 50%, ${c2}55 56%, transparent 62%), linear-gradient(175deg, transparent 66%, ${c3}66 70%, transparent 74%)` }
     case 'grid':
       return { background: `linear-gradient(${c1}55 1px, transparent 1px) 0 0 / 14px 14px, linear-gradient(90deg, ${c1}55 1px, transparent 1px) 0 0 / 14px 14px, radial-gradient(circle at 50% 30%, ${c2}44, transparent 60%)` }
+    case 'mountains':
+      return { background: 'linear-gradient(160deg, transparent 55%, #3e6284 56%), linear-gradient(200deg, transparent 50%, #5f86a8 51%), linear-gradient(180deg, #7cc4f5, #eef5fb)' }
+    case 'clouds':
+      return { background: 'radial-gradient(ellipse 30% 18% at 30% 35%, #fff 60%, transparent 62%), radial-gradient(ellipse 22% 14% at 70% 55%, #fff 60%, transparent 62%), linear-gradient(180deg, #74b9f0, #d6ecfb)' }
+    case 'ocean':
+      return { background: 'radial-gradient(circle at 65% 52%, #ffe9a8 0 8%, transparent 9%), linear-gradient(180deg, #74b9f0 0 55%, #3d86c4 55% 100%)' }
+    case 'forest':
+      return { background: 'linear-gradient(135deg, transparent 60%, #2f5f4c 61%), linear-gradient(225deg, transparent 60%, #4f8a72 61%), linear-gradient(180deg, #a8d8c8, #eef5ef)' }
+    case 'dunes':
+      return { background: 'radial-gradient(circle at 50% 45%, #fff1c9 0 9%, transparent 10%), radial-gradient(ellipse 80% 40% at 30% 100%, #c97a3a 60%, transparent 61%), radial-gradient(ellipse 80% 45% at 80% 100%, #e39a52 60%, transparent 61%), linear-gradient(180deg, #f5a45b, #fdecc8)' }
+    case 'sakura':
+      return { background: 'radial-gradient(circle at 20% 30%, #f7a8c0 0 4%, transparent 5%), radial-gradient(circle at 60% 60%, #f9c5d5 0 5%, transparent 6%), radial-gradient(circle at 80% 25%, #f48fb1 0 3%, transparent 4%), linear-gradient(180deg, #fde2ea, #fff5f8)' }
+    case 'leaves':
+      return { background: 'radial-gradient(circle at 25% 40%, #e8762c 0 5%, transparent 6%), radial-gradient(circle at 65% 65%, #d94f2b 0 5%, transparent 6%), radial-gradient(circle at 78% 22%, #f2a93b 0 4%, transparent 5%), linear-gradient(180deg, #fcdfb4, #fff6e8)' }
+    case 'snow':
+      return { background: 'radial-gradient(circle at 20% 30%, #fff 0 2%, transparent 3%), radial-gradient(circle at 50% 60%, #fff 0 2.5%, transparent 3.5%), radial-gradient(circle at 80% 35%, #fff 0 2%, transparent 3%), radial-gradient(circle at 35% 80%, #fff 0 1.5%, transparent 2.5%), linear-gradient(180deg, #a9c3e3, #e8f0fa)' }
+    case 'rain':
+      return { background: 'repeating-linear-gradient(100deg, transparent 0 9px, rgb(158 197 232 / 0.8) 9px 10px), linear-gradient(180deg, #6f8298, #b8c6d4)' }
+    case 'fireflies':
+      return { background: 'radial-gradient(circle at 25% 60%, #e8ff8a 0 2%, transparent 5%), radial-gradient(circle at 60% 40%, #fff3a0 0 2%, transparent 5%), radial-gradient(circle at 80% 70%, #c8ff7a 0 2%, transparent 5%), linear-gradient(180deg, #1b2f37, #0b161b)' }
     case 'image':
       return shownBgImage.value
         ? { backgroundImage: `url(${shownBgImage.value})`, backgroundSize: 'cover', backgroundPosition: 'center' }
@@ -377,9 +403,14 @@ async function save() {
             </div>
           </div>
 
-          <div class="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <template v-for="group in BACKGROUND_GROUPS" :key="group.key">
+          <p class="mb-2 mt-5 flex items-center gap-2 text-xs font-bold text-gray-500 dark:text-gray-400">
+            {{ group.label }}
+            <span class="h-px flex-1 bg-black/10 dark:bg-white/10" />
+          </p>
+          <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
             <button
-              v-for="option in BACKGROUND_STYLES"
+              v-for="option in BACKGROUND_STYLES.filter((o) => o.group === group.key)"
               :key="option.value"
               type="button"
               :class="[
@@ -408,6 +439,7 @@ async function save() {
               </div>
             </button>
           </div>
+          </template>
 
           <input ref="bgImageInput" type="file" accept="image/*" class="hidden" @change="onBgImageChange">
           <div v-if="bg.style === 'image'" class="mt-4 flex flex-wrap items-center gap-3 text-sm">
