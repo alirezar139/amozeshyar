@@ -73,26 +73,17 @@ class RegisterView(generics.CreateAPIView):
         return response
 
 
-class AdminCreateUserView(generics.CreateAPIView):
-    """Admin-only: provision an instructor (or student) account directly.
-
-    Reuses RegisterSerializer as-is — it already blocks self-selecting the
-    admin role, and instructor accounts still get their InstructorProfile
-    auto-created (pending_review) via the existing signal, so the admin can
-    approve/edit it afterward like any other instructor profile.
-    """
-
-    serializer_class = RegisterSerializer
-    permission_classes = (permissions.IsAuthenticated, IsAdminRole)
-
-
 class AdminUserViewSet(viewsets.ModelViewSet):
     """Admin's user directory: search everyone, change a role, activate/deactivate.
 
-    Read/patch only (no delete, no create — creation goes through
-    AdminCreateUserView) and an admin can never edit their own row through
+    Read/patch only (no delete, no create — students sign up themselves)
+    and an admin can never edit their own row through
     here, so this endpoint can't be used to accidentally strip your own
     admin role or deactivate yourself out of the panel.
+
+    Developer accounts (superusers, see `setup_site`) are invisible and
+    untouchable here unless the requester is a developer too, so the
+    instructor running the site can't lock the developer out.
     """
 
     serializer_class = AdminUserSerializer
@@ -104,7 +95,10 @@ class AdminUserViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False):
             return User.objects.none()
-        return User.objects.all().order_by("-date_joined")
+        users = User.objects.all().order_by("-date_joined")
+        if not self.request.user.is_superuser:
+            users = users.exclude(is_superuser=True)
+        return users
 
     def perform_update(self, serializer):
         if serializer.instance.id == self.request.user.id:

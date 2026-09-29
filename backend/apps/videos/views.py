@@ -5,8 +5,9 @@ from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
+from apps.accounts.permissions import IsAdminRole
+
 from .models import VideoAsset, WatchSession
-from .permissions import IsVideoOwnerOrAdmin
 from .serializers import SignedUrlResponseSerializer, VideoUploadSerializer
 
 
@@ -15,17 +16,10 @@ def _client_ip(request) -> str | None:
 
 
 class VideoUploadView(generics.CreateAPIView):
-    """Instructor uploads a video for one of their own lesson slots (or admin, for any lesson)."""
+    """Admin (the site's instructor) uploads a video for a lesson slot."""
 
     serializer_class = VideoUploadSerializer
-    permission_classes = (permissions.IsAuthenticated,)
-
-    def perform_create(self, serializer):
-        lesson = serializer.validated_data["lesson"]
-        is_owner = lesson.course.instructor.user_id == self.request.user.id
-        if not (is_owner or self.request.user.role == "admin"):
-            raise PermissionDenied("You do not own this course.")
-        serializer.save()
+    permission_classes = (permissions.IsAuthenticated, IsAdminRole)
 
 
 class PreviewStreamView(APIView):
@@ -94,19 +88,18 @@ class ManifestView(APIView):
 
 
 class VideoDownloadView(APIView):
-    """Owner/admin-only: streams the *original* uploaded file with a forced download disposition.
+    """Admin-only: streams the *original* uploaded file with a forced download disposition.
 
     Deliberately separate from the playback endpoints above — students
     never reach this, regardless of enrollment status.
     """
 
-    permission_classes = (permissions.IsAuthenticated, IsVideoOwnerOrAdmin)
+    permission_classes = (permissions.IsAuthenticated, IsAdminRole)
     serializer_class = SignedUrlResponseSerializer
 
     @extend_schema(responses=SignedUrlResponseSerializer)
     def get(self, request, video_id):
         video = generics.get_object_or_404(VideoAsset, id=video_id)
-        self.check_object_permissions(request, video)
 
         from .services.signing import get_download_url
 

@@ -29,11 +29,10 @@ class Category(TimeStampedModel):
 
 
 class Course(TimeStampedModel):
-    """A sellable course, owned by one instructor.
+    """A sellable course of the site's instructor (see `get_site_owner`).
 
-    Publishing requires admin approval (`status=pending_review` ->
-    `published`), matching the product decision to keep marketplace quality
-    high rather than letting instructors self-publish instantly.
+    `pending_review`/`rejected` are leftovers from the old marketplace
+    approval flow; the instructor now just toggles draft/published.
     """
 
     class Level(models.TextChoices):

@@ -1,45 +1,35 @@
-from rest_framework import generics, permissions, viewsets
-from rest_framework.exceptions import PermissionDenied
+from django.http import Http404
+from rest_framework import generics, permissions
 
-from apps.accounts.permissions import IsAdminRole, IsInstructor
+from apps.accounts.permissions import IsAdminRole
 
-from .models import InstructorProfile
-from .serializers import InstructorModerationSerializer, InstructorProfileSerializer, PublicInstructorSerializer
+from .serializers import PublicInstructorSerializer, SiteSettingsSerializer
+from .site import get_site_owner
 
 
-class PublicInstructorViewSet(viewsets.ReadOnlyModelViewSet):
-    """Public, unauthenticated marketing pages — only ever exposes approved profiles."""
+def _site_owner_or_404():
+    owner = get_site_owner()
+    if owner is None:
+        raise Http404("Site owner not set up yet — run `manage.py setup_site`.")
+    return owner
+
+
+class SiteOwnerView(generics.RetrieveAPIView):
+    """Public: who this site belongs to — drives the homepage hero and SEO."""
 
     serializer_class = PublicInstructorSerializer
     permission_classes = (permissions.AllowAny,)
-    lookup_field = "slug"
-    queryset = InstructorProfile.objects.filter(status=InstructorProfile.Status.APPROVED)
-
-
-class MyInstructorProfileView(generics.RetrieveUpdateAPIView):
-    """Lets the logged-in instructor view/edit their own profile.
-
-    Editing does not re-publish it silently: any change to a previously
-    approved profile is not automatically re-gated here for MVP simplicity,
-    but new profiles always start `pending_review` (enforced in the model).
-    """
-
-    serializer_class = InstructorProfileSerializer
-    permission_classes = (permissions.IsAuthenticated, IsInstructor)
 
     def get_object(self):
-        return self.request.user.instructor_profile
+        return _site_owner_or_404()
 
 
-class InstructorModerationViewSet(viewsets.ModelViewSet):
-    """Admin-only endpoint to approve/reject pending instructor profiles."""
+class SiteSettingsView(generics.RetrieveUpdateAPIView):
+    """Admin (the instructor themself): edit the public profile shown on the site."""
 
-    serializer_class = InstructorModerationSerializer
+    serializer_class = SiteSettingsSerializer
     permission_classes = (permissions.IsAuthenticated, IsAdminRole)
-    queryset = InstructorProfile.objects.all()
     http_method_names = ("get", "patch", "head", "options")
 
-    def perform_update(self, serializer):
-        if not self.request.user.is_authenticated or self.request.user.role != "admin":
-            raise PermissionDenied()
-        serializer.save()
+    def get_object(self):
+        return _site_owner_or_404()

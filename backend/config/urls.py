@@ -7,7 +7,7 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, Spec
 
 api_v1_patterns = [
     path("auth/", include("apps.accounts.urls")),
-    path("instructors/", include("apps.instructors.urls")),
+    path("site/", include("apps.instructors.urls")),
     path("", include("apps.courses.urls")),
     path("", include("apps.videos.urls")),
     path("", include("apps.enrollments.urls")),

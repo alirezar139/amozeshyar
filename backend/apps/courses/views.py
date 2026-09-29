@@ -5,19 +5,15 @@ from rest_framework import generics, permissions, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
-from rest_framework.views import APIView
 
-from apps.accounts.permissions import IsAdminRole, IsInstructor
+from apps.accounts.permissions import IsAdminRole
 
 from .filters import CourseFilter
 from .models import Category, ClassSession, Course, Lesson
-from .permissions import IsCourseOwner
 from .serializers import (
-    AdminCourseWriteSerializer,
     CategorySerializer,
     ClassSessionSerializer,
-    CourseModerationSerializer,
-    CourseWriteSerializer,
+    CourseManageSerializer,
     LessonSerializer,
     PublicCourseDetailSerializer,
     PublicCourseListSerializer,
@@ -40,12 +36,12 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class PublicCourseViewSet(viewsets.ReadOnlyModelViewSet):
-    """Public catalog/detail — only ever exposes admin-approved, published courses."""
+    """Public catalog/detail — only ever exposes published courses."""
 
     permission_classes = (permissions.AllowAny,)
     lookup_field = "slug"
     filterset_class = CourseFilter
-    queryset = Course.objects.filter(status=Course.Status.PUBLISHED).select_related("instructor__user", "category")
+    queryset = Course.objects.filter(status=Course.Status.PUBLISHED).select_related("category")
 
     def get_serializer_class(self):
         if self.action == "retrieve":
@@ -53,101 +49,43 @@ class PublicCourseViewSet(viewsets.ReadOnlyModelViewSet):
         return PublicCourseListSerializer
 
 
-class MyCoursesViewSet(viewsets.ModelViewSet):
-    """Instructor panel CRUD for their own courses, including drafts/pending/rejected."""
+class CourseManageViewSet(viewsets.ModelViewSet):
+    """Admin (the site's instructor): every course in any status — create,
+    edit, and publish/unpublish by patching `status`. No approval step: the
+    instructor owns the site, so what they publish goes live."""
 
-    serializer_class = CourseWriteSerializer
-    permission_classes = (permissions.IsAuthenticated, IsInstructor, IsCourseOwner)
-
-    def get_queryset(self):
-        if getattr(self, "swagger_fake_view", False):
-            return Course.objects.none()
-        return Course.objects.filter(instructor__user=self.request.user)
-
-
-class AdminCourseCreateView(generics.CreateAPIView):
-    """Admin-only: author a course directly on behalf of any instructor, published immediately."""
-
-    serializer_class = AdminCourseWriteSerializer
+    serializer_class = CourseManageSerializer
     permission_classes = (permissions.IsAuthenticated, IsAdminRole)
-
-
-class CourseModerationViewSet(viewsets.ModelViewSet):
-    """Admin-only approve/reject queue for courses — also backs the Kanban board,
-    which needs to move a card between any of the three post-draft statuses (not
-    just out of pending_review once), so the queryset covers all of them; a
-    still-unsubmitted draft isn't the admin's to move around."""
-
-    serializer_class = CourseModerationSerializer
-    permission_classes = (permissions.IsAuthenticated, IsAdminRole)
-    http_method_names = ("get", "patch", "head", "options")
-    queryset = Course.objects.exclude(status=Course.Status.DRAFT)
-
-
-class AdminAllCoursesViewSet(viewsets.ReadOnlyModelViewSet):
-    """Admin-only: every course regardless of status, so the admin can jump into
-    lesson/video management for a course they just authored (which — being
-    published immediately — never appears in the moderation queue above)."""
-
-    serializer_class = CourseModerationSerializer
-    permission_classes = (permissions.IsAuthenticated, IsAdminRole)
-    queryset = Course.objects.all().select_related("instructor__user")
+    http_method_names = ("get", "post", "patch", "head", "options")
+    queryset = Course.objects.all().select_related("category")
 
 
 class LessonViewSet(viewsets.ModelViewSet):
     serializer_class = LessonSerializer
-    permission_classes = (permissions.IsAuthenticated,)
-
-    def get_queryset(self):
-        if getattr(self, "swagger_fake_view", False):
-            return Lesson.objects.none()
-        if self.request.user.role == "admin":
-            return Lesson.objects.all()
-        return Lesson.objects.filter(course__instructor__user=self.request.user)
-
-    def perform_create(self, serializer):
-        course = serializer.validated_data["course"]
-        is_owner = course.instructor.user_id == self.request.user.id
-        if not (is_owner or self.request.user.role == "admin"):
-            raise PermissionDenied("You do not own this course.")
-        serializer.save()
+    permission_classes = (permissions.IsAuthenticated, IsAdminRole)
+    queryset = Lesson.objects.all()
 
 
 class ClassSessionViewSet(viewsets.ModelViewSet):
-    """Instructor/admin CRUD for a course's scheduled (live) sessions — same
-    ownership shape as LessonViewSet: an instructor only ever sees/edits
-    sessions for their own courses, admin sees everything."""
+    """Admin CRUD for courses' scheduled (live) sessions. `join` is the one
+    action open to enrolled students too."""
 
     serializer_class = ClassSessionSerializer
-    permission_classes = (permissions.IsAuthenticated,)
-
-    def get_queryset(self):
-        if getattr(self, "swagger_fake_view", False):
-            return ClassSession.objects.none()
-        if self.request.user.role == "admin":
-            return ClassSession.objects.all()
-        return ClassSession.objects.filter(course__instructor__user=self.request.user)
-
-    def perform_create(self, serializer):
-        course = serializer.validated_data["course"]
-        is_owner = course.instructor.user_id == self.request.user.id
-        if not (is_owner or self.request.user.role == "admin"):
-            raise PermissionDenied("You do not own this course.")
-        serializer.save()
+    permission_classes = (permissions.IsAuthenticated, IsAdminRole)
+    queryset = ClassSession.objects.select_related("course")
 
     @action(detail=True, methods=["get"], permission_classes=[permissions.IsAuthenticated])
     def join(self, request, pk=None):
         """The room name is only ever handed out here — never embedded in
         the plain session list — and only to people who should actually be
-        in the room: the course's own instructor, an admin, or a student
-        with an active enrollment. The public Jitsi server itself doesn't
+        in the room: an admin (the instructor) or a student with an active
+        enrollment. The public Jitsi server itself doesn't
         check any of that; an unguessable room name plus this gate is the
         access control."""
-        session = get_object_or_404(ClassSession.objects.select_related("course__instructor__user"), pk=pk)
+        session = get_object_or_404(ClassSession.objects.select_related("course"), pk=pk)
         user = request.user
-        is_owner = session.course.instructor.user_id == user.id
         is_enrolled = session.course.enrollments.filter(student=user, is_active=True).exists()
-        if not (is_owner or user.role == "admin" or is_enrolled):
+        if not (user.role == "admin" or is_enrolled):
             raise PermissionDenied("شما به این کلاس دسترسی ندارید.")
         return Response({
             "room_name": session.room_slug,
@@ -173,37 +111,7 @@ class MyScheduleView(generics.ListAPIView):
                 course__enrollments__is_active=True,
                 starts_at__gte=timezone.now(),
             )
-            .select_related("course", "course__instructor__user")
+            .select_related("course")
             .order_by("starts_at")
         )
 
-
-class InstructorClassReportView(APIView):
-    """Admin-only: how many classes each instructor has scheduled, split
-    into held (past) vs. upcoming — so an admin can see at a glance who's
-    actually running classes and how many, without opening every course."""
-
-    permission_classes = (IsAdminRole,)
-
-    def get(self, request):
-        from apps.instructors.models import InstructorProfile
-
-        now = timezone.now()
-        rows = []
-        instructors = InstructorProfile.objects.select_related("user").filter(
-            status=InstructorProfile.Status.APPROVED
-        )
-        for profile in instructors:
-            sessions = ClassSession.objects.filter(course__instructor=profile)
-            total = sessions.count()
-            if total == 0:
-                continue
-            rows.append({
-                "instructor_id": profile.id,
-                "instructor_name": profile.user.get_full_name() or profile.user.email,
-                "total_sessions": total,
-                "past_sessions": sessions.filter(starts_at__lt=now).count(),
-                "upcoming_sessions": sessions.filter(starts_at__gte=now).count(),
-            })
-        rows.sort(key=lambda r: r["total_sessions"], reverse=True)
-        return Response(rows)

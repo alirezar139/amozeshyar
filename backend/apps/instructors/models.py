@@ -7,12 +7,14 @@ from apps.common.models import TimeStampedModel
 
 
 class InstructorProfile(TimeStampedModel):
-    """Public marketing profile for an instructor.
+    """Public profile of the instructor who owns this install.
 
-    A profile starts life as `pending_review` (product decision: courses and
-    instructor pages only go public after an admin approves them, to keep
-    quality/trust high on the marketplace) and only becomes visible on public
-    pages / the sitemap once `status == APPROVED`.
+    Each instructor gets their own install of the software, so exactly one
+    profile is the site owner (`is_site_owner`): its name, headline, bio and
+    cover are what the homepage presents, and every course belongs to it.
+    `status`/`resume`/`intro_video`/`admin_quality_score` are leftovers from
+    the old multi-instructor marketplace's review flow, kept only so existing
+    rows migrate cleanly.
     """
 
     class Status(models.TextChoices):
@@ -48,9 +50,17 @@ class InstructorProfile(TimeStampedModel):
     )
     rating_avg = models.DecimalField(max_digits=3, decimal_places=2, default=0)
     total_students = models.PositiveIntegerField(default=0)
+    is_site_owner = models.BooleanField(default=False)
 
     class Meta:
         ordering = ("-created_at",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=("is_site_owner",),
+                condition=models.Q(is_site_owner=True),
+                name="single_site_owner",
+            ),
+        ]
 
     def __str__(self):
         return self.user.get_full_name() or self.user.email
