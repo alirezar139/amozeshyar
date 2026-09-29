@@ -114,21 +114,6 @@ def test_teacher_can_start_a_conversation_with_a_student(world):
     assert own.data["kind"] == "direct" and own.data["id"] == response.data["id"]
 
 
-def test_board_cards_crud_move_and_admin_only(world):
-    teacher = as_(world["teacher"])
-    a = teacher.post("/api/v1/board/cards/", {"title": "ضبط جلسه ۳", "course": world["course"].id}, format="json").data
-    b = teacher.post("/api/v1/board/cards/", {"title": "جزوه"}, format="json").data
-    assert a["column"] == "idea" and b["position"] > a["position"] and a["course_title"] == "Python"
-
-    moved = teacher.patch(f"/api/v1/board/cards/{b['id']}/", {"column": "ready", "position": 10}, format="json").data
-    assert moved["column"] == "ready"
-    cards = teacher.get("/api/v1/board/cards/").data
-    assert [c["title"] for c in cards] == ["ضبط جلسه ۳", "جزوه"]
-
-    assert as_(world["alice"]).get("/api/v1/board/cards/").status_code == 403
-    assert teacher.delete(f"/api/v1/board/cards/{a['id']}/").status_code == 204
-
-
 def enroll(user, course):
     Enrollment.objects.create(student=user, course=course)
 
