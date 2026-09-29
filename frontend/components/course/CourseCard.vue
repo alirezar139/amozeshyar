@@ -6,7 +6,6 @@ defineProps<{
     subtitle?: string
     cover_image?: string | null
     effective_price: number | string
-    instructor_name?: string
     category_name?: string
   }
 }>()
@@ -40,9 +39,6 @@ function formatPrice(value: number | string) {
     <div class="flex flex-1 flex-col p-4">
       <span v-if="course.category_name" class="text-xs font-medium text-primary-600">{{ course.category_name }}</span>
       <h3 class="mt-1 line-clamp-2 text-base font-semibold text-gray-900 dark:text-white">{{ course.title }}</h3>
-      <p v-if="course.instructor_name" class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-        {{ course.instructor_name }}
-      </p>
       <div class="mt-auto pt-3 text-sm font-bold text-accent-600 dark:text-accent-400">
         {{ formatPrice(course.effective_price) }}
       </div>

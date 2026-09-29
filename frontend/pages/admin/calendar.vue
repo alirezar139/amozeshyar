@@ -3,11 +3,10 @@ definePageMeta({ layout: 'admin' })
 const { request } = useApi()
 const { isSameDay, formatGregorianDate } = useJalali()
 
-// The three fetches below are independent of each other, so they're
+// The two fetches below are independent of each other, so they're
 // kicked off together and awaited as a group instead of one `await`
-// per useAsyncData — three sequential round-trips (each one only
-// starting once the previous fully finishes) added up to three times
-// the wait for no reason, which is exactly what made this page feel
+// per useAsyncData — sequential round-trips (each one only starting
+// once the previous fully finishes) added up the wait for no reason, which is exactly what made this page feel
 // like it was hanging on a slow connection.
 const sessionsAsync = useAsyncData('admin-schedule', async () => {
   const page = await request<{ results: any[] }>('/class-sessions/')
@@ -15,20 +14,14 @@ const sessionsAsync = useAsyncData('admin-schedule', async () => {
     .map((s: any) => ({ ...s, startsAt: new Date(s.starts_at) }))
     .sort((a: any, b: any) => a.startsAt.getTime() - b.startsAt.getTime())
 })
-const instructorReportAsync = useAsyncData('admin-instructor-class-report', () =>
-  request<{ instructor_id: number; instructor_name: string; total_sessions: number; past_sessions: number; upcoming_sessions: number }[]>(
-    '/reports/instructor-classes/'
-  )
-)
 const coursesAsync = useAsyncData('admin-schedule-courses', async () => {
-  const page = await request<{ results: any[] }>('/courses/admin-all/')
+  const page = await request<{ results: any[] }>('/courses/manage/')
   return page.results
 })
 
-await Promise.all([sessionsAsync, instructorReportAsync, coursesAsync])
+await Promise.all([sessionsAsync, coursesAsync])
 
 const { data: sessions, pending, error: sessionsError, refresh } = sessionsAsync
-const { data: instructorReport } = instructorReportAsync
 const { data: courses } = coursesAsync
 
 const markedDates = computed(() => (sessions.value ?? []).map((s: any) => s.startsAt))
@@ -186,7 +179,7 @@ async function copyLink(id: number) {
         <div v-else class="mt-4 space-y-3">
           <div v-for="session in visibleSessions" :key="session.id" class="glass rounded-xl p-4">
             <p class="font-semibold text-gray-900 dark:text-white">{{ session.title }}</p>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ session.course_title }} — {{ session.instructor_name }}</p>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ session.course_title }}</p>
             <div class="mt-3 flex flex-wrap items-center gap-4 text-sm text-gray-600 dark:text-gray-300">
               <span>{{ formatGregorianDate(session.startsAt) }}</span>
               <span>{{ formatTime(session.startsAt) }}</span>
@@ -209,31 +202,6 @@ async function copyLink(id: number) {
             </div>
           </div>
         </div>
-      </div>
-    </div>
-
-    <div v-if="instructorReport?.length" class="mt-8">
-      <h2 class="text-sm font-semibold text-gray-900 dark:text-white">گزارش کلاس‌های هر مدرس</h2>
-      <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">فقط مدرس‌هایی که حداقل یک کلاس زمان‌بندی کرده‌اند.</p>
-      <div class="glass mt-3 overflow-x-auto rounded-xl p-2">
-        <table class="w-full min-w-[420px] text-sm">
-          <thead>
-            <tr class="text-start text-gray-600 dark:text-gray-400">
-              <th class="px-3 py-2">مدرس</th>
-              <th class="px-3 py-2">کل کلاس‌ها</th>
-              <th class="px-3 py-2">برگزارشده</th>
-              <th class="px-3 py-2">پیش رو</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="row in instructorReport" :key="row.instructor_id" class="border-t border-white/30 dark:border-white/10">
-              <td class="px-3 py-2 text-gray-900 dark:text-white">{{ row.instructor_name }}</td>
-              <td class="px-3 py-2 text-gray-600 dark:text-gray-400">{{ row.total_sessions }}</td>
-              <td class="px-3 py-2 text-gray-600 dark:text-gray-400">{{ row.past_sessions }}</td>
-              <td class="px-3 py-2 text-gray-600 dark:text-gray-400">{{ row.upcoming_sessions }}</td>
-            </tr>
-          </tbody>
-        </table>
       </div>
     </div>
   </div>

@@ -6,6 +6,18 @@ definePageMeta({ layout: false, ssr: false })
 const route = useRoute()
 const sessionId = route.params.id as string
 const { request } = useApi()
+const authStore = useAuthStore()
+
+// Leaving the class returns to the page that opened it (admin calendar,
+// a course's lessons page, the student calendar). Only when there's no
+// in-app history — shared link, fresh tab — fall back by role, so the
+// instructor (admin) never lands in the student panel.
+const backTo = computed(() => {
+  const back = import.meta.client && (window.history.state as { back?: string | null } | null)?.back
+  if (back && !back.startsWith('/classroom/')) return back
+  if (authStore.isAdmin) return '/admin/calendar'
+  return '/dashboard/calendar'
+})
 
 const status = ref<'loading' | 'ready' | 'error'>('loading')
 const errorMessage = ref('')
@@ -57,7 +69,7 @@ onMounted(async () => {
     userInfo: { displayName: info.value!.display_name },
   })
   jitsiApi.on('readyToClose', () => {
-    navigateTo('/dashboard/calendar')
+    navigateTo(backTo.value)
   })
   status.value = 'ready'
 })
@@ -71,7 +83,7 @@ onUnmounted(() => {
   <div class="fixed inset-0 flex flex-col bg-gray-950">
     <div v-if="status !== 'error'" class="flex items-center justify-between px-4 py-2 text-sm text-gray-300">
       <span>{{ info ? `${info.course_title} — ${info.title}` : 'در حال اتصال به کلاس...' }}</span>
-      <NuxtLink to="/dashboard/calendar" class="text-gray-400 hover:text-white">بازگشت ✕</NuxtLink>
+      <NuxtLink :to="backTo" class="text-gray-400 hover:text-white">بازگشت ✕</NuxtLink>
     </div>
 
     <div v-if="status === 'loading'" class="flex flex-1 items-center justify-center text-gray-400">
@@ -79,7 +91,7 @@ onUnmounted(() => {
     </div>
     <div v-else-if="status === 'error'" class="flex flex-1 flex-col items-center justify-center gap-4 px-4 text-center text-gray-300">
       <p>{{ errorMessage }}</p>
-      <NuxtLink to="/dashboard/calendar" class="rounded-md bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-500">
+      <NuxtLink :to="backTo" class="rounded-md bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-500">
         بازگشت به تقویم
       </NuxtLink>
     </div>

@@ -6,7 +6,7 @@ const { request } = useApi()
 const { theme, toggle: toggleTheme, colors, setColors } = useTheme()
 
 const layoutName = computed(() =>
-  authStore.isAdmin ? 'admin' : authStore.isInstructor ? 'instructor' : 'dashboard'
+  authStore.isAdmin ? 'admin' : 'dashboard'
 )
 
 const form = reactive({ first_name: '', last_name: '' })

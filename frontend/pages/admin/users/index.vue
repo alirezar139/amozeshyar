@@ -13,7 +13,7 @@ async function fetchUsers() {
 
 const { data: users, pending, refresh } = await useAsyncData('admin-users', fetchUsers, { watch: [search] })
 
-const roleLabels: Record<string, string> = { student: 'دانشجو', instructor: 'مدرس', admin: 'ادمین' }
+const roleLabels: Record<string, string> = { student: 'دانشجو', admin: 'ادمین' }
 const busyId = ref<number | null>(null)
 
 async function updateUser(user: any, patch: Record<string, any>) {

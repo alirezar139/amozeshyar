@@ -7,8 +7,10 @@ const { data: course } = await useAsyncData(`course-${route.params.slug}`, () =>
   request<any>(`/courses/${route.params.slug}/`)
 )
 
+const { siteName } = useSite()
+
 useSeoMeta({
-  title: () => `${course.value?.title ?? ''} | آموزش‌یار`,
+  title: () => `${course.value?.title ?? ''} | ${siteName.value}`,
   description: () => course.value?.subtitle || course.value?.description?.slice(0, 160),
   ogTitle: () => course.value?.title,
   ogType: 'product',
@@ -26,8 +28,8 @@ useHead(() => ({
             name: course.value.title,
             description: course.value.description,
             provider: {
-              '@type': 'Organization',
-              name: 'آموزش‌یار',
+              '@type': 'Person',
+              name: siteName.value,
             },
             offers: {
               '@type': 'Offer',
@@ -90,7 +92,6 @@ async function buyNow() {
       <div class="lg:col-span-2">
         <h1 class="text-2xl font-bold text-gray-900 sm:text-3xl dark:text-white">{{ course.title }}</h1>
         <p class="mt-2 text-gray-600 dark:text-gray-300">{{ course.subtitle }}</p>
-        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">مدرس: {{ course.instructor_name }}</p>
 
         <p class="mt-6 whitespace-pre-line text-gray-700 dark:text-gray-200">{{ course.description }}</p>
 
