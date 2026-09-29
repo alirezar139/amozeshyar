@@ -1,6 +1,8 @@
 export interface SiteOwner {
   slug: string
   display_name: string
+  site_name: string
+  logo: string | null
   headline: string
   bio: string
   credentials: { title: string; issuer?: string; year?: string | number }[]
@@ -13,14 +15,17 @@ export interface SiteOwner {
 
 /**
  * The instructor this install belongs to. Each instructor gets their own
- * copy of the software, so this is the site's identity: header brand,
- * homepage hero, footer, SEO titles. Fetched once and shared by key.
+ * copy of the software, so this is the site's identity. `siteName` is the
+ * brand (header, footer, page titles) and falls back to the instructor's
+ * name; `teacherName` is always the person (homepage hero, "استاد شما").
+ * Fetched once and shared by key.
  */
 export function useSite() {
   const { request } = useApi()
   const { data: owner, refresh } = useAsyncData('site-owner', () => request<SiteOwner>('/site/').catch(() => null), {
     getCachedData: (key, nuxtApp) => nuxtApp.payload.data[key] ?? nuxtApp.static.data[key],
   })
-  const siteName = computed(() => owner.value?.display_name || 'آموزش‌یار')
-  return { owner, siteName, refresh }
+  const teacherName = computed(() => owner.value?.display_name || 'آموزش‌یار')
+  const siteName = computed(() => owner.value?.site_name || teacherName.value)
+  return { owner, siteName, teacherName, refresh }
 }

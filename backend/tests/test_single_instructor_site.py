@@ -98,10 +98,11 @@ def test_site_settings_edit_links_and_remove_photo(site):
     client = client_for(site.user)
     response = client.patch(
         "/api/v1/site/settings/",
-        {"social_links": {"اینستاگرام": "https://instagram.com/ali"}, "cover_image": None},
+        {"site_name": "آکادمی علی", "social_links": {"اینستاگرام": "https://instagram.com/ali"}, "cover_image": None},
         format="json",
     )
     assert response.status_code == 200
     site.refresh_from_db()
     assert site.social_links == {"اینستاگرام": "https://instagram.com/ali"}
     assert not site.cover_image
+    assert APIClient().get("/api/v1/site/").data["site_name"] == "آکادمی علی"

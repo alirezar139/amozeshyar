@@ -14,6 +14,8 @@ class PublicInstructorSerializer(serializers.ModelSerializer):
         fields = (
             "slug",
             "display_name",
+            "site_name",
+            "logo",
             "headline",
             "bio",
             "credentials",
@@ -34,4 +36,4 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = InstructorProfile
-        fields = ("headline", "bio", "credentials", "cover_image", "social_links")
+        fields = ("site_name", "logo", "headline", "bio", "credentials", "cover_image", "social_links")

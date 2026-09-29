@@ -1,12 +1,12 @@
 <script setup lang="ts">
 const { request } = useApi()
-const { owner, siteName } = useSite()
+const { owner, siteName, teacherName } = useSite()
 const authStore = useAuthStore()
 const { openRegister } = useAuthModal()
 
 const seoDescription = computed(() => owner.value?.bio || owner.value?.headline || 'دوره‌های آموزشی با پیش‌نمایش رایگان.')
 useSeoMeta({
-  title: () => (owner.value?.headline ? `${siteName.value} | ${owner.value.headline}` : siteName.value),
+  title: () => [siteName.value, teacherName.value !== siteName.value ? teacherName.value : '', owner.value?.headline].filter(Boolean).join(' | '),
   description: seoDescription,
   ogTitle: siteName,
   ogDescription: seoDescription,
@@ -28,7 +28,7 @@ const { data: catalog } = await useAsyncData('home-featured-courses', async () =
 const featuredCourses = computed(() => catalog.value?.featured ?? [])
 
 const socialLinks = computed(() => publicSocialLinks(owner.value?.social_links))
-const firstName = computed(() => siteName.value.split(' ')[0])
+const firstName = computed(() => teacherName.value.split(' ')[0])
 
 // Only numbers that are actually true about this site — a "0 students" badge hurts more than no badge.
 const stats = computed(() => {
@@ -61,7 +61,7 @@ const levelLabels: Record<string, string> = { beginner: 'مقدماتی', interm
         </span>
 
         <h1 class="mt-6 text-4xl font-black leading-[1.2] tracking-tight text-gray-900 sm:text-6xl dark:text-white">
-          {{ siteName }}
+          {{ teacherName }}
         </h1>
         <p v-if="owner?.headline" class="mt-3 bg-gradient-to-l from-primary-600 to-accent-500 bg-clip-text text-xl font-bold text-transparent sm:text-2xl dark:from-primary-300 dark:to-accent-300">
           {{ owner.headline }}
@@ -109,7 +109,7 @@ const levelLabels: Record<string, string> = { beginner: 'مقدماتی', interm
       <!-- Portrait: animated stack of color cards behind, floating badges in front, so even a plain ID photo reads as a designed hero -->
       <div class="relative mx-auto w-full max-w-[22rem] lg:col-span-5">
         <div class="absolute -inset-6 -z-10 rounded-full bg-primary-500/20 blur-3xl" />
-        <IllustrationPortraitStack :src="owner?.cover_image" :alt="siteName" />
+        <IllustrationPortraitStack :src="owner?.cover_image" :alt="teacherName" />
 
         <div class="glass absolute -bottom-5 -start-6 flex items-center gap-3 rounded-2xl px-4 py-3 shadow-xl sm:-start-10">
           <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">

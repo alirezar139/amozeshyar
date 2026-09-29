@@ -7,7 +7,7 @@ const { data: course } = await useAsyncData(`course-${route.params.slug}`, () =>
   request<any>(`/courses/${route.params.slug}/`)
 )
 
-const { siteName } = useSite()
+const { siteName, teacherName } = useSite()
 
 useSeoMeta({
   title: () => `${course.value?.title ?? ''} | ${siteName.value}`,
@@ -29,7 +29,7 @@ useHead(() => ({
             description: course.value.description,
             provider: {
               '@type': 'Person',
-              name: siteName.value,
+              name: teacherName.value,
             },
             offers: {
               '@type': 'Offer',
