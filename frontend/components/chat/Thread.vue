@@ -3,7 +3,21 @@
 // by polling `?after=`, optimistic sending with upload progress, read
 // receipts (✓ sent, ✓✓ seen) and date separators.
 const props = defineProps<{ conversation: any }>()
-const emit = defineEmits<{ back: []; activity: [] }>()
+const emit = defineEmits<{ back: []; activity: []; updated: [row: any]; deleted: [] }>()
+const { wallpaper } = useChatWallpaper()
+const showInfo = ref(false)
+const isGroup = computed(() => ['course', 'custom'].includes(props.conversation.kind))
+const kindLabel = computed(() => ({ course: 'گروه دوره', custom: 'گروه', peer: 'هم‌کلاسی', direct: 'خصوصی' } as Record<string, string>)[props.conversation.kind])
+
+async function pinMessage(m: any) {
+  emit('updated', await request<any>(`/conversations/${props.conversation.id}/pin/`, { method: 'POST', body: { message_id: m.id } }))
+}
+function jumpToPinned() {
+  const el = scroller.value?.querySelector(`[data-mid="${props.conversation.pinned?.id}"]`)
+  el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  el?.classList.add('flash')
+  setTimeout(() => el?.classList.remove('flash'), 1400)
+}
 
 const { request } = useApi()
 const { upload, uploadErrorMessage } = useUpload()
@@ -70,6 +84,7 @@ async function loadInitial() {
     messages.value = data.messages
     hasMore.value = data.has_more
     othersLastRead.value = data.others_last_read
+    if (data.conversation) emit('updated', data.conversation)
     scrollToBottom()
     markRead()
   } finally {
@@ -101,6 +116,7 @@ async function poll() {
   try {
     const data = await request<any>(`/conversations/${props.conversation.id}/messages/?after=${lastServerId.value}`)
     othersLastRead.value = data.others_last_read
+    if (data.conversation) emit('updated', data.conversation)
     const known = new Set(messages.value.map((m) => m.id))
     const fresh = (data.messages as ChatMessage[]).filter((m) => !known.has(m.id))
     if (!fresh.length) return
@@ -218,27 +234,50 @@ watch(() => props.conversation.id, () => {
       <button type="button" class="rounded-lg p-1.5 text-gray-500 hover:bg-black/5 md:hidden dark:hover:bg-white/10" aria-label="بازگشت" @click="emit('back')">
         <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
       </button>
-      <ChatAvatar :src="conversation.avatar" :name="conversation.title" :group="conversation.kind === 'course'" />
+      <button type="button" data-tour="chat-info" class="flex min-w-0 flex-1 items-center gap-3 rounded-xl text-start transition hover:opacity-80" @click="showInfo = !showInfo">
+      <ChatAvatar :src="conversation.avatar" :name="conversation.title" :group="isGroup" />
       <div class="min-w-0">
         <p class="flex items-center gap-2 truncate font-bold text-gray-900 dark:text-white">
           {{ conversation.title }}
           <span
             :class="[
               'rounded-full px-2 py-0.5 text-[10px] font-semibold',
-              conversation.kind === 'course' ? 'bg-accent-500/15 text-accent-700 dark:text-accent-300' : 'bg-primary-500/15 text-primary-700 dark:text-primary-300',
+              isGroup ? 'bg-accent-500/15 text-accent-700 dark:text-accent-300' : 'bg-primary-500/15 text-primary-700 dark:text-primary-300',
             ]"
           >
-            {{ conversation.kind === 'course' ? 'گروه' : 'خصوصی' }}
+            {{ kindLabel }}
           </span>
+          <span v-if="conversation.announcement_only" class="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-300">اطلاع‌رسانی</span>
         </p>
         <p class="truncate text-xs text-gray-500 dark:text-gray-400">
-          {{ conversation.kind === 'course' ? `گروه دوره · ${conversation.members.toLocaleString('fa-IR')} عضو` : conversation.subtitle }}
+          {{ isGroup ? `${conversation.members.toLocaleString('fa-IR')} عضو · برای مشاهده‌ی اطلاعات بزنید` : conversation.subtitle }}
         </p>
       </div>
+      </button>
+      <button type="button" class="shrink-0 rounded-full p-2 text-gray-500 hover:bg-black/5 dark:hover:bg-white/10" aria-label="اطلاعات" @click="showInfo = !showInfo">
+        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+      </button>
     </header>
 
+    <!-- pinned message -->
+    <button
+      v-if="conversation.pinned"
+      type="button"
+      class="flex items-center gap-3 border-b border-black/5 bg-white/70 px-4 py-2 text-start backdrop-blur dark:border-white/10 dark:bg-gray-900/70"
+      @click="jumpToPinned"
+    >
+      <span class="h-8 w-1 shrink-0 rounded-full bg-primary-500" />
+      <span class="min-w-0 flex-1">
+        <span class="block text-[11px] font-bold text-primary-700 dark:text-primary-300">📌 پیام سنجاق‌شده</span>
+        <span class="block truncate text-sm text-gray-700 dark:text-gray-200" dir="auto">
+          {{ conversation.pinned.text || { image: '📷 تصویر', file: '📎 فایل', voice: '🎤 پیام صوتی' }[conversation.pinned.attachment_kind as string] }}
+        </span>
+      </span>
+    </button>
+
     <!-- messages -->
-    <div ref="scroller" data-tour="chat-messages" class="chat-bg relative min-h-0 flex-1 overflow-y-auto px-3 py-4 sm:px-6" @scroll.passive="onScroll">
+    <div class="relative flex min-h-0 flex-1">
+    <div ref="scroller" data-tour="chat-messages" :class="['chat-bg relative min-h-0 flex-1 overflow-y-auto px-3 py-4 sm:px-6', `wp-${wallpaper}`]" @scroll.passive="onScroll">
       <div v-if="loading" class="flex h-full items-center justify-center">
         <span class="h-6 w-6 animate-spin rounded-full border-2 border-primary-500/30 border-t-primary-500" />
       </div>
@@ -255,7 +294,14 @@ watch(() => props.conversation.id, () => {
           <div v-if="showDay(i)" class="my-3 flex justify-center">
             <span class="rounded-full bg-black/10 px-3 py-0.5 text-[11px] text-gray-700 backdrop-blur dark:bg-white/10 dark:text-gray-200">{{ dayLabel(m.created_at) }}</span>
           </div>
-          <div :class="['mb-1.5 flex', m.is_mine ? 'justify-start' : 'justify-end']">
+          <div :data-mid="m.id" :class="['msg-row group/msg mb-1.5 flex items-center gap-1', m.is_mine ? 'justify-start' : 'justify-end']">
+            <button
+              v-if="conversation.can_manage && m.id > 0"
+              type="button"
+              class="order-first rounded-full p-1 text-xs opacity-0 transition hover:bg-black/5 group-hover/msg:opacity-100 dark:hover:bg-white/10"
+              title="سنجاق کردن"
+              @click="pinMessage(m)"
+            >📌</button>
             <div
               :class="[
                 'bubble relative max-w-[85%] rounded-[1.25rem] px-3.5 py-2 sm:max-w-[70%]',
@@ -337,19 +383,41 @@ watch(() => props.conversation.id, () => {
       </button>
     </div>
 
-    <ChatComposer data-tour="chat-composer" @send="send" />
+    <Transition name="fade">
+      <ChatInfo
+        v-if="showInfo"
+        :conversation="conversation"
+        class="absolute inset-y-0 end-0 z-20 w-full border-s border-black/5 shadow-2xl sm:w-80 dark:border-white/10"
+        @close="showInfo = false"
+        @updated="emit('updated', $event)"
+        @deleted="emit('deleted')"
+      />
+    </Transition>
+    </div>
+
+    <ChatComposer
+      data-tour="chat-composer"
+      :readonly-note="conversation.can_send === false ? 'در این گروه فقط استاد پیام می‌فرستد.' : ''"
+      @send="send"
+    />
   </div>
 </template>
 
 <style scoped>
-/* Soft wallpaper: faint dots over a gentle two-tone wash, like a chat app. */
-.chat-bg {
-  background-color: rgb(var(--c-primary-500) / 0.03);
-  background-image:
-    radial-gradient(rgb(var(--c-primary-500) / 0.09) 1px, transparent 1px),
-    radial-gradient(circle at 10% 0%, rgb(var(--c-primary-500) / 0.08), transparent 45%),
-    radial-gradient(circle at 90% 100%, rgb(var(--c-accent-500) / 0.08), transparent 45%);
-  background-size: 18px 18px, 100% 100%, 100% 100%;
+.msg-row.flash > div:not(button) {
+  animation: flash 1.2s ease;
+}
+@keyframes flash {
+  0%, 100% { box-shadow: none; }
+  30% { box-shadow: 0 0 0 4px rgb(var(--c-accent-500) / 0.45); }
+}
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 
 /* New messages pop in. */

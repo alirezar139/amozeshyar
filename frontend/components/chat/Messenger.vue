@@ -44,26 +44,28 @@ const matching = computed(() => {
   const q = search.value.trim()
   return q ? conversations.value.filter((c) => c.title.includes(q) || c.subtitle?.includes(q)) : conversations.value
 })
-const directs = computed(() => matching.value.filter((c) => c.kind === 'direct').sort(byRecent))
-const groups = computed(() => matching.value.filter((c) => c.kind === 'course').sort(byRecent))
+const PRIVATE_KINDS = ['direct', 'peer']
+const GROUP_KINDS = ['course', 'custom']
+const directs = computed(() => matching.value.filter((c) => PRIVATE_KINDS.includes(c.kind)).sort(byRecent))
+const groups = computed(() => matching.value.filter((c) => GROUP_KINDS.includes(c.kind)).sort(byRecent))
 const sections = computed(() =>
   [
     { key: 'direct' as const, title: isTeacher.value ? 'گفت‌وگو با دانشجوها' : 'گفت‌وگوی خصوصی', items: directs.value },
-    { key: 'course' as const, title: 'گروه‌های دوره', items: groups.value },
+    { key: 'course' as const, title: 'گروه‌ها', items: groups.value },
   ].filter((s) => (tab.value === 'all' || tab.value === s.key) && s.items.length),
 )
 const unreadOf = (list: any[]) => list.reduce((n, c) => n + (c.unread || 0), 0)
 const tabs = computed(() => [
   { key: 'all' as const, label: 'همه', unread: unreadOf(conversations.value) },
-  { key: 'direct' as const, label: 'خصوصی', unread: unreadOf(conversations.value.filter((c) => c.kind === 'direct')) },
-  { key: 'course' as const, label: 'گروه‌ها', unread: unreadOf(conversations.value.filter((c) => c.kind === 'course')) },
+  { key: 'direct' as const, label: 'خصوصی', unread: unreadOf(conversations.value.filter((c) => PRIVATE_KINDS.includes(c.kind))) },
+  { key: 'course' as const, label: 'گروه‌ها', unread: unreadOf(conversations.value.filter((c) => GROUP_KINDS.includes(c.kind))) },
 ])
 
 function preview(c: any) {
   const m = c.last_message
-  if (!m) return c.kind === 'course' ? 'هنوز پیامی در گروه ارسال نشده است' : isTeacher.value ? 'هنوز پیامی ارسال نشده است' : 'پرسشی دارید؟ به استاد پیام دهید'
+  if (!m) return GROUP_KINDS.includes(c.kind) ? 'هنوز پیامی در گروه ارسال نشده است' : c.kind === 'direct' && !isTeacher.value ? 'پرسشی دارید؟ به استاد پیام دهید' : 'هنوز پیامی ارسال نشده است'
   const body = m.text || { image: '📷 عکس', file: '📎 فایل', voice: '🎤 پیام صوتی' }[m.attachment_kind as string] || ''
-  const who = m.is_mine ? 'شما: ' : c.kind === 'course' ? `${m.sender_name}: ` : ''
+  const who = m.is_mine ? 'شما: ' : GROUP_KINDS.includes(c.kind) ? `${m.sender_name}: ` : ''
   return who + body
 }
 
@@ -76,28 +78,66 @@ function timeOf(iso: string | null) {
     : d.toLocaleDateString('fa-IR', { month: 'short', day: 'numeric' })
 }
 
-// ---- teacher: start a chat with any student ----
-const starting = ref(false)
-const studentQuery = ref('')
-const studentResults = ref<any[]>([])
-let searchTimer: ReturnType<typeof setTimeout> | null = null
-watch(studentQuery, (q) => {
-  if (searchTimer) clearTimeout(searchTimer)
-  if (!q.trim()) {
-    studentResults.value = []
-    return
-  }
-  searchTimer = setTimeout(async () => {
-    const page = await request<{ results: any[] }>(`/auth/admin/users/?search=${encodeURIComponent(q.trim())}`).catch(() => ({ results: [] }))
-    studentResults.value = page.results.filter((u) => u.role === 'student').slice(0, 8)
-  }, 300)
+// ---- new chat / new group / settings ----
+const showMenu = ref(false)
+const showNewChat = ref(false)
+const showNewGroup = ref(false)
+const showSettings = ref(false)
+const peerAllowed = ref(true)
+const { owner, refresh: refreshSite } = useSite()
+watchEffect(() => {
+  if (owner.value) peerAllowed.value = owner.value.allow_peer_chat ?? true
 })
-async function startWith(student: any) {
-  const conversation = await request<any>('/conversations/start/', { method: 'POST', body: { student_id: student.id } })
+
+async function startWith(person: any) {
+  const conversation = await request<any>('/conversations/start/', { method: 'POST', body: { student_id: person.id } })
   if (!conversations.value.some((c) => c.id === conversation.id)) conversations.value.unshift(conversation)
-  starting.value = false
-  studentQuery.value = ''
+  showNewChat.value = false
   open(conversation)
+}
+
+const newGroup = reactive({ title: '', member_ids: [] as number[], announcement_only: false })
+const creatingGroup = ref(false)
+const groupError = ref('')
+async function createGroup() {
+  if (!newGroup.title.trim()) return
+  creatingGroup.value = true
+  groupError.value = ''
+  try {
+    const conversation = await request<any>('/conversations/groups/', { method: 'POST', body: { ...newGroup, title: newGroup.title.trim() } })
+    conversations.value.unshift(conversation)
+    Object.assign(newGroup, { title: '', member_ids: [], announcement_only: false })
+    showNewGroup.value = false
+    open(conversation)
+  } catch (err) {
+    groupError.value = getErrorMessage(err, 'ساخت گروه انجام نشد.')
+  } finally {
+    creatingGroup.value = false
+  }
+}
+
+async function togglePeerChat() {
+  const next = !peerAllowed.value
+  peerAllowed.value = next
+  try {
+    await request('/site/settings/', { method: 'PATCH', body: { allow_peer_chat: next } })
+    await refreshSite()
+    loadList()
+  } catch {
+    peerAllowed.value = !next
+  }
+}
+
+const { wallpaper, setWallpaper } = useChatWallpaper()
+
+function onUpdated(row: any) {
+  const index = conversations.value.findIndex((c) => c.id === row.id)
+  if (index !== -1) conversations.value[index] = { ...conversations.value[index], ...row }
+}
+function onDeleted() {
+  const id = activeId.value
+  close()
+  conversations.value = conversations.value.filter((c) => c.id !== id)
 }
 
 // ---- polling ----
@@ -132,20 +172,45 @@ function onActivity() {
       <div class="space-y-3 px-4 pb-3 pt-4">
         <div class="flex items-center justify-between">
           <h2 class="text-lg font-extrabold text-gray-900 dark:text-white">گفت‌وگوها</h2>
-          <button
-            v-if="isTeacher"
-            type="button"
-            data-tour="chat-new"
-            :class="[
-              'flex h-9 w-9 items-center justify-center rounded-full text-white shadow-lg transition hover:scale-105',
-              starting ? 'rotate-45 bg-gray-500' : 'bg-gradient-to-br from-primary-500 to-primary-700 shadow-primary-600/30',
-            ]"
-            title="گفت‌وگوی جدید با دانشجو"
-            aria-label="گفت‌وگوی جدید با دانشجو"
-            @click="starting = !starting"
-          >
-            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg>
-          </button>
+          <div class="flex items-center gap-1.5">
+            <button
+              type="button"
+              class="flex h-9 w-9 items-center justify-center rounded-full text-gray-500 transition hover:bg-black/5 hover:text-primary-600 dark:hover:bg-white/10"
+              title="تنظیمات پیام‌رسان"
+              aria-label="تنظیمات پیام‌رسان"
+              data-tour="chat-settings"
+              @click="showSettings = true"
+            >
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+            </button>
+            <div class="relative">
+              <button
+                type="button"
+                data-tour="chat-new"
+                :class="[
+                  'flex h-9 w-9 items-center justify-center rounded-full text-white shadow-lg transition hover:scale-105',
+                  showMenu ? 'rotate-45 bg-gray-500' : 'bg-gradient-to-br from-primary-500 to-primary-700 shadow-primary-600/30',
+                ]"
+                title="گفت‌وگو یا گروه جدید"
+                aria-label="گفت‌وگو یا گروه جدید"
+                @click="showMenu = !showMenu"
+              >
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg>
+              </button>
+              <Transition name="drop">
+                <div v-if="showMenu" class="absolute end-0 top-11 z-30 w-56 overflow-hidden rounded-2xl bg-white p-1.5 shadow-2xl ring-1 ring-black/10 dark:bg-gray-800 dark:ring-white/10" @click="showMenu = false">
+                  <button type="button" class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-start text-sm text-gray-800 hover:bg-black/5 dark:text-gray-100 dark:hover:bg-white/10" @click="showNewChat = true">
+                    <span class="flex h-8 w-8 items-center justify-center rounded-full bg-primary-500/15 text-primary-600">👤</span>
+                    {{ isTeacher ? 'گفت‌وگو با دانشجو' : 'گفت‌وگو با هم‌کلاسی' }}
+                  </button>
+                  <button v-if="isTeacher" type="button" class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-start text-sm text-gray-800 hover:bg-black/5 dark:text-gray-100 dark:hover:bg-white/10" @click="showNewGroup = true">
+                    <span class="flex h-8 w-8 items-center justify-center rounded-full bg-accent-500/15 text-accent-600">👥</span>
+                    گروه جدید
+                  </button>
+                </div>
+              </Transition>
+            </div>
+          </div>
         </div>
 
         <!-- search -->
@@ -157,32 +222,6 @@ function onActivity() {
             class="w-full rounded-full bg-black/[0.05] py-2 pe-3 ps-9 text-sm text-gray-900 outline-none transition focus:bg-white focus:ring-2 focus:ring-primary-500/40 dark:bg-white/[0.06] dark:text-white dark:focus:bg-white/10"
           >
         </label>
-
-        <!-- start chat (teacher) -->
-        <Transition name="drop">
-          <div v-if="starting" class="rounded-2xl bg-primary-500/[0.07] p-2 ring-1 ring-primary-500/20">
-            <input
-              v-model="studentQuery"
-              autofocus
-              placeholder="نام یا ایمیل دانشجو…"
-              class="w-full rounded-xl bg-white/70 px-3 py-2 text-sm text-gray-900 outline-none dark:bg-white/10 dark:text-white"
-            >
-            <button
-              v-for="s in studentResults"
-              :key="s.id"
-              type="button"
-              class="mt-1 flex w-full items-center gap-2.5 rounded-xl px-2 py-1.5 text-start text-sm transition hover:bg-white/70 dark:hover:bg-white/10"
-              @click="startWith(s)"
-            >
-              <ChatAvatar :name="s.first_name || s.email" />
-              <span class="min-w-0">
-                <span class="block truncate font-medium text-gray-800 dark:text-gray-100">{{ `${s.first_name} ${s.last_name}`.trim() || s.email }}</span>
-                <span class="block truncate text-[11px] text-gray-500">{{ s.email }}</span>
-              </span>
-            </button>
-            <p v-if="studentQuery && !studentResults.length" class="mt-1 px-2 text-xs text-gray-500">دانشجویی پیدا نشد.</p>
-          </div>
-        </Transition>
 
         <!-- tabs -->
         <div class="flex gap-1 rounded-full bg-black/[0.05] p-1 dark:bg-white/[0.06]">
@@ -241,7 +280,7 @@ function onActivity() {
               <span v-if="c.id === activeId" class="absolute inset-y-3 start-0 w-1 rounded-full bg-primary-500" />
               <span :class="['inline-flex shrink-0 rounded-full p-0.5', c.unread ? 'bg-gradient-to-br from-primary-400 to-accent-500' : '']">
                 <span :class="['inline-flex rounded-full', c.unread ? 'bg-white p-0.5 dark:bg-gray-900' : '']">
-                  <ChatAvatar :src="c.avatar" :name="c.title" :group="c.kind === 'course'" size="lg" />
+                  <ChatAvatar :src="c.avatar" :name="c.title" :group="c.kind === 'course' || c.kind === 'custom'" size="lg" />
                 </span>
               </span>
               <span class="min-w-0 flex-1">
@@ -256,7 +295,7 @@ function onActivity() {
                   <span v-if="c.unread" class="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary-500 to-primary-700 px-1.5 text-[11px] font-bold text-white shadow shadow-primary-600/30">
                     {{ c.unread.toLocaleString('fa-IR') }}
                   </span>
-                  <span v-else-if="c.kind === 'course'" class="shrink-0 text-[10px] text-gray-400">{{ c.members.toLocaleString('fa-IR') }} عضو</span>
+                  <span v-else-if="c.kind === 'course' || c.kind === 'custom'" class="shrink-0 text-[10px] text-gray-400">{{ c.members.toLocaleString('fa-IR') }} عضو</span>
                 </span>
               </span>
             </button>
@@ -267,7 +306,16 @@ function onActivity() {
 
     <!-- ================= conversation ================= -->
     <section :class="['min-w-0 flex-1', active ? 'flex flex-col' : 'hidden md:flex md:flex-col']">
-      <ChatThread v-if="active" :key="active.id" :conversation="active" class="h-full" @back="close" @activity="onActivity" />
+      <ChatThread
+        v-if="active"
+        :key="active.id"
+        :conversation="active"
+        class="h-full"
+        @back="close"
+        @activity="onActivity"
+        @updated="onUpdated"
+        @deleted="onDeleted"
+      />
       <div v-else class="empty-state flex h-full flex-col items-center justify-center gap-4 p-8 text-center">
         <span class="relative flex h-24 w-24 items-center justify-center">
           <span class="absolute inset-0 animate-ping rounded-full bg-primary-500/10" />
@@ -279,6 +327,93 @@ function onActivity() {
         <p class="max-w-xs text-sm leading-6 text-gray-500 dark:text-gray-400">در گفت‌وگوی خصوصی یا گروه هر دوره، پیام متنی، تصویر، فایل و پیام صوتی بفرستید.</p>
       </div>
     </section>
+
+    <!-- new private chat -->
+    <ChatModal v-if="showNewChat" :title="isTeacher ? 'گفت‌وگو با دانشجو' : 'گفت‌وگو با هم‌کلاسی'" @close="showNewChat = false">
+      <div class="p-4">
+        <ChatPeoplePicker @pick="startWith" />
+      </div>
+    </ChatModal>
+
+    <!-- new group (teacher) -->
+    <ChatModal v-if="showNewGroup" title="گروه جدید" wide @close="showNewGroup = false">
+      <div class="space-y-4 p-5">
+        <div class="flex items-center gap-3">
+          <span class="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent-500 to-accent-700 text-2xl text-white">👥</span>
+          <input
+            v-model="newGroup.title"
+            autofocus
+            maxlength="120"
+            placeholder="نام گروه، مثلاً «گروه پروژه‌ی نهایی»"
+            class="min-w-0 flex-1 rounded-xl bg-black/[0.05] px-4 py-3 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-primary-500/40 dark:bg-white/[0.07] dark:text-white"
+          >
+        </div>
+        <label class="flex cursor-pointer items-center justify-between gap-3 rounded-2xl bg-black/[0.03] px-4 py-3 dark:bg-white/5">
+          <span>
+            <span class="block text-sm font-medium text-gray-800 dark:text-gray-100">فقط اطلاع‌رسانی</span>
+            <span class="block text-[11px] text-gray-500 dark:text-gray-400">فقط شما پیام می‌فرستید و اعضا می‌خوانند.</span>
+          </span>
+          <input v-model="newGroup.announcement_only" type="checkbox" class="h-5 w-5 accent-primary-600">
+        </label>
+        <div>
+          <p class="mb-2 text-sm font-medium text-gray-800 dark:text-gray-100">
+            اعضا <span class="text-xs text-gray-500">({{ newGroup.member_ids.length.toLocaleString('fa-IR') }} نفر انتخاب شده)</span>
+          </p>
+          <ChatPeoplePicker v-model="newGroup.member_ids" multiple />
+        </div>
+        <p v-if="groupError" class="text-sm text-red-600">{{ groupError }}</p>
+      </div>
+      <template #footer>
+        <button
+          type="button"
+          :disabled="!newGroup.title.trim() || creatingGroup"
+          class="w-full rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-600/30 disabled:opacity-40"
+          @click="createGroup"
+        >
+          {{ creatingGroup ? 'در حال ساخت…' : 'ساخت گروه' }}
+        </button>
+      </template>
+    </ChatModal>
+
+    <!-- messenger settings -->
+    <ChatModal v-if="showSettings" title="تنظیمات پیام‌رسان" @close="showSettings = false">
+      <div class="space-y-5 p-5">
+        <div>
+          <p class="mb-2 text-sm font-bold text-gray-800 dark:text-gray-100">پس‌زمینه‌ی گفت‌وگو</p>
+          <div class="grid grid-cols-3 gap-2.5">
+            <button
+              v-for="w in CHAT_WALLPAPERS"
+              :key="w.value"
+              type="button"
+              :class="[
+                'overflow-hidden rounded-xl text-center transition',
+                wallpaper === w.value ? 'ring-2 ring-primary-500 ring-offset-2 ring-offset-white dark:ring-offset-gray-900' : 'ring-1 ring-black/10 hover:-translate-y-0.5 dark:ring-white/10',
+              ]"
+              @click="setWallpaper(w.value)"
+            >
+              <span :class="['chat-bg block h-16', `wp-${w.value}`]" />
+              <span class="block py-1.5 text-xs text-gray-700 dark:text-gray-200">{{ w.label }}</span>
+            </button>
+          </div>
+          <p class="mt-2 text-[11px] text-gray-500 dark:text-gray-400">این انتخاب فقط روی همین مرورگر ذخیره می‌شود.</p>
+        </div>
+        <label v-if="isTeacher" class="flex cursor-pointer items-center justify-between gap-3 rounded-2xl bg-black/[0.03] px-4 py-3 dark:bg-white/5">
+          <span>
+            <span class="block text-sm font-medium text-gray-800 dark:text-gray-100">گفت‌وگوی دانشجویان با یکدیگر</span>
+            <span class="block text-[11px] text-gray-500 dark:text-gray-400">هم‌کلاسی‌ها بتوانند با هم گفت‌وگوی خصوصی داشته باشند.</span>
+          </span>
+          <button
+            type="button"
+            role="switch"
+            :aria-checked="peerAllowed"
+            :class="['relative h-6 w-11 shrink-0 rounded-full transition', peerAllowed ? 'bg-primary-600' : 'bg-gray-300 dark:bg-white/15']"
+            @click="togglePeerChat"
+          >
+            <span :class="['absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all', peerAllowed ? 'start-[1.375rem]' : 'start-0.5']" />
+          </button>
+        </label>
+      </div>
+    </ChatModal>
   </div>
 </template>
 
