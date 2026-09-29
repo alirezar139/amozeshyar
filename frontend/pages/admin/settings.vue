@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { BackgroundSpeed, BackgroundStyle } from '~/composables/useSiteBackground'
 import { SHADER_EFFECTS, parseColor, shaderSnapshot, type ShaderEffect } from '~/utils/shaders'
 definePageMeta({ layout: 'admin' })
 const { request } = useApi()
