@@ -12,6 +12,8 @@ const props = defineProps<{
   initialPosition?: number
 }>()
 
+const emit = defineEmits<{ progress: [{ lesson_id: number; position_seconds: number; completed: boolean }] }>()
+
 const { request } = useApi()
 const videoEl = ref<HTMLVideoElement | null>(null)
 const previewEnded = ref(false)
@@ -83,10 +85,12 @@ function reportProgress() {
   const video = videoEl.value
   if (!props.hasFullAccess || !props.lessonId || !video) return
   const position = Math.floor(video.currentTime)
-  request('/progress/', {
+  request<{ lesson_id: number; position_seconds: number; completed: boolean }>('/progress/', {
     method: 'POST',
     body: { lesson_id: props.lessonId, position_seconds: position },
-  }).catch(() => {})
+  })
+    .then((saved) => emit('progress', saved))
+    .catch(() => {})
 }
 
 function onTimeUpdate() {

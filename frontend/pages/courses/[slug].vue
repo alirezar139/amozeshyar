@@ -141,9 +141,17 @@ async function buyNow() {
           <div class="mt-4 text-xl font-bold text-gray-900 dark:text-white">
             {{ Number(course.effective_price).toLocaleString('fa-IR') }} تومان
           </div>
-          <p v-if="course.is_enrolled" class="mt-4 rounded-md bg-emerald-500/10 px-4 py-2 text-center text-sm font-semibold text-emerald-600">
-            شما در این دوره ثبت‌نام کرده‌اید
-          </p>
+          <template v-if="course.is_enrolled">
+            <p class="mt-4 rounded-md bg-emerald-500/10 px-4 py-2 text-center text-sm font-semibold text-emerald-600">
+              شما در این دوره ثبت‌نام کرده‌اید
+            </p>
+            <NuxtLink
+              :to="`/dashboard/courses/${course.slug}`"
+              class="mt-3 block w-full rounded-md bg-primary-600 px-4 py-2 text-center text-sm font-semibold text-white hover:bg-primary-500"
+            >
+              ورود به کلاس درس
+            </NuxtLink>
+          </template>
           <button
             v-else
             data-tour="course-buy-cta"
