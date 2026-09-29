@@ -27,7 +27,10 @@ export interface SiteOwner {
 export function useSite() {
   const { request } = useApi()
   const { data: owner, refresh } = useAsyncData('site-owner', () => request<SiteOwner>('/site/').catch(() => null), {
-    getCachedData: (key, nuxtApp) => nuxtApp.payload.data[key] ?? nuxtApp.static.data[key],
+    // Reuse what SSR/an earlier page already fetched — but never for an
+    // explicit refresh(), or saving site settings would re-read the stale copy.
+    getCachedData: (key, nuxtApp, ctx) =>
+      ctx?.cause === 'refresh:manual' ? undefined : nuxtApp.payload.data[key] ?? nuxtApp.static.data[key],
   })
   const teacherName = computed(() => owner.value?.display_name || 'آموزش‌یار')
   const siteName = computed(() => owner.value?.site_name || teacherName.value)
