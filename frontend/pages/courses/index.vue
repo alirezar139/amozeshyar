@@ -48,7 +48,7 @@ const { data: courses, pending, error } = coursesAsync
     </div>
 
     <div v-if="pending" class="mt-8 text-center text-gray-500">در حال بارگذاری...</div>
-    <div v-else-if="error" class="mt-8 text-center text-red-600">خطا در دریافت دوره‌ها.</div>
+    <div v-else-if="error" class="mt-8 text-center text-red-600">دریافت فهرست دوره‌ها با خطا روبه‌رو شد. لطفاً دوباره تلاش کنید.</div>
     <div
       v-else
       data-tour="course-grid"
@@ -56,7 +56,7 @@ const { data: courses, pending, error } = coursesAsync
     >
       <CourseCard v-for="course in courses" :key="course.slug" :course="course" />
       <p v-if="courses && courses.length === 0" class="col-span-full text-center text-gray-500">
-        دوره‌ای برای نمایش وجود ندارد.
+        در حال حاضر دوره‌ای برای نمایش وجود ندارد.
       </p>
     </div>
   </div>

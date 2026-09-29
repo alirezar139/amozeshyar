@@ -244,8 +244,8 @@ watch(() => props.conversation.id, () => {
       </div>
       <div v-else-if="!messages.length" class="flex h-full flex-col items-center justify-center gap-2 text-center">
         <span class="text-4xl">👋</span>
-        <p class="font-semibold text-gray-700 dark:text-gray-200">هنوز پیامی نیست</p>
-        <p class="text-sm text-gray-500 dark:text-gray-400">اولین پیام را بفرستید.</p>
+        <p class="font-semibold text-gray-700 dark:text-gray-200">هنوز پیامی ارسال نشده است</p>
+        <p class="text-sm text-gray-500 dark:text-gray-400">نخستین پیام را شما بفرستید.</p>
       </div>
       <template v-else>
         <div v-if="loadingOlder" class="mb-3 flex justify-center">

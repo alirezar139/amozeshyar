@@ -14,8 +14,8 @@ const is404 = computed(() => props.error.statusCode === 404)
 const title = computed(() => (is404.value ? 'صفحه پیدا نشد' : 'مشکلی پیش آمد'))
 const description = computed(() =>
   is404.value
-    ? 'صفحه‌ای که دنبالش بودید وجود نداره یا جابه‌جا شده.'
-    : 'یه خطای غیرمنتظره رخ داد. تیم فنی از این موضوع مطلع شد.'
+    ? 'صفحه‌ای که به دنبال آن بودید وجود ندارد یا جابه‌جا شده است.'
+    : 'خطای غیرمنتظره‌ای رخ داد. تیم فنی از این موضوع مطلع شده است.'
 )
 
 function goHome() {
@@ -43,7 +43,7 @@ function goHome() {
         class="mt-6 rounded-md bg-primary-600 px-6 py-2 text-sm font-semibold text-white hover:bg-primary-500"
         @click="goHome"
       >
-        بازگشت به صفحه اصلی
+        بازگشت به صفحه‌ی اصلی
       </button>
     </div>
   </div>

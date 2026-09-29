@@ -139,7 +139,7 @@ function applyPreset(preset: ThemeColors) {
       </section>
 
       <section class="glass mt-6 rounded-2xl p-6" data-tour="palette-picker">
-        <h2 class="text-sm font-semibold text-gray-900 dark:text-white">رنگ‌بندی سامانه</h2>
+        <h2 class="text-sm font-semibold text-gray-900 dark:text-white">رنگ‌بندی سایت</h2>
         <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">این انتخاب برای حساب شما ذخیره می‌شود و در همه‌ی دستگاه‌ها اعمال می‌شود.</p>
 
         <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -153,7 +153,7 @@ function applyPreset(preset: ThemeColors) {
             />
           </label>
           <label class="glass flex items-center justify-between gap-3 rounded-xl p-3">
-            <span class="text-sm text-gray-700 dark:text-gray-200">رنگ تاکیدی</span>
+            <span class="text-sm text-gray-700 dark:text-gray-200">رنگ تأکیدی</span>
             <input
               v-model="accentDraft"
               type="color"
@@ -181,7 +181,7 @@ function applyPreset(preset: ThemeColors) {
           </label>
         </div>
 
-        <h3 class="mt-5 text-xs font-medium text-gray-600 dark:text-gray-300">شروع سریع با یکی از این ترکیب‌ها (بعداً هرکدوم رو جدا هم می‌تونید تغییر بدید)</h3>
+        <h3 class="mt-5 text-xs font-medium text-gray-600 dark:text-gray-300">شروع سریع با یکی از این ترکیب‌ها (بعداً می‌توانید هر رنگ را جداگانه تغییر دهید)</h3>
         <div class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <button
             v-for="preset in COLOR_PRESETS"

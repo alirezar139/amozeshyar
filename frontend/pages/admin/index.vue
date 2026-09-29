@@ -25,7 +25,7 @@ const draftCount = computed(() => (courses.value ?? []).length - publishedCount.
     <h1 class="text-xl font-bold text-gray-900 dark:text-white">
       خوش آمدید{{ authStore.user ? '، ' + authStore.user.first_name : '' }}
     </h1>
-    <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">مدیریت دوره‌ها و دانشجوهای سایت شما</p>
+    <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">مدیریت دوره‌ها، جلسه‌ها و دانشجویان سایت</p>
 
     <div class="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2">
       <NuxtLink
@@ -55,7 +55,7 @@ const draftCount = computed(() => (courses.value ?? []).length - publishedCount.
           </svg>
         </div>
         <div>
-          <p class="text-sm text-gray-600 dark:text-gray-400">دوره‌های آنلاین پیش رو</p>
+          <p class="text-sm text-gray-600 dark:text-gray-400">جلسه‌های آنلاین پیش‌رو</p>
           <p class="mt-1 text-3xl font-bold text-gray-900 dark:text-white">{{ upcomingSessions ?? 0 }}</p>
         </div>
       </NuxtLink>

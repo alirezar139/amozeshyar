@@ -46,7 +46,7 @@ async function setStatus(id: number, status: 'published' | 'draft') {
       </NuxtLink>
     </div>
     <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-      دوره‌های منتشرشده روی سایت دیده می‌شوند؛ پیش‌نویس‌ها فقط اینجا.
+      دوره‌های منتشرشده در سایت نمایش داده می‌شوند و پیش‌نویس‌ها تنها در همین بخش قابل مشاهده‌اند.
     </p>
     <p v-if="actionError" class="mt-3 text-sm text-red-600">{{ actionError }}</p>
 
@@ -75,7 +75,7 @@ async function setStatus(id: number, status: 'published' | 'draft') {
             <td class="px-3 py-2">
               <div class="flex flex-wrap items-center justify-end gap-3">
                 <NuxtLink :to="`/admin/courses/${course.id}/lessons`" class="text-sm font-medium text-primary-600 hover:underline dark:text-primary-400">
-                  سرفصل‌ها، ویدیو و دوره‌های آنلاین
+                  سرفصل‌ها، ویدیوها و جلسه‌ها
                 </NuxtLink>
                 <button
                   type="button"

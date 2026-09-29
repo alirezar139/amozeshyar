@@ -48,7 +48,7 @@ const directs = computed(() => matching.value.filter((c) => c.kind === 'direct')
 const groups = computed(() => matching.value.filter((c) => c.kind === 'course').sort(byRecent))
 const sections = computed(() =>
   [
-    { key: 'direct' as const, title: isTeacher.value ? 'گفتگو با دانشجوها' : 'گفتگوی خصوصی', items: directs.value },
+    { key: 'direct' as const, title: isTeacher.value ? 'گفت‌وگو با دانشجوها' : 'گفت‌وگوی خصوصی', items: directs.value },
     { key: 'course' as const, title: 'گروه‌های دوره', items: groups.value },
   ].filter((s) => (tab.value === 'all' || tab.value === s.key) && s.items.length),
 )
@@ -61,7 +61,7 @@ const tabs = computed(() => [
 
 function preview(c: any) {
   const m = c.last_message
-  if (!m) return c.kind === 'course' ? 'هنوز پیامی در گروه نیست' : isTeacher.value ? 'بدون پیام' : 'سوالی دارید؟ به استاد پیام بدهید'
+  if (!m) return c.kind === 'course' ? 'هنوز پیامی در گروه ارسال نشده است' : isTeacher.value ? 'هنوز پیامی ارسال نشده است' : 'پرسشی دارید؟ به استاد پیام دهید'
   const body = m.text || { image: '📷 عکس', file: '📎 فایل', voice: '🎤 پیام صوتی' }[m.attachment_kind as string] || ''
   const who = m.is_mine ? 'شما: ' : c.kind === 'course' ? `${m.sender_name}: ` : ''
   return who + body
@@ -131,7 +131,7 @@ function onActivity() {
     >
       <div class="space-y-3 px-4 pb-3 pt-4">
         <div class="flex items-center justify-between">
-          <h2 class="text-lg font-extrabold text-gray-900 dark:text-white">گفتگوها</h2>
+          <h2 class="text-lg font-extrabold text-gray-900 dark:text-white">گفت‌وگوها</h2>
           <button
             v-if="isTeacher"
             type="button"
@@ -140,8 +140,8 @@ function onActivity() {
               'flex h-9 w-9 items-center justify-center rounded-full text-white shadow-lg transition hover:scale-105',
               starting ? 'rotate-45 bg-gray-500' : 'bg-gradient-to-br from-primary-500 to-primary-700 shadow-primary-600/30',
             ]"
-            title="گفتگوی جدید با دانشجو"
-            aria-label="گفتگوی جدید با دانشجو"
+            title="گفت‌وگوی جدید با دانشجو"
+            aria-label="گفت‌وگوی جدید با دانشجو"
             @click="starting = !starting"
           >
             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg>
@@ -153,7 +153,7 @@ function onActivity() {
           <svg class="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" /></svg>
           <input
             v-model="search"
-            placeholder="جست‌وجو در گفتگوها"
+            placeholder="جست‌وجو در گفت‌وگوها"
             class="w-full rounded-full bg-black/[0.05] py-2 pe-3 ps-9 text-sm text-gray-900 outline-none transition focus:bg-white focus:ring-2 focus:ring-primary-500/40 dark:bg-white/[0.06] dark:text-white dark:focus:bg-white/10"
           >
         </label>
@@ -212,7 +212,7 @@ function onActivity() {
           </div>
         </div>
         <p v-else-if="!sections.length" class="px-4 py-12 text-center text-sm text-gray-500 dark:text-gray-400">
-          {{ search ? 'چیزی پیدا نشد.' : isTeacher ? 'هنوز گفتگویی نیست. وقتی دانشجویی پیام بدهد، اینجا می‌آید.' : 'گفتگویی نیست.' }}
+          {{ search ? 'نتیجه‌ای یافت نشد.' : isTeacher ? 'هنوز گفت‌وگویی آغاز نشده است. پیام دانشجویان در این بخش نمایش داده می‌شود.' : 'گفت‌وگویی نیست.' }}
         </p>
 
         <section v-for="(section, si) in sections" :key="section.key">
@@ -275,8 +275,8 @@ function onActivity() {
             <svg class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
           </span>
         </span>
-        <p class="text-lg font-bold text-gray-800 dark:text-gray-100">یک گفتگو را انتخاب کنید</p>
-        <p class="max-w-xs text-sm leading-6 text-gray-500 dark:text-gray-400">پیام متنی، عکس، فایل و پیام صوتی بفرستید — در گفتگوی خصوصی یا گروه دوره.</p>
+        <p class="text-lg font-bold text-gray-800 dark:text-gray-100">یک گفت‌وگو را انتخاب کنید</p>
+        <p class="max-w-xs text-sm leading-6 text-gray-500 dark:text-gray-400">در گفت‌وگوی خصوصی یا گروه هر دوره، پیام متنی، تصویر، فایل و پیام صوتی بفرستید.</p>
       </div>
     </section>
   </div>

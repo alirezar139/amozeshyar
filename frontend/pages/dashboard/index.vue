@@ -49,7 +49,7 @@ function timeOf(date: Date) {
       <h1 class="text-2xl font-extrabold text-gray-900 dark:text-white">
         سلام{{ authStore.user?.first_name ? '، ' + authStore.user.first_name : '' }} 👋
       </h1>
-      <p class="mt-1 text-gray-600 dark:text-gray-400">امروز هم یک قدم جلوتر برو.</p>
+      <p class="mt-1 text-gray-600 dark:text-gray-400">آماده‌اید امروز هم یک گام دیگر بردارید؟</p>
     </div>
 
     <!-- Stats -->
@@ -100,7 +100,7 @@ function timeOf(date: Date) {
         <p class="relative mt-1 text-sm text-primary-100/90">{{ continueLearning.lesson_title }}</p>
         <span class="relative mt-5 inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-bold text-primary-700 transition group-hover:gap-3">
           <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20"><path d="M6 4l10 6-10 6V4z" /></svg>
-          ادامه بده
+          ادامه‌ی یادگیری
         </span>
       </NuxtLink>
 
@@ -111,7 +111,7 @@ function timeOf(date: Date) {
             <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
             <span class="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
           </span>
-          دوره‌ی آنلاین بعدی
+          جلسه‌ی آنلاین بعدی
         </div>
         <p class="mt-2 text-lg font-bold text-gray-900 dark:text-white">{{ summary.next_session.title }}</p>
         <p class="text-sm text-gray-600 dark:text-gray-400">
@@ -135,18 +135,18 @@ function timeOf(date: Date) {
             countdown.soon ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 hover:bg-emerald-500' : 'glass text-gray-800 dark:text-gray-100',
           ]"
         >
-          {{ countdown.soon ? 'ورود به دوره‌ی آنلاین' : 'جزئیات' }}
+          {{ countdown.soon ? 'ورود به جلسه‌ی آنلاین' : 'مشاهده‌ی جلسه' }}
         </NuxtLink>
       </section>
       <section v-else-if="summary" data-tour="next-session" class="glass flex flex-col justify-center rounded-2xl p-6">
-        <p class="font-semibold text-gray-800 dark:text-gray-100">فعلاً دوره‌ی آنلاینی در پیش ندارید</p>
+        <p class="font-semibold text-gray-800 dark:text-gray-100">در حال حاضر جلسه‌ی آنلاینی در پیش ندارید</p>
         <NuxtLink to="/dashboard/calendar" class="mt-2 text-sm text-primary-600 hover:underline dark:text-primary-400">تقویم دوره‌های آنلاین ←</NuxtLink>
       </section>
     </div>
 
     <!-- Latest files -->
     <section v-if="summary?.recent_files?.length" data-tour="recent-files" class="glass rounded-2xl p-6">
-      <h2 class="font-semibold text-gray-900 dark:text-white">تازه‌ترین فایل‌ها</h2>
+      <h2 class="font-semibold text-gray-900 dark:text-white">تازه‌ترین جزوه‌ها و فایل‌ها</h2>
       <ul class="mt-3 divide-y divide-black/5 dark:divide-white/5">
         <li v-for="file in summary.recent_files" :key="file.id" class="flex items-center gap-3 py-3">
           <CourseFileIcon :extension="file.extension" size="sm" />
@@ -189,7 +189,7 @@ function timeOf(date: Date) {
         to="/courses"
         class="shrink-0 rounded-xl bg-primary-600 px-5 py-2.5 text-center text-sm font-semibold text-white shadow-lg shadow-primary-600/30 transition hover:bg-primary-500"
       >
-        دوره‌های استاد
+        مشاهده‌ی دوره‌ها
       </NuxtLink>
     </section>
   </div>

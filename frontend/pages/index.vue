@@ -1,10 +1,10 @@
 <script setup lang="ts">
 const { request } = useApi()
-const { owner, siteName, teacherName } = useSite()
+const { owner, siteName, teacherName, teacherTitle } = useSite()
 const authStore = useAuthStore()
 const { openRegister } = useAuthModal()
 
-const seoDescription = computed(() => owner.value?.bio || owner.value?.headline || 'دوره‌های آموزشی با پیش‌نمایش رایگان.')
+const seoDescription = computed(() => owner.value?.bio || owner.value?.headline || 'دوره‌های آموزشی تخصصی، همراه با پیش‌نمایش رایگان.')
 useSeoMeta({
   title: () => [siteName.value, teacherName.value !== siteName.value ? teacherName.value : '', owner.value?.headline].filter(Boolean).join(' | '),
   description: seoDescription,
@@ -31,14 +31,13 @@ const { data: catalog } = catalogAsync
 const featuredCourses = computed(() => catalog.value?.featured ?? [])
 
 const socialLinks = computed(() => publicSocialLinks(owner.value?.social_links))
-const firstName = computed(() => teacherName.value.split(' ')[0])
 
 // Only numbers that are actually true about this site — a "0 students" badge hurts more than no badge.
 const stats = computed(() => {
   const rows: { value: string; label: string }[] = []
   if (catalog.value?.total) rows.push({ value: catalog.value.total.toLocaleString('fa-IR'), label: 'دوره‌ی آموزشی' })
   if (owner.value?.total_students) rows.push({ value: owner.value.total_students.toLocaleString('fa-IR'), label: 'دانشجو' })
-  if (Number(owner.value?.rating_avg)) rows.push({ value: Number(owner.value!.rating_avg).toLocaleString('fa-IR', { maximumFractionDigits: 1 }), label: 'امتیاز دانشجوها' })
+  if (Number(owner.value?.rating_avg)) rows.push({ value: Number(owner.value!.rating_avg).toLocaleString('fa-IR', { maximumFractionDigits: 1 }), label: 'امتیاز دانشجویان' })
   return rows
 })
 
@@ -70,7 +69,7 @@ const levelLabels: Record<string, string> = { beginner: 'مقدماتی', interm
           {{ owner.headline }}
         </p>
         <p class="mt-5 line-clamp-4 max-w-xl whitespace-pre-line text-base leading-8 text-gray-600 sm:text-lg dark:text-gray-300">
-          {{ owner?.bio || 'دوره‌های تخصصی با پیش‌نمایش رایگان — قبل از خرید، خودتان کیفیت تدریس را ببینید.' }}
+          {{ owner?.bio || 'دوره‌های تخصصی با پیش‌نمایش رایگان؛ پیش از ثبت‌نام، شیوه‌ی تدریس را از نزدیک ببینید.' }}
         </p>
 
         <div class="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -120,7 +119,7 @@ const levelLabels: Record<string, string> = { beginner: 'مقدماتی', interm
           </span>
           <div>
             <p class="text-sm font-bold text-gray-900 dark:text-white">دوره‌ی آنلاین</p>
-            <p class="text-xs text-gray-500 dark:text-gray-400">پرسش و پاسخ مستقیم</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400">گفت‌وگوی مستقیم با استاد</p>
           </div>
         </div>
         <div v-if="catalog?.total" class="glass absolute -end-4 top-8 rounded-2xl px-4 py-3 text-center shadow-xl sm:-end-8">
@@ -143,10 +142,10 @@ const levelLabels: Record<string, string> = { beginner: 'مقدماتی', interm
       <div class="flex items-end justify-between gap-4">
         <div>
           <p class="text-sm font-semibold text-primary-600 dark:text-primary-400">دوره‌ها</p>
-          <h2 class="mt-1 text-2xl font-extrabold text-gray-900 sm:text-3xl dark:text-white">از کجا شروع کنم؟</h2>
+          <h2 class="mt-1 text-2xl font-extrabold text-gray-900 sm:text-3xl dark:text-white">مسیر یادگیری خود را انتخاب کنید</h2>
         </div>
         <NuxtLink to="/courses" class="shrink-0 text-sm font-medium text-primary-600 hover:underline dark:text-primary-400">
-          همه‌ی دوره‌ها ←
+          مشاهده‌ی همه‌ی دوره‌ها ←
         </NuxtLink>
       </div>
       <div class="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -197,43 +196,43 @@ const levelLabels: Record<string, string> = { beginner: 'مقدماتی', interm
 
     <!-- Why learn here -->
     <section data-tour="features" class="mt-20">
-      <p class="text-sm font-semibold text-primary-600 dark:text-primary-400">چرا اینجا؟</p>
-      <h2 class="mt-1 text-2xl font-extrabold text-gray-900 sm:text-3xl dark:text-white">یادگیری بدون ریسک، با پشتیبانی واقعی</h2>
+      <p class="text-sm font-semibold text-primary-600 dark:text-primary-400">چرا این دوره‌ها؟</p>
+      <h2 class="mt-1 text-2xl font-extrabold text-gray-900 sm:text-3xl dark:text-white">یادگیری مطمئن، با همراهی استاد</h2>
       <div class="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
         <div class="glass rounded-2xl p-6">
           <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-primary-500/15 text-primary-700 dark:text-primary-300">
             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
           </span>
-          <p class="mt-4 font-bold text-gray-900 dark:text-white">اول ببین، بعد بخر</p>
-          <p class="mt-1.5 text-sm leading-6 text-gray-600 dark:text-gray-400">از هر دوره بخشی از تدریس رایگان پخش می‌شود.</p>
+          <p class="mt-4 font-bold text-gray-900 dark:text-white">پیش از خرید، ببینید</p>
+          <p class="mt-1.5 text-sm leading-6 text-gray-600 dark:text-gray-400">بخشی از هر دوره به‌رایگان در دسترس است تا با خیال آسوده انتخاب کنید.</p>
         </div>
         <div class="glass rounded-2xl p-6">
           <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
           </span>
           <p class="mt-4 font-bold text-gray-900 dark:text-white">دوره‌های آنلاین</p>
-          <p class="mt-1.5 text-sm leading-6 text-gray-600 dark:text-gray-400">در دوره‌های آنلاین شرکت کنید و سوال‌هایتان را مستقیم از {{ firstName }} بپرسید.</p>
+          <p class="mt-1.5 text-sm leading-6 text-gray-600 dark:text-gray-400">در جلسه‌های آنلاین شرکت کنید و پرسش‌های خود را مستقیماً با {{ teacherTitle }} در میان بگذارید.</p>
         </div>
         <div class="glass rounded-2xl p-6">
           <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-accent-500/15 text-accent-600 dark:text-accent-400">
             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
           </span>
-          <p class="mt-4 font-bold text-gray-900 dark:text-white">ادامه از همان‌جا</p>
-          <p class="mt-1.5 text-sm leading-6 text-gray-600 dark:text-gray-400">هر ویدیو دقیقاً از جایی که رها کردید ادامه پیدا می‌کند.</p>
+          <p class="mt-4 font-bold text-gray-900 dark:text-white">ادامه از همان لحظه</p>
+          <p class="mt-1.5 text-sm leading-6 text-gray-600 dark:text-gray-400">هر ویدیو درست از همان جایی که متوقف کرده‌اید ادامه می‌یابد.</p>
         </div>
         <div class="glass rounded-2xl p-6">
           <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-sky-500/15 text-sky-600 dark:text-sky-400">
             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
           </span>
           <p class="mt-4 font-bold text-gray-900 dark:text-white">دسترسی همیشگی</p>
-          <p class="mt-1.5 text-sm leading-6 text-gray-600 dark:text-gray-400">یک بار بخرید؛ دوره برای همیشه در حساب شما می‌ماند. پرداخت امن با زرین‌پال.</p>
+          <p class="mt-1.5 text-sm leading-6 text-gray-600 dark:text-gray-400">با یک بار خرید، دوره برای همیشه در حساب کاربری شما می‌ماند؛ پرداخت از طریق درگاه امن زرین‌پال انجام می‌شود.</p>
         </div>
       </div>
     </section>
 
     <!-- Topics -->
     <section v-if="categories && categories.length > 1" data-tour="categories" class="mt-20">
-      <h2 class="text-xl font-bold text-gray-900 dark:text-white">موضوع‌ها</h2>
+      <h2 class="text-xl font-bold text-gray-900 dark:text-white">موضوع‌های آموزشی</h2>
       <CourseCategoryCarousel :categories="categories" class="mt-5" />
     </section>
 
@@ -242,12 +241,12 @@ const levelLabels: Record<string, string> = { beginner: 'مقدماتی', interm
       <div class="absolute -end-16 -top-16 h-56 w-56 rounded-full bg-accent-400/30 blur-3xl" />
       <div class="absolute -bottom-20 -start-10 h-56 w-56 rounded-full bg-white/10 blur-3xl" />
       <h2 class="relative text-2xl font-extrabold text-white sm:text-4xl">
-        {{ authStore.isAuthenticated ? 'یادگیری را ادامه بده' : 'امروز شروع کن' }}
+        {{ authStore.isAuthenticated ? 'یادگیری را ادامه دهید' : 'همین امروز شروع کنید' }}
       </h2>
       <p class="relative mx-auto mt-4 max-w-xl text-primary-50/90">
         {{ authStore.isAuthenticated
-          ? 'دوره‌هایت و دوره‌های آنلاین پیش رو در داشبورد منتظرت هستند.'
-          : `ثبت‌نام رایگان است؛ پیش‌نمایش دوره‌ها را ببین و هر وقت آماده بودی، با ${firstName} شروع کن.` }}
+          ? 'دوره‌های شما و جلسه‌های آنلاین پیش‌رو در داشبورد در انتظارتان است.'
+          : `ثبت‌نام رایگان است؛ پیش‌نمایش دوره‌ها را ببینید و هر زمان آماده بودید، یادگیری را با ${teacherTitle} آغاز کنید.` }}
       </p>
       <div class="relative mt-8 flex justify-center">
         <NuxtLink
