@@ -41,6 +41,8 @@ INSTALLED_APPS = [
     "apps.videos",
     "apps.enrollments",
     "apps.payments",
+    "apps.messaging",
+    "apps.board",
 ]
 
 MIDDLEWARE = [
