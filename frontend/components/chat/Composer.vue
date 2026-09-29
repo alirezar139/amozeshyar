@@ -69,8 +69,11 @@ function submit() {
   nextTick(autoGrow)
 }
 
+const { prefs } = useChatPrefs()
 function onKeydown(e: KeyboardEvent) {
-  if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+  if (e.key !== 'Enter' || e.isComposing) return
+  const send = prefs.value.enterToSend ? !e.shiftKey : e.ctrlKey || e.metaKey
+  if (send) {
     e.preventDefault()
     submit()
   }

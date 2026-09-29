@@ -5,6 +5,7 @@
 const props = defineProps<{ conversation: any }>()
 const emit = defineEmits<{ back: []; activity: []; updated: [row: any]; deleted: [] }>()
 const { wallpaper } = useChatWallpaper()
+const { prefs } = useChatPrefs()
 const showInfo = ref(false)
 const isGroup = computed(() => ['course', 'custom'].includes(props.conversation.kind))
 const kindLabel = computed(() => ({ course: 'گروه دوره', custom: 'گروه', peer: 'هم‌کلاسی', direct: 'خصوصی' } as Record<string, string>)[props.conversation.kind])
@@ -124,7 +125,10 @@ async function poll() {
     const fromOthers = fresh.some((m) => !m.is_mine)
     if (atBottom.value) scrollToBottom(true)
     else if (fromOthers) newBelow.value += fresh.filter((m) => !m.is_mine).length
-    if (fromOthers) markRead()
+    if (fromOthers) {
+      markRead()
+      if (prefs.value.sound) playChatChime()
+    }
   } catch {
     /* transient; next tick retries */
   }
@@ -349,7 +353,7 @@ watch(() => props.conversation.id, () => {
                 </span>
               </a>
 
-              <p v-if="m.text" class="whitespace-pre-wrap break-words text-sm leading-6" dir="auto">{{ m.text }}</p>
+              <p v-if="m.text" :class="['whitespace-pre-wrap break-words', `chat-text-${prefs.fontSize}`]" dir="auto">{{ m.text }}</p>
 
               <!-- upload progress -->
               <div v-if="m.pending && m.attachment_kind" class="mt-1.5 h-1 overflow-hidden rounded-full bg-white/25">

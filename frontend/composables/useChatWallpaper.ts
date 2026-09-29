@@ -1,32 +1,90 @@
-export type ChatWallpaper = 'dots' | 'plain' | 'gradient' | 'doodle' | 'waves' | 'grid'
+export type ChatWallpaper =
+  | 'dots' | 'doodle' | 'sunset' | 'ocean' | 'lavender' | 'mint' | 'night' | 'grid' | 'waves' | 'plain'
+export type ChatFontSize = 'sm' | 'md' | 'lg'
 
 export const CHAT_WALLPAPERS: { value: ChatWallpaper; label: string }[] = [
   { value: 'dots', label: 'نقطه‌ها' },
   { value: 'doodle', label: 'طرح درسی' },
-  { value: 'gradient', label: 'رنگین' },
-  { value: 'waves', label: 'موج' },
+  { value: 'sunset', label: 'غروب' },
+  { value: 'ocean', label: 'اقیانوس' },
+  { value: 'lavender', label: 'اسطوخودوس' },
+  { value: 'mint', label: 'نعنایی' },
+  { value: 'night', label: 'شب پرستاره' },
   { value: 'grid', label: 'دفتر شطرنجی' },
+  { value: 'waves', label: 'موج' },
   { value: 'plain', label: 'ساده' },
 ]
 
-/** The chat background is a personal preference, remembered per browser. */
-export function useChatWallpaper() {
-  const wallpaper = useState<ChatWallpaper>('chat-wallpaper', () => 'dots')
-  onMounted(() => {
+export const CHAT_FONT_SIZES: { value: ChatFontSize; label: string }[] = [
+  { value: 'sm', label: 'کوچک' },
+  { value: 'md', label: 'متوسط' },
+  { value: 'lg', label: 'بزرگ' },
+]
+
+interface ChatPrefs {
+  wallpaper: ChatWallpaper
+  fontSize: ChatFontSize
+  enterToSend: boolean
+  sound: boolean
+}
+const DEFAULTS: ChatPrefs = { wallpaper: 'dots', fontSize: 'md', enterToSend: true, sound: true }
+const KEY = 'chat-prefs'
+
+/** Personal messenger preferences, remembered per browser. */
+export function useChatPrefs() {
+  const prefs = useState<ChatPrefs>('chat-prefs', () => ({ ...DEFAULTS }))
+  const loaded = useState('chat-prefs-loaded', () => false)
+  if (import.meta.client && !loaded.value) {
+    loaded.value = true
     try {
-      const saved = localStorage.getItem('chat-wallpaper') as ChatWallpaper | null
-      if (saved && CHAT_WALLPAPERS.some((w) => w.value === saved)) wallpaper.value = saved
+      const saved = JSON.parse(localStorage.getItem(KEY) || '{}')
+      prefs.value = {
+        ...DEFAULTS,
+        ...saved,
+        wallpaper: CHAT_WALLPAPERS.some((w) => w.value === saved.wallpaper) ? saved.wallpaper : DEFAULTS.wallpaper,
+      }
     } catch {
-      /* storage unavailable: keep the default */
+      /* storage unavailable: keep defaults */
     }
-  })
-  function setWallpaper(value: ChatWallpaper) {
-    wallpaper.value = value
+  }
+  function update(patch: Partial<ChatPrefs>) {
+    prefs.value = { ...prefs.value, ...patch }
     try {
-      localStorage.setItem('chat-wallpaper', value)
+      localStorage.setItem(KEY, JSON.stringify(prefs.value))
     } catch {
       /* ignore */
     }
   }
-  return { wallpaper, setWallpaper }
+  return { prefs, update }
+}
+
+/** Back-compat wrapper used by the thread for its wallpaper class. */
+export function useChatWallpaper() {
+  const { prefs, update } = useChatPrefs()
+  const wallpaper = computed(() => prefs.value.wallpaper)
+  return { wallpaper, setWallpaper: (value: ChatWallpaper) => update({ wallpaper: value }) }
+}
+
+/** A short, soft two-note chime for incoming messages (no audio file needed). */
+export function playChatChime() {
+  try {
+    const Ctx = window.AudioContext || (window as any).webkitAudioContext
+    const ctx = new Ctx()
+    const now = ctx.currentTime
+    for (const [i, freq] of [880, 1320].entries()) {
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+      osc.type = 'sine'
+      osc.frequency.value = freq
+      gain.gain.setValueAtTime(0, now + i * 0.09)
+      gain.gain.linearRampToValueAtTime(0.08, now + i * 0.09 + 0.02)
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.09 + 0.35)
+      osc.connect(gain).connect(ctx.destination)
+      osc.start(now + i * 0.09)
+      osc.stop(now + i * 0.09 + 0.4)
+    }
+    setTimeout(() => ctx.close(), 800)
+  } catch {
+    /* audio blocked until the user interacts with the page — fine */
+  }
 }
