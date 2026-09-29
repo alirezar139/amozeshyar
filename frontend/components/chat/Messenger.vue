@@ -203,7 +203,7 @@ function onActivity() {
                     <span class="flex h-8 w-8 items-center justify-center rounded-full bg-primary-500/15 text-primary-600">👤</span>
                     {{ isTeacher ? 'گفت‌وگو با دانشجو' : 'گفت‌وگو با هم‌کلاسی' }}
                   </button>
-                  <button v-if="isTeacher" type="button" class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-start text-sm text-gray-800 hover:bg-black/5 dark:text-gray-100 dark:hover:bg-white/10" @click="showNewGroup = true">
+                  <button v-if="isTeacher || peerAllowed" type="button" class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-start text-sm text-gray-800 hover:bg-black/5 dark:text-gray-100 dark:hover:bg-white/10" @click="showNewGroup = true">
                     <span class="flex h-8 w-8 items-center justify-center rounded-full bg-accent-500/15 text-accent-600">👥</span>
                     گروه جدید
                   </button>
@@ -336,7 +336,7 @@ function onActivity() {
     </ChatModal>
 
     <!-- new group (teacher) -->
-    <ChatModal v-if="showNewGroup" title="گروه جدید" wide @close="showNewGroup = false">
+    <ChatModal v-if="showNewGroup" :title="isTeacher ? 'گروه جدید' : 'گروه جدید با هم‌کلاسی‌ها'" wide @close="showNewGroup = false">
       <div class="space-y-4 p-5">
         <div class="flex items-center gap-3">
           <span class="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent-500 to-accent-700 text-2xl text-white">👥</span>
