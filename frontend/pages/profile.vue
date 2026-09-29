@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { ThemeColors } from '~/composables/useTheme'
+
 definePageMeta({ layout: false, ssr: false })
 
 const authStore = useAuthStore()

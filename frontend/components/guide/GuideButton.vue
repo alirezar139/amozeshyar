@@ -3,7 +3,8 @@ const { isOpen, isTouring, open, close } = useGuide()
 
 function toggle() {
   if (isTouring.value) return
-  isOpen.value ? close() : open()
+  if (isOpen.value) close()
+  else open()
 }
 </script>
 

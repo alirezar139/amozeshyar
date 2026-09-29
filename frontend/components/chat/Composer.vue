@@ -4,7 +4,7 @@
 const emit = defineEmits<{
   send: [payload: { text: string; file?: File; voice?: boolean; duration?: number }]
 }>()
-const props = defineProps<{ disabled?: boolean; readonlyNote?: string }>()
+defineProps<{ disabled?: boolean; readonlyNote?: string }>()
 
 const text = ref('')
 const file = ref<File | null>(null)
