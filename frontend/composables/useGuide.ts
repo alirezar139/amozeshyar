@@ -100,6 +100,25 @@ export const TOUR_STEPS: Record<string, TourStep[]> = {
   'classroom-id': [
     { selector: '[data-tour="classroom-back"]', title: 'خروج از دوره‌ی آنلاین', text: 'هر وقت خواستید، از اینجا به صفحه‌ای که ازش اومدید برمی‌گردید.' },
   ],
+
+  'dashboard-messages': [
+    { selector: '[data-tour="chat-list"]', title: 'گفتگوها', text: 'گفتگوی خصوصی شما با استاد و گروه هر دوره‌ای که در آن ثبت‌نام کردید؛ عدد کنار هرکدام، پیام‌های نخوانده است.' },
+    { selector: '[data-tour="chat-messages"]', title: 'پیام‌ها', text: 'یک تیک یعنی ارسال شد و دو تیک یعنی استاد خواند. پیام‌های جدید خودکار می‌رسند.' },
+    { selector: '[data-tour="chat-composer"]', title: 'ارسال پیام', text: 'متن بنویسید و اینتر بزنید، با گیره عکس یا فایل بفرستید، یا با میکروفون پیام صوتی ضبط کنید.' },
+  ],
+
+  'admin-messages': [
+    { selector: '[data-tour="chat-list"]', title: 'گفتگوها', text: 'پیام‌های خصوصی دانشجوها و گروه هر دوره؛ گفتگوهای نخوانده با عدد مشخص شده‌اند.' },
+    { selector: '[data-tour="chat-new"]', title: 'گفتگوی جدید', text: 'با جست‌وجوی نام یا ایمیل، با هر دانشجویی گفتگو را شروع کنید.' },
+    { selector: '[data-tour="chat-messages"]', title: 'پیام‌ها', text: 'در گروه‌ها نام فرستنده بالای پیام می‌آید؛ دو تیک یعنی پیامتان خوانده شده.' },
+    { selector: '[data-tour="chat-composer"]', title: 'ارسال پیام', text: 'متن، عکس، فایل یا پیام صوتی بفرستید.' },
+  ],
+
+  'admin-board': [
+    { selector: '[data-tour="board-columns"]', title: 'تخته‌ی کارها', text: 'کارهای آماده‌سازی دوره‌ها در چهار ستون: ایده، در حال آماده‌سازی، آماده و منتشرشده.' },
+    { selector: '[data-tour="board-card"]', title: 'کارت‌ها', text: 'هر کارت را بکشید و در ستون دیگر رها کنید، یا رویش بزنید تا توضیح، رنگ، مهلت و دوره‌ی مرتبطش را ویرایش کنید.' },
+    { selector: '[data-tour="board-add"]', title: 'افزودن کار', text: 'عنوان کار را بنویسید و اینتر بزنید تا به همین ستون اضافه شود.' },
+  ],
 }
 
 export function useGuide() {
