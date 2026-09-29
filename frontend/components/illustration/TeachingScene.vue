@@ -63,7 +63,4 @@
   40% { transform: rotate(-18deg); }
   60% { transform: rotate(-12deg); }
 }
-@media (prefers-reduced-motion: reduce) {
-  .pointer-arm { animation: none; }
-}
 </style>

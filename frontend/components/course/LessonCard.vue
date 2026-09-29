@@ -457,7 +457,4 @@ async function downloadFile(file: any) {
   from { background-position: 200% 0; }
   to { background-position: 0 0; }
 }
-@media (prefers-reduced-motion: reduce) {
-  .upload-bar { animation: none; }
-}
 </style>

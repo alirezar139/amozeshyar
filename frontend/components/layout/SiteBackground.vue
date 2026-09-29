@@ -43,9 +43,7 @@ function onPointerMove(e: PointerEvent) {
 }
 
 onMounted(() => {
-  const finePointer = window.matchMedia('(pointer: fine)').matches
-  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  if (finePointer && !reduced) window.addEventListener('pointermove', onPointerMove, { passive: true })
+  if (window.matchMedia('(pointer: fine)').matches) window.addEventListener('pointermove', onPointerMove, { passive: true })
 })
 onBeforeUnmount(() => {
   window.removeEventListener('pointermove', onPointerMove)
@@ -240,12 +238,5 @@ html.dark .image-veil {
 .is-still *,
 .is-still .flowing-gradient {
   animation-play-state: paused !important;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .site-bg *,
-  .flowing-gradient {
-    animation-play-state: paused !important;
-  }
 }
 </style>

@@ -191,7 +191,4 @@ onUnmounted(() => {
   animation-timing-function: linear;
   animation-fill-mode: forwards;
 }
-@media (prefers-reduced-motion: reduce) {
-  .animate-tour-progress { animation: none; width: 100%; }
-}
 </style>
