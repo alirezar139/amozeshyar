@@ -57,7 +57,7 @@ const levelLabels: Record<string, string> = { beginner: 'مقدماتی', interm
             <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
             <span class="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
           </span>
-          دوره‌های ویدیویی و کلاس آنلاین زنده
+          دوره‌های آموزشی و آموزش آنلاین
         </span>
 
         <h1 class="mt-6 text-4xl font-black leading-[1.2] tracking-tight text-gray-900 sm:text-6xl dark:text-white">
