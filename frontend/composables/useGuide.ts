@@ -25,13 +25,18 @@ export const TOUR_STEPS: Record<string, TourStep[]> = {
   'courses-slug': [
     { selector: '[data-tour="lesson-list"]', title: 'سرفصل‌های دوره', text: 'روی هر جلسه بزنید تا پخش بشه. جلسه‌های قفل‌شده فقط یه پیش‌نمایش کوتاه نشون می‌دن.' },
     { selector: '[data-tour="course-buy-cta"]', title: 'ثبت‌نام در دوره', text: 'با این دکمه به درگاه پرداخت زرین‌پال می‌رید؛ بعد از پرداخت موفق، دسترسی کامل بلافاصله فعال می‌شه.' },
+    { selector: '[data-tour="course-enter"]', title: 'ورود به دوره', text: 'اگه ثبت‌نام کردید، از اینجا وارد صفحه‌ی یادگیری دوره می‌شید: ویدیوها، فایل‌ها و پیشرفتتون.' },
   ],
 
   dashboard: [
-    { selector: '[data-tour="continue-learning"]', title: 'ادامه‌ی یادگیری', text: 'دقیقاً از همون جایی که آخرین بار درس رو ول کردید، ادامه می‌دید.' },
+    { selector: '[data-tour="dashboard-stats"]', title: 'پیشرفت شما', text: 'چند جلسه رو تموم کردید، در چند دوره ثبت‌نام کردید و چند دقیقه یاد گرفتید.' },
+    { selector: '[data-tour="continue-learning"]', title: 'ادامه‌ی یادگیری', text: 'دقیقاً از همون جلسه و همون ثانیه‌ای که آخرین بار ول کردید، ادامه می‌دید.' },
+    { selector: '[data-tour="next-session"]', title: 'دوره‌ی آنلاین بعدی', text: 'شمارش معکوس تا دوره‌ی آنلاین بعدی؛ از پونزده دقیقه قبل، دکمه‌ی ورود سبز می‌شه.' },
+    { selector: '[data-tour="recent-files"]', title: 'تازه‌ترین فایل‌ها', text: 'جزوه‌ها و فایل‌هایی که استاد تازه گذاشته؛ با یه کلیک دانلود کنید.' },
+    { selector: '[data-tour="teacher-card"]', title: 'استاد شما', text: 'همه‌ی دوره‌های استادتون از همین‌جا در دسترسه.' },
   ],
   'dashboard-my-courses': [
-    { selector: '[data-tour="my-courses-grid"]', title: 'دوره‌های من', text: 'همه‌ی دوره‌هایی که خریداری کردید اینجا هستن؛ با کلیک روی هرکدوم وارد محتوای کاملش می‌شید.' },
+    { selector: '[data-tour="my-courses-grid"]', title: 'دوره‌های من', text: 'هر دوره نوار پیشرفت خودش رو داره؛ دوره‌های نیمه‌تموم اول میان. روی هر کدوم بزنید تا وارد صفحه‌ی یادگیری‌اش بشید.' },
   ],
   'dashboard-calendar': [
     { selector: '[data-tour="student-calendar"]', title: 'تقویم دوره‌های آنلاین', text: 'روزهایی که دوره‌ی آنلاین دارید روی تقویم علامت خورده؛ روی یه روز بزنید تا فقط جلسات همون روز رو ببینید.' },
@@ -50,17 +55,28 @@ export const TOUR_STEPS: Record<string, TourStep[]> = {
     { selector: '[data-tour="admin-calendar-sessions"]', title: 'فهرست دوره‌های آنلاین', text: 'با انتخاب یه روز از تقویم، فقط دوره‌های آنلاین همون روز اینجا فیلتر می‌شن.' },
   ],
   'admin-courses': [
+    { selector: '[data-tour="new-course-btn"]', title: 'دوره‌ی جدید', text: 'از اینجا دوره‌ی تازه بسازید؛ بلافاصله روی سایت منتشر می‌شه.' },
     { selector: '[data-tour="all-courses-table"]', title: 'همه‌ی دوره‌ها', text: 'از این جدول سرفصل‌ها، ویدیوها و دوره‌های آنلاین هر دوره رو مدیریت کنید، یا دوره رو منتشر کنید و به پیش‌نویس برگردونید.' },
   ],
   'admin-courses-create': [
     { selector: '[data-tour="admin-course-create-form"]', title: 'دوره‌ی جدید', text: 'عنوان، توضیحات، دسته‌بندی و قیمت رو وارد کنید؛ دوره بلافاصله روی سایت منتشر می‌شه.' },
   ],
   'admin-courses-id-lessons': [
-    { selector: '[data-tour="lesson-manager"]', title: 'سرفصل‌ها و ویدیو', text: 'جلسه بسازید و ویدیوش رو آپلود کنید؛ پردازش و ساخت پیش‌نمایش رایگان خودکار انجام می‌شه.' },
+    { selector: '[data-tour="lesson-stats"]', title: 'خلاصه‌ی دوره', text: 'تعداد جلسه‌ها، ویدیوهای آماده، فایل‌ها و مدت کل دوره.' },
+    { selector: '[data-tour="lesson-add"]', title: 'افزودن جلسه', text: 'عنوان جلسه‌ی جدید رو بنویسید و اضافه کنید؛ جلسه‌ی اول خودکار برای همه رایگانه.' },
+    { selector: '[data-tour="lesson-video"]', title: 'ویدیوی جلسه', text: 'ویدیو رو اینجا بکشید و رها کنید؛ درصد، حجم و زمان باقی‌مونده‌ی آپلود رو می‌بینید و بعد خودکار پردازش می‌شه.' },
+    { selector: '[data-tour="lesson-files"]', title: 'فایل‌ها و جزوه‌ها', text: 'چند فایل رو با هم آپلود کنید؛ فقط دانشجوهای ثبت‌نام‌شده می‌تونن دانلودشون کنن.' },
+    { selector: '[data-tour="lesson-tools"]', title: 'مرتب‌سازی و حذف', text: 'ترتیب جلسه‌ها رو با فلش‌ها عوض کنید یا جلسه رو حذف کنید. برای تغییر عنوان، روی خودش بزنید.' },
     { selector: '[data-tour="class-session-manager"]', title: 'دوره‌های آنلاین', text: 'زمان‌بندی جلسات زنده‌ی این دوره رو از همین‌جا مدیریت می‌کنید.' },
   ],
   'admin-settings': [
-    { selector: '[data-tour="site-settings-form"]', title: 'تنظیمات سایت', text: 'عنوان تخصص، معرفی، عکس و شبکه‌های اجتماعی‌تون رو اینجا بنویسید؛ همین‌ها در صفحه‌ی اول سایت نمایش داده می‌شن.' },
+    { selector: '[data-tour="settings-brand"]', title: 'نام و لوگوی سایت', text: 'نام و لوگویی که بالای همه‌ی صفحه‌ها و در فوتر دیده می‌شه.' },
+    { selector: '[data-tour="settings-background"]', title: 'پس‌زمینه‌ی سایت', text: 'سبک و رنگ‌های پس‌زمینه‌ی متحرک سایت رو انتخاب کنید؛ پشت همین صفحه پیش‌نمایش می‌شه.' },
+    { selector: '[data-tour="settings-about"]', title: 'معرفی', text: 'عنوان تخصص و متن معرفی شما در صفحه‌ی اول.' },
+    { selector: '[data-tour="settings-photo"]', title: 'عکس صفحه‌ی اول', text: 'عکس پرتره‌ی شما، دقیقاً با همون برشی که در صفحه‌ی اول دیده می‌شه.' },
+    { selector: '[data-tour="settings-links"]', title: 'لینک‌ها', text: 'شبکه‌های اجتماعی و لینک‌هاتون رو اضافه یا حذف کنید؛ در فوتر نمایش داده می‌شن.' },
+    { selector: '[data-tour="settings-preview"]', title: 'پیش‌نمایش', text: 'قبل از ذخیره ببینید صفحه‌ی اول چه شکلی می‌شه.' },
+    { selector: '[data-tour="settings-save"]', title: 'ذخیره', text: 'تا ذخیره نزنید، تغییرات روی سایت نمی‌ره.' },
   ],
   'admin-users': [
     { selector: '[data-tour="user-search"]', title: 'جست‌وجوی کاربر', text: 'با ایمیل یا نام، هر کاربر رو سریع پیدا کنید.' },
@@ -71,6 +87,18 @@ export const TOUR_STEPS: Record<string, TourStep[]> = {
     { selector: '[data-tour="avatar-upload"]', title: 'عکس و نام پروفایل', text: 'از روی آیکن مداد، عکس پروفایلتون رو عوض کنید و نام و نام خانوادگی رو ویرایش کنید.' },
     { selector: '[data-tour="theme-toggle"]', title: 'حالت روشن و تاریک', text: 'با یه کلیک بین حالت روشن و تاریک سامانه جابه‌جا بشید.' },
     { selector: '[data-tour="palette-picker"]', title: 'پالت رنگی', text: 'رنگ اصلی سامانه رو برای حساب خودتون انتخاب کنید — روی همه‌ی دستگاه‌هاتون اعمال می‌شه.' },
+  ],
+
+  'dashboard-courses-slug': [
+    { selector: '[data-tour="learn-progress"]', title: 'پیشرفت این دوره', text: 'چند درصد از جلسه‌های این دوره رو تموم کردید.' },
+    { selector: '[data-tour="learn-player"]', title: 'پخش جلسه', text: 'ویدیوی جلسه اینجا پخش می‌شه و جای توقفتون خودکار ذخیره می‌شه.' },
+    { selector: '[data-tour="learn-complete"]', title: 'علامت تکمیل', text: 'وقتی جلسه رو تموم کردید اینجا بزنید؛ جلسه‌ی بعدی خودکار باز می‌شه.' },
+    { selector: '[data-tour="learn-files"]', title: 'فایل‌های جلسه', text: 'جزوه‌ها و فایل‌های همین جلسه؛ روی هرکدوم بزنید تا دانلود بشه.' },
+    { selector: '[data-tour="learn-lessons"]', title: 'فهرست جلسه‌ها', text: 'همه‌ی جلسه‌ها با تیک تکمیل، مدت ویدیو و تعداد فایل؛ روی هرکدوم بزنید تا بره سراغش.' },
+  ],
+
+  'classroom-id': [
+    { selector: '[data-tour="classroom-back"]', title: 'خروج از دوره‌ی آنلاین', text: 'هر وقت خواستید، از اینجا به صفحه‌ای که ازش اومدید برمی‌گردید.' },
   ],
 }
 

@@ -266,7 +266,7 @@ async function save() {
     <div v-else class="mt-6 grid grid-cols-1 items-start gap-6 lg:grid-cols-5">
       <form data-tour="site-settings-form" class="space-y-5 lg:col-span-3" @submit.prevent="save">
         <!-- Brand -->
-        <section class="glass rounded-2xl p-6">
+        <section data-tour="settings-brand" class="glass rounded-2xl p-6">
           <div class="flex items-center gap-3">
             <span class="glass flex h-9 w-9 items-center justify-center rounded-lg text-header-700 dark:text-header-300">
               <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
@@ -321,7 +321,7 @@ async function save() {
         </section>
 
         <!-- Background -->
-        <section class="glass rounded-2xl p-6">
+        <section data-tour="settings-background" class="glass rounded-2xl p-6">
           <div class="flex items-center justify-between gap-3">
             <div class="flex items-center gap-3">
               <span class="glass flex h-9 w-9 items-center justify-center rounded-lg text-accent-700 dark:text-accent-300">
@@ -410,7 +410,7 @@ async function save() {
         </section>
 
         <!-- About -->
-        <section class="glass rounded-2xl p-6">
+        <section data-tour="settings-about" class="glass rounded-2xl p-6">
           <div class="flex items-center gap-3">
             <span class="glass flex h-9 w-9 items-center justify-center rounded-lg text-primary-700 dark:text-primary-300">
               <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
@@ -456,7 +456,7 @@ async function save() {
         </section>
 
         <!-- Photo -->
-        <section class="glass rounded-2xl p-6">
+        <section data-tour="settings-photo" class="glass rounded-2xl p-6">
           <div class="flex items-center gap-3">
             <span class="glass flex h-9 w-9 items-center justify-center rounded-lg text-accent-700 dark:text-accent-300">
               <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
@@ -522,7 +522,7 @@ async function save() {
         </section>
 
         <!-- Links -->
-        <section class="glass rounded-2xl p-6">
+        <section data-tour="settings-links" class="glass rounded-2xl p-6">
           <div class="flex items-center justify-between gap-3">
             <div class="flex items-center gap-3">
               <span class="glass flex h-9 w-9 items-center justify-center rounded-lg text-nav-700 dark:text-nav-300">
@@ -606,7 +606,7 @@ async function save() {
         </section>
 
         <!-- Save bar -->
-        <div class="glass sticky bottom-4 z-10 flex items-center justify-between gap-3 rounded-2xl px-5 py-3 shadow-lg">
+        <div data-tour="settings-save" class="glass sticky bottom-4 z-10 flex items-center justify-between gap-3 rounded-2xl px-5 py-3 shadow-lg">
           <p class="text-sm">
             <span v-if="error" class="text-red-600">{{ error }}</span>
             <span v-else-if="isDirty" class="flex items-center gap-2 text-amber-600 dark:text-amber-400">
@@ -630,7 +630,7 @@ async function save() {
       </form>
 
       <!-- Live preview of the homepage hero -->
-      <aside class="lg:sticky lg:top-6 lg:col-span-2">
+      <aside data-tour="settings-preview" class="lg:sticky lg:top-6 lg:col-span-2">
         <div class="flex items-center justify-between">
           <p class="text-sm font-semibold text-gray-700 dark:text-gray-200">پیش‌نمایش صفحه‌ی اول</p>
           <NuxtLink to="/" target="_blank" class="text-xs text-primary-600 hover:underline dark:text-primary-400">دیدن سایت ↗</NuxtLink>

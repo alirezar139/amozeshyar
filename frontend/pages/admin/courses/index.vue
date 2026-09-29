@@ -39,6 +39,7 @@ async function setStatus(id: number, status: 'published' | 'draft') {
       <h1 class="text-xl font-bold text-gray-900 dark:text-white">دوره‌ها</h1>
       <NuxtLink
         to="/admin/courses/create"
+        data-tour="new-course-btn"
         class="rounded-md bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-500"
       >
         دوره‌ی جدید

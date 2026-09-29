@@ -147,6 +147,7 @@ async function buyNow() {
             </p>
             <NuxtLink
               :to="`/dashboard/courses/${course.slug}`"
+              data-tour="course-enter"
               class="mt-3 block w-full rounded-md bg-primary-600 px-4 py-2 text-center text-sm font-semibold text-white hover:bg-primary-500"
             >
               ورود به دوره
