@@ -2,6 +2,8 @@
 const sidebarOpen = ref(false)
 const { logout } = useAuth()
 const { owner, teacherName } = useSite()
+const { total: unread, startPolling } = useUnreadMessages()
+onMounted(startPolling)
 
 async function onLogout() {
   await logout()
@@ -46,6 +48,10 @@ async function onLogout() {
         </NuxtLink>
         <NuxtLink to="/dashboard/calendar" class="rounded-md px-3 py-2 text-sm text-gray-700 transition hover:bg-nav-500/10 hover:text-nav-700 dark:text-gray-200 dark:hover:bg-nav-500/10 dark:hover:text-nav-300" active-class="bg-nav-500/15 text-nav-700 dark:bg-nav-500/15 dark:text-nav-300">
           تقویم دوره‌های آنلاین
+        </NuxtLink>
+        <NuxtLink to="/dashboard/messages" data-tour="nav-messages" class="flex items-center rounded-md px-3 py-2 text-sm text-gray-700 transition hover:bg-nav-500/10 hover:text-nav-700 dark:text-gray-200 dark:hover:bg-nav-500/10 dark:hover:text-nav-300" active-class="bg-nav-500/15 text-nav-700 dark:bg-nav-500/15 dark:text-nav-300">
+          پیام‌ها
+          <span v-if="unread" class="ms-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-primary-600 px-1.5 text-[11px] font-bold text-white">{{ unread > 99 ? '۹۹+' : unread.toLocaleString('fa-IR') }}</span>
         </NuxtLink>
         <NuxtLink to="/profile" class="rounded-md px-3 py-2 text-sm text-gray-700 transition hover:bg-nav-500/10 hover:text-nav-700 dark:text-gray-200 dark:hover:bg-nav-500/10 dark:hover:text-nav-300" active-class="bg-nav-500/15 text-nav-700 dark:bg-nav-500/15 dark:text-nav-300">
           پروفایل من

@@ -113,14 +113,20 @@ class ConversationSerializer(serializers.ModelSerializer):
     def _viewer(self):
         return self.context["request"].user
 
+    def _owner(self):
+        # Same for every row; look it up once per response, not per conversation.
+        if "site_owner" not in self.context:
+            from apps.instructors.site import get_site_owner
+
+            self.context["site_owner"] = get_site_owner()
+        return self.context["site_owner"]
+
     def get_title(self, obj) -> str:
         if obj.kind == Conversation.Kind.COURSE:
             return obj.course.title
         if services.is_teacher(self._viewer()):
             return display_name(obj.student)
-        from apps.instructors.site import get_site_owner
-
-        owner = get_site_owner()
+        owner = self._owner()
         return display_name(owner.user) if owner else "استاد"
 
     def get_subtitle(self, obj) -> str:
@@ -133,9 +139,7 @@ class ConversationSerializer(serializers.ModelSerializer):
             return obj.course.cover_image.url if obj.course.cover_image else None
         if services.is_teacher(self._viewer()):
             return obj.student.avatar.url if obj.student.avatar else None
-        from apps.instructors.site import get_site_owner
-
-        owner = get_site_owner()
+        owner = self._owner()
         return owner.cover_image.url if owner and owner.cover_image else None
 
     def get_members(self, obj) -> int:
