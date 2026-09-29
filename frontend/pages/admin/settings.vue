@@ -194,7 +194,8 @@ function tileStyle(style: BackgroundStyle) {
       return { background: 'rgb(148 163 184 / 0.12)' }
   }
 }
-(() => (removeCover.value ? null : coverPreview.value || currentCover.value))
+
+const shownCover = computed(() => (removeCover.value ? null : coverPreview.value || currentCover.value))
 const previewLinks = computed(() => links.value.filter((l) => l.label.trim() && l.url.trim()))
 const unusedSuggestions = computed(() => SUGGESTED_LABELS.filter((s) => !links.value.some((l) => l.label.trim() === s)))
 
