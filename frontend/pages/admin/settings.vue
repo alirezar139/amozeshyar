@@ -344,14 +344,8 @@ async function save() {
           <NuxtLink to="/" target="_blank" class="text-xs text-primary-600 hover:underline dark:text-primary-400">دیدن سایت ↗</NuxtLink>
         </div>
         <div class="glass mt-3 overflow-hidden rounded-2xl">
-          <div class="flex justify-center bg-gradient-to-br from-primary-500/15 to-accent-500/15 px-6 pb-2 pt-8">
-            <div class="relative w-40">
-              <div class="absolute inset-0 rotate-6 rounded-[1.75rem] bg-gradient-to-br from-primary-500 to-accent-500 opacity-80" />
-              <div class="relative overflow-hidden rounded-[1.75rem] bg-gray-100 shadow-xl dark:bg-gray-800">
-                <img v-if="shownCover" :src="shownCover" alt="" class="aspect-[4/5] w-full object-cover object-top">
-                <IllustrationTeachingScene v-else class="aspect-[4/5] w-full p-3" />
-              </div>
-            </div>
+          <div class="flex justify-center bg-gradient-to-br from-primary-500/15 to-accent-500/15 px-6 pb-6 pt-8">
+            <IllustrationPortraitStack :src="shownCover" size="sm" class="w-40" />
           </div>
           <div class="p-5">
             <p class="text-2xl font-black text-gray-900 dark:text-white">{{ siteName }}</p>
