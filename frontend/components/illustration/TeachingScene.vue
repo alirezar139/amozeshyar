@@ -26,7 +26,7 @@
       <g>
         <circle cx="300" cy="90" r="18" class="fill-primary-600" />
         <path d="M275 175 Q300 120 325 175 Z" class="fill-primary-600" />
-        <line x1="282" y1="130" x2="255" y2="105" class="stroke-primary-600" stroke-width="6" stroke-linecap="round" />
+        <line x1="282" y1="130" x2="255" y2="105" class="pointer-arm stroke-primary-600" stroke-width="6" stroke-linecap="round" />
       </g>
 
       <!-- student desk with laptop -->
@@ -50,3 +50,20 @@
     </svg>
   </div>
 </template>
+
+<style scoped>
+/* The teacher points along the chart as it draws itself */
+.pointer-arm {
+  transform-box: view-box;
+  transform-origin: 282px 130px;
+  animation: point 3.5s ease-in-out infinite;
+}
+@keyframes point {
+  0%, 100% { transform: rotate(0deg); }
+  40% { transform: rotate(-18deg); }
+  60% { transform: rotate(-12deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pointer-arm { animation: none; }
+}
+</style>

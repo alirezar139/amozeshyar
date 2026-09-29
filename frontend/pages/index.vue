@@ -106,19 +106,10 @@ const levelLabels: Record<string, string> = { beginner: 'مقدماتی', interm
         </div>
       </div>
 
-      <!-- Portrait: a tilted color card behind, floating badges in front, so even a plain ID photo reads as a designed hero -->
+      <!-- Portrait: animated stack of color cards behind, floating badges in front, so even a plain ID photo reads as a designed hero -->
       <div class="relative mx-auto w-full max-w-[22rem] lg:col-span-5">
-        <div class="absolute inset-0 rotate-6 rounded-[2.5rem] bg-gradient-to-br from-primary-500 to-accent-500 opacity-80 blur-[1px]" />
         <div class="absolute -inset-6 -z-10 rounded-full bg-primary-500/20 blur-3xl" />
-        <div class="relative overflow-hidden rounded-[2.5rem] bg-gray-100 shadow-2xl ring-1 ring-black/5 dark:bg-gray-800 dark:ring-white/10">
-          <NuxtImg
-            v-if="owner?.cover_image"
-            :src="owner.cover_image"
-            :alt="siteName"
-            class="aspect-[4/5] w-full object-cover object-top"
-          />
-          <IllustrationTeachingScene v-else class="aspect-[4/5] w-full p-6" />
-        </div>
+        <IllustrationPortraitStack :src="owner?.cover_image" :alt="siteName" />
 
         <div class="glass absolute -bottom-5 -start-6 flex items-center gap-3 rounded-2xl px-4 py-3 shadow-xl sm:-start-10">
           <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
