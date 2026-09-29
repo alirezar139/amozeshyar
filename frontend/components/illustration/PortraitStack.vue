@@ -1,8 +1,9 @@
 <script setup lang="ts">
 // The instructor's portrait on a small stack of "pages": two colored cards
-// behind it swing out to either side and back while the front card floats,
-// and hovering fans them out further. Used by the homepage hero and the
-// live preview on the site settings page, so both always match.
+// behind it swing out to either side and back while the front card floats. Used by the homepage hero and the
+// live preview on the site settings page, so both always match. No hover
+// effect on purpose: interrupting a running animation snaps the pages from
+// wherever they are mid-swing, which read as the stack "breaking".
 defineProps<{
   src?: string | null
   alt?: string
@@ -11,7 +12,7 @@ defineProps<{
 </script>
 
 <template>
-  <div :class="['portrait-stack group relative', size === 'sm' ? 'is-sm' : '']">
+  <div :class="['portrait-stack relative', size === 'sm' ? 'is-sm' : '']">
     <div class="page page-back absolute inset-0 bg-gradient-to-br from-accent-400 to-accent-600 opacity-70" />
     <div class="page page-mid absolute inset-0 bg-gradient-to-br from-primary-500 to-primary-700 opacity-85" />
     <div class="page page-front relative shadow-2xl">
@@ -37,7 +38,6 @@ defineProps<{
 .page {
   border-radius: var(--radius);
   transform-origin: 50% 100%;
-  transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 /* clip-path, not overflow:hidden: Chrome stops honoring border-radius
    clipping on a transformed parent when a child has backdrop-filter
@@ -59,22 +59,6 @@ defineProps<{
 }
 .page-front {
   animation: float 6s ease-in-out infinite;
-}
-
-/* Hover: stop the loop and fan the pages out (animation: none, not
-   paused — a paused animation's frame would still override transform) */
-.portrait-stack:hover .page {
-  animation: none;
-  transform-origin: 50% 100%;
-}
-.portrait-stack:hover .page-back {
-  transform: rotate(-14deg) translateX(-8%);
-}
-.portrait-stack:hover .page-mid {
-  transform: rotate(12deg) translateX(8%);
-}
-.portrait-stack:hover .page-front {
-  transform: translateY(-6px) scale(1.02);
 }
 
 @keyframes swing-left {
