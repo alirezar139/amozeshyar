@@ -91,10 +91,16 @@ class Message(TimeStampedModel):
     # Voice notes: length in seconds, as measured by the recorder.
     duration_seconds = models.PositiveIntegerField(null=True, blank=True)
     reply_to = models.ForeignKey("self", null=True, blank=True, on_delete=models.SET_NULL, related_name="replies")
+    # "Delete for everyone" is a soft delete: participants see a placeholder,
+    # while the content stays available to the teacher's chat report.
+    deleted_at = models.DateTimeField(null=True, blank=True)
+    deleted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
 
     class Meta:
         ordering = ("created_at", "id")
-        indexes = [models.Index(fields=("conversation", "id"))]
+        indexes = [models.Index(fields=("conversation", "id")), models.Index(fields=("conversation", "updated_at"))]
 
     def __str__(self):
         return f"{self.sender}: {self.text[:40] or self.attachment_kind}"
@@ -114,3 +120,18 @@ class ConversationRead(models.Model):
 
     def __str__(self):
         return f"{self.user} read {self.conversation} up to #{self.last_read_message_id}"
+
+
+class MessageReaction(models.Model):
+    """One emoji reaction per person per message (reacting again changes it)."""
+
+    message = models.ForeignKey(Message, on_delete=models.CASCADE, related_name="reactions")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="message_reactions")
+    emoji = models.CharField(max_length=16)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=("message", "user"), name="one_reaction_per_user")]
+
+    def __str__(self):
+        return f"{self.user} {self.emoji} on #{self.message_id}"
