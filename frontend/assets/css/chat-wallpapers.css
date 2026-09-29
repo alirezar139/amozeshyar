@@ -1,38 +1,97 @@
-/* Chat wallpapers (chosen in messenger settings). */
+/* Chat wallpapers (chosen in messenger settings). Each has its own palette
+   so it reads well whatever colors the account picked; dark mode gets a
+   deeper variant of the same idea. */
+
 .chat-bg.wp-dots {
-  background-color: rgb(var(--c-primary-500) / 0.03);
+  background-color: #eef3f7;
   background-image:
-    radial-gradient(rgb(var(--c-primary-500) / 0.09) 1px, transparent 1px),
-    radial-gradient(circle at 10% 0%, rgb(var(--c-primary-500) / 0.08), transparent 45%),
-    radial-gradient(circle at 90% 100%, rgb(var(--c-accent-500) / 0.08), transparent 45%);
+    radial-gradient(rgb(var(--c-primary-500) / 0.22) 1.2px, transparent 1.2px),
+    radial-gradient(circle at 10% 0%, rgb(var(--c-primary-500) / 0.12), transparent 45%),
+    radial-gradient(circle at 90% 100%, rgb(var(--c-accent-500) / 0.12), transparent 45%);
   background-size: 18px 18px, 100% 100%, 100% 100%;
 }
-.chat-bg.wp-plain {
-  background: rgb(var(--c-primary-500) / 0.02);
-}
-.chat-bg.wp-gradient {
-  background: linear-gradient(160deg, rgb(var(--c-primary-500) / 0.16), rgb(var(--c-accent-500) / 0.12) 55%, rgb(var(--c-primary-300) / 0.14));
-}
-.chat-bg.wp-waves {
-  background-color: rgb(var(--c-primary-500) / 0.04);
+html.dark .chat-bg.wp-dots {
+  background-color: #111827;
   background-image:
-    radial-gradient(ellipse 120% 60% at 50% 120%, rgb(var(--c-primary-500) / 0.14) 40%, transparent 41%),
-    radial-gradient(ellipse 120% 60% at 30% 135%, rgb(var(--c-accent-500) / 0.12) 40%, transparent 41%);
-  background-attachment: local;
+    radial-gradient(rgb(148 163 184 / 0.18) 1.2px, transparent 1.2px),
+    radial-gradient(circle at 10% 0%, rgb(var(--c-primary-500) / 0.18), transparent 45%);
+  background-size: 18px 18px, 100% 100%;
 }
+
+/* Study doodles: pencils, notebooks, stars, bulbs and caps on a warm paper. */
+.chat-bg.wp-doodle {
+  background-color: #f6f1e7;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' fill='none' stroke='%237c6f5a' stroke-opacity='0.32' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M22 36 l24-24 7 7-24 24-9 2z M40 18l7 7'/%3E%3Cpath d='M104 18h30v38h-30z M110 28h18 M110 36h18 M110 44h10'/%3E%3Cpath d='M44 112l4 10 11 1-8 7 2 11-9-6-10 6 3-11-8-7 11-1z'/%3E%3Cpath d='M130 116a13 13 0 1 1 15 13v7h-9v-7 M134 142h8'/%3E%3Cpath d='M86 88l22-10 22 10-22 10z M96 92v10q12 6 24 0v-10'/%3E%3Cpath d='M12 160h26 M25 147v26'/%3E%3Ccircle cx='160' cy='70' r='6'/%3E%3Cpath d='M70 150q8-10 16 0t16 0'/%3E%3C/svg%3E");
+  background-size: 180px 180px;
+}
+html.dark .chat-bg.wp-doodle {
+  background-color: #1c1a16;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' fill='none' stroke='%23d6c7a8' stroke-opacity='0.16' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M22 36 l24-24 7 7-24 24-9 2z M40 18l7 7'/%3E%3Cpath d='M104 18h30v38h-30z M110 28h18 M110 36h18 M110 44h10'/%3E%3Cpath d='M44 112l4 10 11 1-8 7 2 11-9-6-10 6 3-11-8-7 11-1z'/%3E%3Cpath d='M130 116a13 13 0 1 1 15 13v7h-9v-7 M134 142h8'/%3E%3Cpath d='M86 88l22-10 22 10-22 10z M96 92v10q12 6 24 0v-10'/%3E%3Cpath d='M12 160h26 M25 147v26'/%3E%3Ccircle cx='160' cy='70' r='6'/%3E%3Cpath d='M70 150q8-10 16 0t16 0'/%3E%3C/svg%3E");
+}
+
+.chat-bg.wp-sunset { background: linear-gradient(165deg, #ffd6a5 0%, #ffadad 45%, #c4a5ff 100%); }
+html.dark .chat-bg.wp-sunset { background: linear-gradient(165deg, #3b1f2b 0%, #4a2340 45%, #261c4a 100%); }
+
+.chat-bg.wp-ocean { background: linear-gradient(165deg, #a0e7e5 0%, #6ec3f4 50%, #4a7fd8 100%); }
+html.dark .chat-bg.wp-ocean { background: linear-gradient(165deg, #0b2b3a 0%, #0c2f55 55%, #111c4a 100%); }
+
+.chat-bg.wp-lavender {
+  background:
+    radial-gradient(circle at 20% 20%, rgb(255 255 255 / 0.5), transparent 40%),
+    linear-gradient(160deg, #e9d5ff 0%, #f5c2e7 55%, #c7d2fe 100%);
+}
+html.dark .chat-bg.wp-lavender { background: linear-gradient(160deg, #2e1f47 0%, #3d1f3f 55%, #1f2550 100%); }
+
+.chat-bg.wp-mint {
+  background:
+    radial-gradient(circle at 80% 10%, rgb(255 255 255 / 0.55), transparent 40%),
+    linear-gradient(165deg, #d1fae5 0%, #a7f3d0 50%, #bae6fd 100%);
+}
+html.dark .chat-bg.wp-mint { background: linear-gradient(165deg, #0f2e25 0%, #11342c 50%, #0f2a3a 100%); }
+
+/* Night sky: stars scattered over deep blue (same in both themes). */
+.chat-bg.wp-night {
+  background-color: #0b1330;
+  background-image:
+    radial-gradient(1.2px 1.2px at 20px 30px, #fff, transparent),
+    radial-gradient(1px 1px at 90px 80px, rgb(255 255 255 / 0.8), transparent),
+    radial-gradient(1.5px 1.5px at 150px 40px, #fff, transparent),
+    radial-gradient(1px 1px at 60px 140px, rgb(255 255 255 / 0.7), transparent),
+    radial-gradient(1.3px 1.3px at 130px 120px, #dfe6ff, transparent),
+    radial-gradient(circle at 80% 10%, rgb(120 140 255 / 0.25), transparent 40%),
+    linear-gradient(180deg, #0b1330, #1a1446);
+  background-size: 180px 180px, 180px 180px, 180px 180px, 180px 180px, 180px 180px, 100% 100%, 100% 100%;
+}
+
 .chat-bg.wp-grid {
-  background-color: rgb(255 255 255 / 0.4);
+  background-color: #fbfbf7;
   background-image:
-    linear-gradient(rgb(var(--c-primary-500) / 0.1) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(var(--c-primary-500) / 0.1) 1px, transparent 1px);
+    linear-gradient(rgb(59 130 246 / 0.16) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(59 130 246 / 0.16) 1px, transparent 1px);
   background-size: 22px 22px;
 }
 html.dark .chat-bg.wp-grid {
-  background-color: transparent;
+  background-color: #141821;
+  background-image:
+    linear-gradient(rgb(148 163 184 / 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(148 163 184 / 0.1) 1px, transparent 1px);
 }
-/* Study doodles: pencils, books, stars and bulbs, drawn once as an inline SVG tile. */
-.chat-bg.wp-doodle {
-  background-color: rgb(var(--c-primary-500) / 0.04);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' fill='none' stroke='%2394a3b8' stroke-opacity='0.35' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 30 l22-22 6 6-22 22-8 2z'/%3E%3Cpath d='M92 20h26v34H92zM98 28h14M98 36h14M98 44h8'/%3E%3Cpath d='M40 100l4 9 10 1-7 7 2 10-9-5-9 5 2-10-7-7 10-1z'/%3E%3Cpath d='M118 102a12 12 0 1 1 14 12v6h-8v-6M122 128h6'/%3E%3Ccircle cx='80' cy='80' r='3'/%3E%3Cpath d='M10 140h24M22 128v24'/%3E%3Cpath d='M140 60q10 8 0 16'/%3E%3C/svg%3E");
-  background-size: 160px 160px;
+
+.chat-bg.wp-waves {
+  background-color: #eaf4fb;
+  background-image:
+    radial-gradient(ellipse 120% 55% at 50% 118%, rgb(var(--c-primary-500) / 0.28) 40%, transparent 41%),
+    radial-gradient(ellipse 120% 55% at 25% 132%, rgb(var(--c-accent-500) / 0.24) 40%, transparent 41%),
+    radial-gradient(ellipse 120% 55% at 75% 145%, rgb(var(--c-primary-300) / 0.3) 40%, transparent 41%);
 }
+html.dark .chat-bg.wp-waves {
+  background-color: #0f172a;
+}
+
+.chat-bg.wp-plain { background: #f3f4f6; }
+html.dark .chat-bg.wp-plain { background: #111318; }
+
+/* Message text size (messenger settings). */
+.chat-text-sm { font-size: 0.8125rem; line-height: 1.45rem; }
+.chat-text-md { font-size: 0.9375rem; line-height: 1.65rem; }
+.chat-text-lg { font-size: 1.0625rem; line-height: 1.85rem; }

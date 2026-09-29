@@ -128,7 +128,7 @@ async function togglePeerChat() {
   }
 }
 
-const { wallpaper, setWallpaper } = useChatWallpaper()
+const { prefs, update: updatePrefs } = useChatPrefs()
 
 function onUpdated(row: any) {
   const index = conversations.value.findIndex((c) => c.id === row.id)
@@ -376,42 +376,125 @@ function onActivity() {
     </ChatModal>
 
     <!-- messenger settings -->
-    <ChatModal v-if="showSettings" title="تنظیمات پیام‌رسان" @close="showSettings = false">
-      <div class="space-y-5 p-5">
-        <div>
-          <p class="mb-2 text-sm font-bold text-gray-800 dark:text-gray-100">پس‌زمینه‌ی گفت‌وگو</p>
-          <div class="grid grid-cols-3 gap-2.5">
+    <ChatModal v-if="showSettings" title="تنظیمات پیام‌رسان" wide @close="showSettings = false">
+      <!-- live preview of the chosen look -->
+      <div :class="['chat-bg relative flex flex-col gap-2 px-5 py-6', `wp-${prefs.wallpaper}`]">
+        <div class="flex justify-end">
+          <div class="max-w-[75%] rounded-[1.1rem] rounded-se-md bg-white/95 px-3.5 py-2 shadow-md ring-1 ring-black/5 dark:bg-gray-800/95 dark:ring-white/5">
+            <p class="text-[11px] font-bold text-primary-700 dark:text-primary-300">{{ isTeacher ? 'دانشجو' : 'استاد' }}</p>
+            <p :class="['text-gray-900 dark:text-gray-100', `chat-text-${prefs.fontSize}`]">سلام! جزوه‌ی جلسه‌ی سوم آماده است 📚</p>
+            <p class="mt-0.5 text-end text-[10px] text-gray-400">۱۰:۲۴</p>
+          </div>
+        </div>
+        <div class="flex justify-start">
+          <div class="max-w-[75%] rounded-[1.1rem] rounded-ss-md bg-gradient-to-br from-primary-500 to-primary-700 px-3.5 py-2 text-white shadow-md">
+            <p :class="`chat-text-${prefs.fontSize}`">ممنون، همین حالا دانلودش می‌کنم 🙏</p>
+            <p class="mt-0.5 text-end text-[10px] text-white/75">۱۰:۲۵ <span class="text-sky-200">✓✓</span></p>
+          </div>
+        </div>
+      </div>
+
+      <div class="space-y-6 p-5">
+        <!-- wallpapers -->
+        <section>
+          <p class="mb-3 flex items-center gap-2 text-sm font-bold text-gray-800 dark:text-gray-100">
+            <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-primary-500/15 text-primary-600">🎨</span>
+            پس‌زمینه‌ی گفت‌وگو
+          </p>
+          <div class="grid grid-cols-3 gap-2.5 sm:grid-cols-5">
             <button
               v-for="w in CHAT_WALLPAPERS"
               :key="w.value"
               type="button"
               :class="[
-                'overflow-hidden rounded-xl text-center transition',
-                wallpaper === w.value ? 'ring-2 ring-primary-500 ring-offset-2 ring-offset-white dark:ring-offset-gray-900' : 'ring-1 ring-black/10 hover:-translate-y-0.5 dark:ring-white/10',
+                'group overflow-hidden rounded-2xl text-center transition',
+                prefs.wallpaper === w.value
+                  ? 'ring-[3px] ring-primary-500 ring-offset-2 ring-offset-white dark:ring-offset-gray-900'
+                  : 'ring-1 ring-black/10 hover:-translate-y-0.5 hover:shadow-lg dark:ring-white/10',
               ]"
-              @click="setWallpaper(w.value)"
+              @click="updatePrefs({ wallpaper: w.value })"
             >
-              <span :class="['chat-bg block h-16', `wp-${w.value}`]" />
-              <span class="block py-1.5 text-xs text-gray-700 dark:text-gray-200">{{ w.label }}</span>
+              <span :class="['chat-bg relative flex h-20 flex-col justify-center gap-1.5 px-2', `wp-${w.value}`]">
+                <span class="ms-auto block h-2.5 w-3/5 rounded-full bg-white/90 shadow-sm dark:bg-gray-700" />
+                <span class="block h-2.5 w-1/2 rounded-full bg-primary-500 shadow-sm" />
+                <span v-if="prefs.wallpaper === w.value" class="absolute end-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary-600 text-white shadow">
+                  <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+                </span>
+              </span>
+              <span class="block bg-white py-1.5 text-[11px] font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-200">{{ w.label }}</span>
             </button>
           </div>
-          <p class="mt-2 text-[11px] text-gray-500 dark:text-gray-400">این انتخاب فقط روی همین مرورگر ذخیره می‌شود.</p>
-        </div>
-        <label v-if="isTeacher" class="flex cursor-pointer items-center justify-between gap-3 rounded-2xl bg-black/[0.03] px-4 py-3 dark:bg-white/5">
-          <span>
-            <span class="block text-sm font-medium text-gray-800 dark:text-gray-100">گفت‌وگوی دانشجویان با یکدیگر</span>
-            <span class="block text-[11px] text-gray-500 dark:text-gray-400">هم‌کلاسی‌ها بتوانند با هم گفت‌وگوی خصوصی داشته باشند.</span>
-          </span>
-          <button
-            type="button"
-            role="switch"
-            :aria-checked="peerAllowed"
-            :class="['relative h-6 w-11 shrink-0 rounded-full transition', peerAllowed ? 'bg-primary-600' : 'bg-gray-300 dark:bg-white/15']"
-            @click="togglePeerChat"
+        </section>
+
+        <!-- text size -->
+        <section>
+          <p class="mb-3 flex items-center gap-2 text-sm font-bold text-gray-800 dark:text-gray-100">
+            <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-accent-500/15 text-accent-600">Aa</span>
+            اندازه‌ی متن پیام‌ها
+          </p>
+          <div class="flex gap-1 rounded-2xl bg-black/[0.05] p-1 dark:bg-white/[0.06]">
+            <button
+              v-for="f in CHAT_FONT_SIZES"
+              :key="f.value"
+              type="button"
+              :class="[
+                'flex flex-1 items-center justify-center gap-2 rounded-xl py-2 font-semibold transition',
+                prefs.fontSize === f.value ? 'bg-white text-primary-700 shadow-sm dark:bg-white/15 dark:text-white' : 'text-gray-500 hover:text-gray-800 dark:text-gray-400',
+              ]"
+              @click="updatePrefs({ fontSize: f.value })"
+            >
+              <span :class="{ sm: 'text-xs', md: 'text-sm', lg: 'text-base' }[f.value]">{{ f.label }}</span>
+            </button>
+          </div>
+        </section>
+
+        <!-- behavior switches -->
+        <section class="divide-y divide-black/5 overflow-hidden rounded-2xl bg-black/[0.03] dark:divide-white/5 dark:bg-white/5">
+          <label
+            v-for="row in [
+              { key: 'enterToSend', icon: '⏎', title: 'ارسال با Enter', hint: prefs.enterToSend ? 'برای رفتن به خط بعد: Shift+Enter' : 'ارسال با Ctrl+Enter؛ Enter خط جدید می‌سازد', value: prefs.enterToSend },
+              { key: 'sound', icon: '🔔', title: 'صدای پیام تازه', hint: 'هنگام رسیدن پیام تازه، صدای کوتاهی پخش شود', value: prefs.sound },
+            ]"
+            :key="row.key"
+            class="flex cursor-pointer items-center justify-between gap-3 px-4 py-3"
           >
-            <span :class="['absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all', peerAllowed ? 'start-[1.375rem]' : 'start-0.5']" />
-          </button>
-        </label>
+            <span class="flex items-center gap-3">
+              <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-sm shadow-sm dark:bg-white/10">{{ row.icon }}</span>
+              <span>
+                <span class="block text-sm font-medium text-gray-800 dark:text-gray-100">{{ row.title }}</span>
+                <span class="block text-[11px] text-gray-500 dark:text-gray-400">{{ row.hint }}</span>
+              </span>
+            </span>
+            <button
+              type="button"
+              role="switch"
+              :aria-checked="row.value"
+              :class="['relative h-6 w-11 shrink-0 rounded-full transition', row.value ? 'bg-primary-600' : 'bg-gray-300 dark:bg-white/15']"
+              @click="updatePrefs({ [row.key]: !row.value })"
+            >
+              <span :class="['absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all', row.value ? 'start-[1.375rem]' : 'start-0.5']" />
+            </button>
+          </label>
+          <label v-if="isTeacher" class="flex cursor-pointer items-center justify-between gap-3 px-4 py-3">
+            <span class="flex items-center gap-3">
+              <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-sm shadow-sm dark:bg-white/10">👥</span>
+              <span>
+                <span class="block text-sm font-medium text-gray-800 dark:text-gray-100">گفت‌وگوی دانشجویان با یکدیگر</span>
+                <span class="block text-[11px] text-gray-500 dark:text-gray-400">هم‌کلاسی‌ها بتوانند با هم گفت‌وگوی خصوصی داشته باشند.</span>
+              </span>
+            </span>
+            <button
+              type="button"
+              role="switch"
+              :aria-checked="peerAllowed"
+              :class="['relative h-6 w-11 shrink-0 rounded-full transition', peerAllowed ? 'bg-primary-600' : 'bg-gray-300 dark:bg-white/15']"
+              @click="togglePeerChat"
+            >
+              <span :class="['absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all', peerAllowed ? 'start-[1.375rem]' : 'start-0.5']" />
+            </button>
+          </label>
+        </section>
+        <p class="text-center text-[11px] text-gray-400">تنظیمات ظاهری فقط روی همین مرورگر ذخیره می‌شوند.</p>
       </div>
     </ChatModal>
   </div>
