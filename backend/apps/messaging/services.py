@@ -8,6 +8,7 @@ side can't see them (the teacher can switch the feature off instead).
 """
 from django.db.models import Count, Max, OuterRef, Q, Subquery
 from django.db.models.functions import Coalesce
+from django.utils import timezone
 
 from apps.accounts.models import User
 from apps.courses.models import Course
@@ -58,6 +59,36 @@ def get_or_create_direct(student) -> Conversation:
     return conversation
 
 
+def send_bot_message(student, text: str, bot: str) -> Message | None:
+    """Post an automated message into `student`'s direct chat with the teacher.
+
+    Sent as the site owner (any admin as a fallback) and tagged with `bot`, so
+    the chat shows it as that bot. Returns None if there's no teacher account.
+    """
+    from apps.instructors.site import get_site_owner
+
+    owner = get_site_owner()
+    sender = owner.user if owner else User.objects.filter(role=User.Role.ADMIN, is_active=True).first()
+    if sender is None:
+        return None
+    conversation = get_or_create_direct(student)
+    message = Message.objects.create(conversation=conversation, sender=sender, text=text, bot=bot)
+    Conversation.objects.filter(pk=conversation.pk).update(last_message_at=timezone.now())
+    return message
+
+
+def announce_joined(conversation: Conversation, by, users) -> Message:
+    """A system line in the chat ("X joined the group"), shown centered rather than as a bubble."""
+    from .serializers import display_name
+
+    names = [display_name(u) for u in users]
+    who = names[0] if len(names) == 1 else "، ".join(names[:-1]) + " و " + names[-1]
+    verb = "به گروه اضافه شد" if len(names) == 1 else "به گروه اضافه شدند"
+    message = Message.objects.create(conversation=conversation, sender=by, text=f"{who} {verb}", bot="system")
+    Conversation.objects.filter(pk=conversation.pk).update(last_message_at=timezone.now())
+    return message
+
+
 def get_or_create_peer(a, b) -> Conversation:
     existing = (
         Conversation.objects.filter(kind=Conversation.Kind.PEER, members__user=a)
@@ -89,6 +120,7 @@ def visible_conversations(user):
     return Conversation.objects.filter(
         Q(kind=Conversation.Kind.DIRECT, student=user)
         | Q(kind=Conversation.Kind.COURSE, course_id__in=course_ids)
+        | Q(kind=Conversation.Kind.COURSE, members__user=user)
         | (Q(kind=Conversation.Kind.CUSTOM, private=False, members__user=user))
         | ((student_made & Q(members__user=user)) if peers_on else Q(pk__in=[]))
     ).distinct()
@@ -104,7 +136,10 @@ def can_access(user, conversation: Conversation) -> bool:
         return conversation.student_id == user.id
     if kind == Conversation.Kind.CUSTOM:
         return conversation.members.filter(user=user).exists()
-    return Enrollment.objects.filter(student=user, course_id=conversation.course_id, is_active=True).exists()
+    return (
+        Enrollment.objects.filter(student=user, course_id=conversation.course_id, is_active=True).exists()
+        or conversation.members.filter(user=user).exists()
+    )
 
 
 def can_send(user, conversation: Conversation) -> bool:
@@ -129,8 +164,12 @@ def members(conversation: Conversation):
     if conversation.kind == Conversation.Kind.DIRECT:
         others = [conversation.student]
     elif conversation.kind == Conversation.Kind.COURSE:
+        # Enrolled students, plus anyone the teacher added to the group by hand.
         others = list(
-            User.objects.filter(enrollments__course_id=conversation.course_id, enrollments__is_active=True).distinct().order_by("first_name")
+            User.objects.filter(
+                Q(enrollments__course_id=conversation.course_id, enrollments__is_active=True)
+                | Q(chat_memberships__conversation=conversation)
+            ).distinct().order_by("first_name")
         )
     else:
         others = [m.user for m in conversation.members.select_related("user").order_by("added_at")]
@@ -181,7 +220,25 @@ def member_count(conversation: Conversation) -> int:
         return 2
     if kind == Conversation.Kind.CUSTOM:
         return conversation.members.count() + (0 if conversation.private else 1)
-    return Enrollment.objects.filter(course_id=conversation.course_id, is_active=True).count() + 1
+    return (
+        User.objects.filter(
+            Q(enrollments__course_id=conversation.course_id, enrollments__is_active=True)
+            | Q(chat_memberships__conversation=conversation)
+        ).distinct().count() + 1
+    )
+
+
+def removable_member_ids(conversation: Conversation) -> set[int]:
+    """Who the group's manager may remove: anyone in a custom group; in a
+    course group only people added by hand — enrolled students stay."""
+    added = set(conversation.members.values_list("user_id", flat=True))
+    if conversation.kind == Conversation.Kind.COURSE:
+        added -= set(enrolled_student_ids(conversation.course_id))
+    return added
+
+
+def enrolled_student_ids(course_id):
+    return Enrollment.objects.filter(course_id=course_id, is_active=True).values_list("student_id", flat=True)
 
 
 def last_message(conversation: Conversation) -> Message | None:

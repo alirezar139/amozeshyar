@@ -43,6 +43,9 @@ async function onLogout() {
         <NuxtLink to="/dashboard/my-courses" class="rounded-md px-3 py-2 text-sm text-gray-700 transition hover:bg-nav-500/10 hover:text-nav-700 dark:text-gray-200 dark:hover:bg-nav-500/10 dark:hover:text-nav-300" active-class="bg-nav-500/15 text-nav-700 dark:bg-nav-500/15 dark:text-nav-300">
           دوره‌های من
         </NuxtLink>
+        <NuxtLink to="/dashboard/exams" class="rounded-md px-3 py-2 text-sm text-gray-700 transition hover:bg-nav-500/10 hover:text-nav-700 dark:text-gray-200 dark:hover:bg-nav-500/10 dark:hover:text-nav-300" active-class="bg-nav-500/15 text-nav-700 dark:bg-nav-500/15 dark:text-nav-300">
+          آزمون‌ها
+        </NuxtLink>
         <NuxtLink to="/dashboard/orders" class="rounded-md px-3 py-2 text-sm text-gray-700 transition hover:bg-nav-500/10 hover:text-nav-700 dark:text-gray-200 dark:hover:bg-nav-500/10 dark:hover:text-nav-300" active-class="bg-nav-500/15 text-nav-700 dark:bg-nav-500/15 dark:text-nav-300">
           سفارش‌ها
         </NuxtLink>

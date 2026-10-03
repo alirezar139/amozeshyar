@@ -36,6 +36,8 @@ interface ChatMessage {
   duration_seconds: number | null
   created_at: string
   reply_to?: { id: number; sender_name: string; text: string; attachment_kind: string; deleted?: boolean } | null
+  /** Automated sender, e.g. 'exam' for the exam assistant's result messages. */
+  bot?: string
   seen_count?: number | null
   is_deleted?: boolean
   reactions?: { emoji: string; count: number; mine: boolean }[]
@@ -342,11 +344,13 @@ function timeLabel(iso: string) {
 function showDay(i: number) {
   return i === 0 || dayKey(messages.value[i].created_at) !== dayKey(messages.value[i - 1].created_at)
 }
+const BOT_NAMES: Record<string, string> = { exam: '🤖 دستیار آزمون' }
 function showSender(i: number) {
   const m = messages.value[i]
+  if (m.bot) return true
   if (m.is_mine || !isGroup.value) return false
   const prev = messages.value[i - 1]
-  return !prev || showDay(i) || prev.sender.id !== m.sender.id
+  return !prev || showDay(i) || prev.bot === 'system' || prev.sender.id !== m.sender.id
 }
 </script>
 
@@ -425,7 +429,11 @@ function showSender(i: number) {
           <div v-if="showDay(i)" class="my-3 flex justify-center">
             <span class="rounded-full bg-black/10 px-3 py-0.5 text-[11px] text-gray-700 backdrop-blur dark:bg-white/10 dark:text-gray-200">{{ dayLabel(m.created_at) }}</span>
           </div>
-          <div :data-mid="m.id" :class="['msg-row group/msg mb-1.5 flex items-center gap-1', m.is_mine ? 'justify-start' : 'justify-end']">
+          <!-- system line, e.g. "X joined the group" -->
+          <div v-if="m.bot === 'system'" :data-mid="m.id" class="my-2 flex justify-center">
+            <span class="max-w-[85%] rounded-full bg-black/10 px-3 py-1 text-center text-xs text-gray-700 backdrop-blur dark:bg-white/10 dark:text-gray-200" dir="auto">{{ m.text }}</span>
+          </div>
+          <div v-else :data-mid="m.id" :class="['msg-row group/msg mb-1.5 flex items-center gap-1', m.is_mine ? 'justify-start' : 'justify-end']">
             <div
               data-msg-menu
               :class="[
@@ -471,9 +479,9 @@ function showSender(i: number) {
                   <button v-if="canDelete(m)" type="button" class="menu-item text-red-600" @click="deleteMessage(m)"><span>🗑</span> حذف</button>
                 </div>
               </Transition>
-              <p v-if="showSender(i)" class="mb-0.5 flex items-center gap-1.5 text-xs font-bold text-primary-700 dark:text-primary-300">
-                {{ m.sender.name }}
-                <span v-if="m.sender.is_teacher" class="rounded bg-accent-500/15 px-1.5 text-[10px] font-semibold text-accent-700 dark:text-accent-300">استاد</span>
+              <p v-if="showSender(i)" :class="['mb-0.5 flex items-center gap-1.5 text-xs font-bold', m.is_mine ? 'text-white' : 'text-primary-700 dark:text-primary-300']">
+                {{ m.bot ? BOT_NAMES[m.bot] ?? '🤖 دستیار' : m.sender.name }}
+                <span v-if="m.sender.is_teacher && !m.bot" class="rounded bg-accent-500/15 px-1.5 text-[10px] font-semibold text-accent-700 dark:text-accent-300">استاد</span>
               </p>
 
               <!-- quoted message (reply) -->

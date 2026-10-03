@@ -13,8 +13,10 @@ const title = ref(props.conversation.title)
 const adding = ref(false)
 const toAdd = ref<number[]>([])
 
-const isCustom = computed(() => props.conversation.kind === 'custom')
 const manage = computed(() => props.conversation.can_manage)
+const isCustom = computed(() => props.conversation.kind === 'custom')
+// Course groups take extra members too (chat only — not access to the course).
+const canAdd = computed(() => manage.value && (isCustom.value || props.conversation.kind === 'course'))
 
 async function loadMembers() {
   loading.value = true
@@ -42,15 +44,26 @@ async function unpin() {
 
 async function addMembers() {
   if (!toAdd.value.length) return
-  members.value = await request<any[]>(`/conversations/${props.conversation.id}/members/`, { method: 'POST', body: { user_ids: toAdd.value } })
-  toAdd.value = []
-  adding.value = false
-  emit('updated', { ...props.conversation, members: members.value.length })
+  error.value = ''
+  try {
+    members.value = await request<any[]>(`/conversations/${props.conversation.id}/members/`, { method: 'POST', body: { user_ids: toAdd.value } })
+    toAdd.value = []
+    adding.value = false
+    emit('updated', { ...props.conversation, members: members.value.length })
+  } catch (err) {
+    error.value = getErrorMessage(err, 'افزودن عضو ناموفق بود.')
+  }
 }
 
 async function removeMember(member: any) {
   if (!confirm(`${member.name} از گروه حذف شود؟`)) return
-  await request(`/conversations/${props.conversation.id}/members/${member.id}/`, { method: 'DELETE' })
+  error.value = ''
+  try {
+    await request(`/conversations/${props.conversation.id}/members/${member.id}/`, { method: 'DELETE' })
+  } catch (err) {
+    error.value = getErrorMessage(err, 'حذف عضو ناموفق بود.')
+    return
+  }
   members.value = members.value.filter((m) => m.id !== member.id)
   emit('updated', { ...props.conversation, members: members.value.length })
 }
@@ -118,11 +131,12 @@ async function deleteGroup() {
       <section>
         <div class="mb-2 flex items-center justify-between">
           <p class="text-xs font-bold text-gray-500 dark:text-gray-400">اعضا</p>
-          <button v-if="manage && isCustom" type="button" class="text-xs font-semibold text-primary-600 hover:underline dark:text-primary-400" @click="adding = !adding">
+          <button v-if="canAdd" type="button" class="text-xs font-semibold text-primary-600 hover:underline dark:text-primary-400" @click="adding = !adding">
             {{ adding ? 'انصراف' : '+ افزودن عضو' }}
           </button>
         </div>
         <div v-if="adding" class="mb-3 rounded-2xl bg-black/[0.03] p-3 dark:bg-white/5">
+          <p v-if="!isCustom" class="mb-2 text-[11px] leading-5 text-gray-500 dark:text-gray-400">فقط به گفت‌وگوی گروه اضافه می‌شوند؛ به ویدیوها و فایل‌های دوره دسترسی پیدا نمی‌کنند.</p>
           <ChatPeoplePicker v-model="toAdd" multiple :exclude="members.map((m) => m.id)" />
           <button
             type="button"
@@ -141,10 +155,11 @@ async function deleteGroup() {
               <span class="flex items-center gap-1.5 truncate text-sm font-medium text-gray-900 dark:text-white">
                 {{ m.name }}
                 <span v-if="m.is_teacher" class="rounded bg-accent-500/15 px-1.5 text-[10px] font-semibold text-accent-700 dark:text-accent-300">استاد</span>
+                <span v-else-if="m.removable && !isCustom" class="rounded bg-black/5 px-1.5 text-[10px] text-gray-500 dark:bg-white/10 dark:text-gray-400">مهمان</span>
               </span>
             </span>
             <button
-              v-if="manage && isCustom && !m.is_teacher"
+              v-if="manage && m.removable && !m.is_teacher"
               type="button"
               class="rounded-lg p-1 text-gray-400 opacity-0 transition hover:text-red-600 group-hover:opacity-100"
               aria-label="حذف از گروه"

@@ -27,6 +27,84 @@ async function updateUser(user: any, patch: Record<string, any>) {
     busyId.value = null
   }
 }
+
+// ---------- password ----------
+// The current password can't be shown (only its hash is stored); the admin
+// sets a new one and sees it here once, to pass on to the user.
+const pwUser = ref<any>(null)
+const pwValue = ref('')
+const pwVisible = ref(false)
+const pwSaving = ref(false)
+const pwError = ref('')
+const pwDone = ref('')
+const copied = ref(false)
+
+function openPassword(user: any) {
+  pwUser.value = user
+  pwValue.value = ''
+  pwVisible.value = false
+  pwError.value = ''
+  pwDone.value = ''
+  copied.value = false
+}
+
+function randomPassword() {
+  const alphabet = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  const bytes = crypto.getRandomValues(new Uint32Array(12))
+  pwValue.value = Array.from(bytes, (b) => alphabet[b % alphabet.length]).join('')
+  pwVisible.value = true
+}
+
+async function savePassword() {
+  pwSaving.value = true
+  pwError.value = ''
+  try {
+    await request(`/auth/admin/users/${pwUser.value.id}/set-password/`, { method: 'POST', body: { password: pwValue.value } })
+    pwDone.value = pwValue.value
+  } catch (err: any) {
+    const messages = err?.data?.password
+    pwError.value = Array.isArray(messages) ? messages.join(' ') : getErrorMessage(err, 'تغییر رمز ناموفق بود.')
+  } finally {
+    pwSaving.value = false
+  }
+}
+
+// ---------- courses (manual enrollment) ----------
+const coursesUser = ref<any>(null)
+const userCourses = ref<any[]>([])
+const coursesError = ref('')
+const togglingCourse = ref<number | null>(null)
+
+async function openCourses(user: any) {
+  coursesUser.value = user
+  userCourses.value = []
+  coursesError.value = ''
+  try {
+    userCourses.value = await request<any[]>(`/auth/admin/users/${user.id}/courses/`)
+  } catch (err) {
+    coursesError.value = getFirstErrorMessage(err, 'دوره‌ها بارگذاری نشد.')
+  }
+}
+
+async function toggleCourse(course: any) {
+  togglingCourse.value = course.id
+  coursesError.value = ''
+  try {
+    userCourses.value = await request<any[]>(`/auth/admin/users/${coursesUser.value.id}/courses/`, {
+      method: 'POST',
+      body: { course: course.id, enrolled: !course.enrolled },
+    })
+  } catch (err) {
+    coursesError.value = getFirstErrorMessage(err, 'تغییر ثبت‌نام ناموفق بود.')
+  } finally {
+    togglingCourse.value = null
+  }
+}
+
+async function copyPassword() {
+  await navigator.clipboard.writeText(pwDone.value)
+  copied.value = true
+}
 </script>
 
 <template>
@@ -52,6 +130,8 @@ async function updateUser(user: any, patch: Record<string, any>) {
             <th class="px-4 py-3 font-medium">کاربر</th>
             <th class="px-4 py-3 font-medium">نقش</th>
             <th class="px-4 py-3 font-medium">وضعیت</th>
+            <th class="px-4 py-3 font-medium">رمز عبور</th>
+            <th class="px-4 py-3 font-medium">دوره‌ها</th>
           </tr>
         </thead>
         <tbody>
@@ -89,9 +169,112 @@ async function updateUser(user: any, patch: Record<string, any>) {
                 {{ user.is_active ? 'فعال' : 'غیرفعال' }}
               </button>
             </td>
+            <td class="px-4 py-3">
+              <button
+                type="button"
+                class="rounded-md px-3 py-1 text-xs font-semibold text-primary-700 ring-1 ring-primary-500/30 hover:bg-primary-500/10 dark:text-primary-300"
+                @click="openPassword(user)"
+              >
+                🔑 تغییر رمز
+              </button>
+            </td>
+            <td class="px-4 py-3">
+              <button
+                v-if="user.role === 'student'"
+                type="button"
+                class="rounded-md px-3 py-1 text-xs font-semibold text-primary-700 ring-1 ring-primary-500/30 hover:bg-primary-500/10 dark:text-primary-300"
+                @click="openCourses(user)"
+              >
+                📚 دوره‌ها
+              </button>
+            </td>
           </tr>
         </tbody>
       </table>
     </div>
+
+    <Teleport to="body">
+      <div v-if="coursesUser" class="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm" @click.self="coursesUser = null">
+        <div class="glass w-full max-w-md rounded-2xl p-6">
+          <h2 class="text-lg font-bold text-gray-900 dark:text-white">ثبت‌نام در دوره‌ها</h2>
+          <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">{{ coursesUser.first_name }} {{ coursesUser.last_name }} · <span dir="ltr">{{ coursesUser.email }}</span></p>
+          <p class="mt-3 rounded-lg bg-black/[0.04] px-3 py-2 text-xs leading-5 text-gray-600 dark:bg-white/5 dark:text-gray-300">
+            دانشجوی ثبت‌نام‌شده بدون پرداخت به ویدیوها، فایل‌ها، آزمون‌ها و گروه آن دوره دسترسی پیدا می‌کند (مثلاً برای پرداخت حضوری).
+          </p>
+          <ul class="mt-4 max-h-80 space-y-1.5 overflow-y-auto">
+            <li v-for="c in userCourses" :key="c.id">
+              <button
+                type="button"
+                :disabled="togglingCourse === c.id"
+                :class="[
+                  'flex w-full items-center gap-3 rounded-xl border-2 px-3 py-2.5 text-start text-sm transition disabled:opacity-50',
+                  c.enrolled ? 'border-emerald-500 bg-emerald-500/10' : 'border-black/10 hover:border-primary-300 dark:border-white/10',
+                ]"
+                @click="toggleCourse(c)"
+              >
+                <span :class="['flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 text-xs text-white', c.enrolled ? 'border-emerald-500 bg-emerald-500' : 'border-gray-300 dark:border-gray-600']">{{ c.enrolled ? '✓' : '' }}</span>
+                <span class="flex-1 text-gray-900 dark:text-white">{{ c.title }}</span>
+                <span v-if="c.status !== 'published'" class="text-[11px] text-gray-500">پیش‌نویس</span>
+              </button>
+            </li>
+          </ul>
+          <p v-if="coursesError" class="mt-2 text-sm text-red-600">{{ coursesError }}</p>
+          <button type="button" class="mt-5 w-full rounded-xl bg-primary-600 py-2 text-sm font-semibold text-white hover:bg-primary-700" @click="coursesUser = null">بستن</button>
+        </div>
+      </div>
+
+      <div v-if="pwUser" class="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm" @click.self="pwUser = null">
+        <div class="glass w-full max-w-md rounded-2xl p-6">
+          <h2 class="text-lg font-bold text-gray-900 dark:text-white">تغییر رمز عبور</h2>
+          <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">{{ pwUser.first_name }} {{ pwUser.last_name }} · <span dir="ltr">{{ pwUser.email }}</span></p>
+
+          <template v-if="!pwDone">
+            <p class="mt-3 rounded-lg bg-black/[0.04] px-3 py-2 text-xs leading-5 text-gray-600 dark:bg-white/5 dark:text-gray-300">
+              رمز فعلی قابل نمایش نیست، چون رمزها رمزنگاری‌شده (یک‌طرفه) ذخیره می‌شوند. یک رمز جدید بگذارید؛ کاربر از بقیه‌ی دستگاه‌ها خارج می‌شود.
+            </p>
+            <form class="mt-4" @submit.prevent="savePassword">
+              <div class="relative">
+                <input
+                  v-model="pwValue"
+                  :type="pwVisible ? 'text' : 'password'"
+                  required
+                  minlength="10"
+                  autocomplete="new-password"
+                  placeholder="رمز جدید (حداقل ۱۰ کاراکتر)"
+                  dir="ltr"
+                  class="glass w-full rounded-lg py-2 pe-3 ps-10 text-sm text-gray-900 dark:text-white"
+                >
+                <button
+                  type="button"
+                  class="absolute start-2 top-1/2 -translate-y-1/2 rounded p-1 text-gray-500 hover:text-gray-800 dark:hover:text-gray-200"
+                  :aria-label="pwVisible ? 'پنهان کردن رمز' : 'نمایش رمز'"
+                  @click="pwVisible = !pwVisible"
+                >
+                  {{ pwVisible ? '🙈' : '👁' }}
+                </button>
+              </div>
+              <button type="button" class="mt-2 text-xs font-semibold text-primary-600 hover:underline dark:text-primary-400" @click="randomPassword">🎲 ساخت رمز تصادفی</button>
+              <p v-if="pwError" class="mt-2 text-sm text-red-600">{{ pwError }}</p>
+              <div class="mt-5 flex gap-3">
+                <button type="button" class="flex-1 rounded-xl border border-black/10 py-2 text-sm text-gray-700 dark:border-white/10 dark:text-gray-200" @click="pwUser = null">انصراف</button>
+                <button type="submit" :disabled="pwSaving" class="flex-1 rounded-xl bg-primary-600 py-2 text-sm font-semibold text-white hover:bg-primary-700 disabled:opacity-50">
+                  {{ pwSaving ? 'در حال ذخیره…' : 'ذخیره‌ی رمز' }}
+                </button>
+              </div>
+            </form>
+          </template>
+
+          <template v-else>
+            <p class="mt-4 text-sm font-semibold text-emerald-600">✓ رمز جدید ذخیره شد. آن را به کاربر بدهید:</p>
+            <div class="mt-2 flex items-center gap-2 rounded-xl bg-black/[0.04] p-3 dark:bg-white/5">
+              <code class="flex-1 select-all break-all text-base font-bold text-gray-900 dark:text-white" dir="ltr">{{ pwDone }}</code>
+              <button type="button" class="shrink-0 rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-semibold text-white" @click="copyPassword">{{ copied ? 'کپی شد ✓' : 'کپی' }}</button>
+            </div>
+            <p class="mt-2 text-xs text-gray-500">بعد از بستن این پنجره، رمز دیگر نمایش داده نمی‌شود.</p>
+            <button type="button" class="mt-5 w-full rounded-xl bg-primary-600 py-2 text-sm font-semibold text-white hover:bg-primary-700" @click="pwUser = null">بستن</button>
+          </template>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>

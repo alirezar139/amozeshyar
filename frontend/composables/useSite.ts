@@ -16,6 +16,7 @@ export interface SiteOwner {
   rating_avg: string
   total_students: number
   phone_number: string
+  allow_peer_chat: boolean
 }
 
 /**

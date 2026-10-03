@@ -91,6 +91,10 @@ class Message(TimeStampedModel):
     # Voice notes: length in seconds, as measured by the recorder.
     duration_seconds = models.PositiveIntegerField(null=True, blank=True)
     reply_to = models.ForeignKey("self", null=True, blank=True, on_delete=models.SET_NULL, related_name="replies")
+    # Automated messages (e.g. exam results) are stored as sent by the site's
+    # teacher so they land in the student's direct chat, but are shown as a
+    # bot ("exam" -> the exam assistant) rather than as the teacher typing.
+    bot = models.CharField(max_length=20, blank=True)
     # "Delete for everyone" is a soft delete: participants see a placeholder,
     # while the content stays available to the teacher's chat report.
     deleted_at = models.DateTimeField(null=True, blank=True)

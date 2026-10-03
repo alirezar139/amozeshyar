@@ -6,6 +6,7 @@ from apps.accounts.models import User
 from apps.courses.models import Category, Course
 from apps.enrollments.models import Enrollment
 from apps.instructors.models import InstructorProfile
+from apps.messaging.models import Message
 
 pytestmark = pytest.mark.django_db
 
@@ -283,3 +284,31 @@ def test_chat_report_is_teacher_only_and_includes_private_chats(world):
     assert as_(world["teacher"]).get(f"/api/v1/conversations/report/{peer['id']}/").data["messages"][0]["text"] == "سلام بهروز"
     assert as_(world["alice"]).get("/api/v1/conversations/report/").status_code == 403
     assert as_(world["alice"]).get(f"/api/v1/conversations/report/{peer['id']}/").status_code == 403
+
+
+def test_teacher_adds_guest_to_course_group_without_course_access(world):
+    teacher = as_(world["teacher"])
+    group = next(c for c in conversations(world["teacher"]) if c["kind"] == "course")
+    url = f"/api/v1/conversations/{group['id']}/members/"
+
+    members = teacher.post(url, {"user_ids": [world["bob"].id]}, format="json").data
+    by_name = {m["name"]: m for m in members}
+    assert set(by_name) == {"مهدی", "Alice", "Bob"}
+    assert by_name["Bob"]["removable"] and not by_name["Alice"]["removable"]
+    assert next(c for c in conversations(world["teacher"]) if c["id"] == group["id"])["members"] == 3
+
+    # Bob now sees and can write in the group, but isn't enrolled in the course.
+    assert any(c["id"] == group["id"] for c in conversations(world["bob"]))
+    assert send(world["bob"], group["id"], text="سلام").status_code == 201
+    assert not Enrollment.objects.filter(student=world["bob"]).exists()
+    joined = as_(world["alice"]).get(f"/api/v1/conversations/{group['id']}/messages/").data["messages"]
+    assert any(m["bot"] == "system" and m["text"] == "Bob به گروه اضافه شد" for m in joined)
+    # Adding someone who's already in the group announces nothing.
+    teacher.post(url, {"user_ids": [world["bob"].id, world["alice"].id]}, format="json")
+    assert Message.objects.filter(bot="system").count() == 1
+
+    # Enrolled students stay; the guest can be removed.
+    assert teacher.delete(f"{url}{world['alice'].id}/").status_code == 400
+    assert teacher.delete(f"{url}{world['bob'].id}/").status_code == 204
+    assert all(c["id"] != group["id"] for c in conversations(world["bob"]))
+    assert as_(world["alice"]).post(url, {"user_ids": [world["bob"].id]}, format="json").status_code == 403
