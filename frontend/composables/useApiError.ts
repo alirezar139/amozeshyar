@@ -27,3 +27,16 @@ export function getErrorMessage(error: any, fallback: string): string {
 
   return fallback
 }
+
+/**
+ * Like getErrorMessage, but for showing next to a form: just the first
+ * message, without the "field: " prefix (field names are English).
+ */
+export function getFirstErrorMessage(error: any, fallback: string): string {
+  const data = error?.data ?? error?.response?._data
+  if (data && typeof data === 'object' && !data.detail) {
+    const first = Object.values(data).flat()[0]
+    if (typeof first === 'string') return first
+  }
+  return getErrorMessage(error, fallback)
+}

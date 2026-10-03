@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // Logo + site name, as set in «تنظیمات سایت». Without an uploaded logo,
-// the name's first letter on the header color stands in.
+// the name's first letter on the header color stands in. The logo keeps its
+// own aspect ratio (fixed height, auto width) — uploads are often wide.
 withDefaults(defineProps<{ size?: 'md' | 'lg' }>(), { size: 'md' })
 const { owner, siteName } = useSite()
 </script>
@@ -11,7 +12,7 @@ const { owner, siteName } = useSite()
       v-if="owner?.logo"
       :src="owner.logo"
       :alt="siteName"
-      :class="['shrink-0 object-contain', size === 'lg' ? 'h-11 w-11' : 'h-9 w-9']"
+      :class="['w-auto max-w-[9rem] shrink-0 rounded-lg object-contain', size === 'lg' ? 'h-14' : 'h-12']"
     >
     <span
       v-else

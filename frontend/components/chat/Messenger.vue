@@ -65,7 +65,7 @@ function preview(c: any) {
   const m = c.last_message
   if (!m) return GROUP_KINDS.includes(c.kind) ? 'هنوز پیامی در گروه ارسال نشده است' : c.kind === 'direct' && !isTeacher.value ? 'پرسشی دارید؟ به استاد پیام دهید' : 'هنوز پیامی ارسال نشده است'
   const body = m.text || { image: '📷 عکس', file: '📎 فایل', voice: '🎤 پیام صوتی' }[m.attachment_kind as string] || ''
-  const who = m.is_mine ? 'شما: ' : GROUP_KINDS.includes(c.kind) ? `${m.sender_name}: ` : ''
+  const who = m.bot === 'system' ? '' : m.bot ? '🤖 ' : m.is_mine ? 'شما: ' : GROUP_KINDS.includes(c.kind) ? `${m.sender_name}: ` : ''
   return who + body
 }
 

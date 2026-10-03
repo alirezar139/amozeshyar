@@ -135,11 +135,14 @@ class ConversationViewSet(mixins.DestroyModelMixin, viewsets.ReadOnlyModelViewSe
             self._add_members(conversation, member_ids)
         return Response(self._row(conversation), status=status.HTTP_201_CREATED)
 
-    def _add_members(self, conversation, user_ids):
-        students = User.objects.filter(pk__in=user_ids, role=User.Role.STUDENT)
+    def _add_members(self, conversation, user_ids) -> list:
+        """Adds the students among `user_ids`; returns the ones who weren't in it before."""
+        already = {u.pk for u in services.members(conversation)}
+        students = [u for u in User.objects.filter(pk__in=user_ids, role=User.Role.STUDENT) if u.pk not in already]
         ConversationMember.objects.bulk_create(
             [ConversationMember(conversation=conversation, user=u) for u in students], ignore_conflicts=True
         )
+        return students
 
     @action(detail=True, methods=["patch"], url_path="settings")
     def update_settings(self, request, pk=None):
@@ -163,21 +166,28 @@ class ConversationViewSet(mixins.DestroyModelMixin, viewsets.ReadOnlyModelViewSe
         conversation = self._conversation(pk)
         if request.method == "POST":
             self._require_manager(conversation)
-            if conversation.kind != Conversation.Kind.CUSTOM:
-                raise ValidationError("اعضای گروه دوره از ثبت‌نام‌های دوره می‌آیند.")
+            if conversation.kind not in (Conversation.Kind.CUSTOM, Conversation.Kind.COURSE):
+                raise ValidationError("به این گفت‌وگو نمی‌توان عضو اضافه کرد.")
+            # In a course group this only adds to the chat — no access to the course itself.
             user_ids = request.data.get("user_ids", [])
             if conversation.private:
                 allowed = set(services.classmates(request.user).values_list("pk", flat=True))
                 user_ids = [i for i in user_ids if i in allowed]
-            self._add_members(conversation, user_ids)
-        return Response(MemberSerializer(services.members(conversation), many=True).data)
+            added = self._add_members(conversation, user_ids)
+            if added:
+                services.announce_joined(conversation, request.user, added)
+        return Response(self._members(conversation))
+
+    def _members(self, conversation):
+        context = {"removable": services.removable_member_ids(conversation)}
+        return MemberSerializer(services.members(conversation), many=True, context=context).data
 
     @action(detail=True, methods=["delete"], url_path=r"members/(?P<user_id>\d+)")
     def remove_member(self, request, pk=None, user_id=None):
         conversation = self._conversation(pk)
         self._require_manager(conversation)
-        if conversation.kind != Conversation.Kind.CUSTOM:
-            raise ValidationError("اعضای گروه دوره از ثبت‌نام‌های دوره می‌آیند.")
+        if int(user_id) not in services.removable_member_ids(conversation):
+            raise ValidationError("دانشجوهای ثبت‌نام‌شده در دوره عضو ثابت گروه دوره هستند و حذف نمی‌شوند.")
         conversation.members.filter(user_id=user_id).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 

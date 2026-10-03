@@ -1,11 +1,15 @@
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
 from drf_spectacular.utils import extend_schema
 from rest_framework import filters, generics, permissions, status, viewsets
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.decorators import action
+from rest_framework.exceptions import MethodNotAllowed, PermissionDenied, ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 
@@ -88,7 +92,7 @@ class AdminUserViewSet(viewsets.ModelViewSet):
 
     serializer_class = AdminUserSerializer
     permission_classes = (permissions.IsAuthenticated, IsAdminRole)
-    http_method_names = ("get", "patch", "head", "options")
+    http_method_names = ("get", "patch", "post", "head", "options")
     filter_backends = (filters.SearchFilter,)
     search_fields = ("email", "first_name", "last_name")
 
@@ -104,6 +108,58 @@ class AdminUserViewSet(viewsets.ModelViewSet):
         if serializer.instance.id == self.request.user.id:
             raise PermissionDenied("Cannot change your own role or active status here.")
         serializer.save()
+
+    def create(self, request, *args, **kwargs):
+        raise MethodNotAllowed("POST")  # POST is only for set-password; users sign up themselves
+
+    @action(detail=True, methods=["get", "post"])
+    def courses(self, request, pk=None):
+        """A student's courses, for enrolling by hand (e.g. paid in person).
+
+        GET: every course with `enrolled`. POST {"course": id, "enrolled": bool}
+        enrolls (or re-activates) / deactivates — no payment involved.
+        """
+        from apps.courses.models import Course
+        from apps.enrollments.models import Enrollment
+
+        user = self.get_object()
+        if user.role != User.Role.STUDENT:
+            raise ValidationError("فقط دانشجو را می‌توان در دوره ثبت‌نام کرد.")
+        if request.method == "POST":
+            course = Course.objects.filter(pk=request.data.get("course")).first()
+            if course is None:
+                raise ValidationError({"course": "دوره پیدا نشد."})
+            if request.data.get("enrolled"):
+                enrollment, created = Enrollment.objects.get_or_create(student=user, course=course)
+                if not created and not enrollment.is_active:
+                    enrollment.is_active = True
+                    enrollment.save(update_fields=["is_active", "updated_at"])
+            else:
+                Enrollment.objects.filter(student=user, course=course).update(is_active=False)
+        active = set(Enrollment.objects.filter(student=user, is_active=True).values_list("course_id", flat=True))
+        return Response([
+            {"id": c.id, "title": c.title, "status": c.status, "enrolled": c.id in active}
+            for c in Course.objects.order_by("title")
+        ])
+
+    @action(detail=True, methods=["post"], url_path="set-password")
+    def set_password(self, request, pk=None):
+        """Body {"password": "..."}: set a new password (the old one can't be
+        shown — only its hash is stored). Signs the user out of their other
+        sessions, unless it's the admin's own account."""
+        user = self.get_object()
+        password = request.data.get("password") or ""
+        try:
+            validate_password(password, user)
+        except DjangoValidationError as e:
+            raise ValidationError({"password": list(e.messages)}) from None
+        user.set_password(password)
+        user.save(update_fields=["password"])
+        if user.id != request.user.id:
+            BlacklistedToken.objects.bulk_create(
+                [BlacklistedToken(token=t) for t in OutstandingToken.objects.filter(user=user)], ignore_conflicts=True
+            )
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class LoginView(TokenObtainPairView):

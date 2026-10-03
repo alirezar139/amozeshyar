@@ -51,7 +51,7 @@ class MessageSerializer(serializers.ModelSerializer):
         fields = (
             "id", "conversation", "sender", "is_mine", "text",
             "attachment_kind", "attachment_name", "attachment_size", "attachment_url", "duration_seconds",
-            "reply_to", "seen_count", "is_deleted", "reactions", "created_at",
+            "reply_to", "seen_count", "is_deleted", "reactions", "bot", "created_at",
         )
 
     def to_representation(self, obj):
@@ -225,6 +225,7 @@ class ConversationSerializer(serializers.ModelSerializer):
             "text": message.text,
             "attachment_kind": message.attachment_kind,
             "sender_name": display_name(message.sender),
+            "bot": message.bot,
             "is_mine": message.sender_id == self._viewer().id,
             "created_at": message.created_at,
         }
@@ -257,6 +258,7 @@ class MemberSerializer(serializers.Serializer):
     email = serializers.EmailField()
     avatar = serializers.SerializerMethodField()
     is_teacher = serializers.SerializerMethodField()
+    removable = serializers.SerializerMethodField()
 
     def get_name(self, user) -> str:
         return display_name(user)
@@ -266,6 +268,9 @@ class MemberSerializer(serializers.Serializer):
 
     def get_is_teacher(self, user) -> bool:
         return services.is_teacher(user)
+
+    def get_removable(self, user) -> bool:
+        return user.pk in self.context.get("removable", ())
 
 
 class GroupSettingsSerializer(serializers.ModelSerializer):
