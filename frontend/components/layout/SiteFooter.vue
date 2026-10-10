@@ -36,7 +36,11 @@ const socialLinks = computed(() => publicSocialLinks(owner.value?.social_links))
       </div>
     </div>
     <div class="mx-auto mt-8 max-w-7xl border-t border-white/30 px-4 pt-6 text-center text-sm text-gray-500 sm:px-6 lg:px-8 dark:border-white/10 dark:text-gray-400">
-      © {{ currentYear }} {{ siteName }}. تمامی حقوق محفوظ است.
+      <p>© {{ currentYear }} {{ siteName }}. تمامی حقوق محفوظ است.</p>
+      <p class="mt-2 text-xs">
+        قدرت‌گرفته از
+        <a href="https://modaresyar.site" target="_blank" rel="noopener" class="font-medium hover:text-primary-600 dark:hover:text-primary-400">مدرس‌یار</a>
+      </p>
     </div>
   </footer>
 </template>
