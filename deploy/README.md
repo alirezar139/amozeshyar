@@ -22,7 +22,7 @@ CELERY_BROKER_URL=redis://redis:6379/0
 CELERY_RESULT_BACKEND=redis://redis:6379/0
 STORAGE_ACCESS_KEY=...
 STORAGE_SECRET_KEY=...
-STORAGE_BUCKET_NAME=amozeshyar-media
+STORAGE_BUCKET_NAME=modaresyar-media
 STORAGE_ENDPOINT_URL=https://SITE_HOST
 STORAGE_REGION=us-east-1
 ZARINPAL_MERCHANT_ID=
@@ -40,4 +40,4 @@ docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env exec bac
 docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env exec backend python manage.py setup_site --email ... --password ... --first-name ... --last-name ...
 ```
 
-باکت MinIO (`amozeshyar-media`) باید یک بار ساخته شود (مثلاً با boto3 از داخل کانتینر backend).
+باکت MinIO (`modaresyar-media`) باید یک بار ساخته شود (مثلاً با boto3 از داخل کانتینر backend).
