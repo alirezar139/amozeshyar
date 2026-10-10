@@ -34,7 +34,7 @@ export function useSite() {
     getCachedData: (key, nuxtApp, ctx) =>
       ctx?.cause === 'refresh:manual' ? undefined : nuxtApp.payload.data[key] ?? nuxtApp.static.data[key],
   })
-  const teacherName = computed(() => owner.value?.display_name || 'آموزش‌یار')
+  const teacherName = computed(() => owner.value?.display_name || 'مدرس‌یار')
   const siteName = computed(() => owner.value?.site_name || teacherName.value)
   // «استاد روستا»: how the site refers to the teacher in running text.
   const teacherTitle = computed(() => `استاد ${teacherName.value.trim().split(/\s+/).pop()}`)
