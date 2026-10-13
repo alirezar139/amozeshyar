@@ -8,7 +8,7 @@ ALLOWED_VIDEO_MIME_TYPES = {
     "video/webm",
 }
 ALLOWED_IMAGE_MIME_TYPES = {"image/jpeg", "image/png", "image/webp"}
-MAX_VIDEO_SIZE_BYTES = 5 * 1024 * 1024 * 1024  # 5 GB
+MAX_VIDEO_SIZE_BYTES = 2 * 1024 * 1024 * 1024  # 2 GB, same as nginx client_max_body_size for uploads
 MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024  # 5 MB
 
 
