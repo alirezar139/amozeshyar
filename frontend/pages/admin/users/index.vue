@@ -233,26 +233,14 @@ async function copyPassword() {
               رمز فعلی قابل نمایش نیست، چون رمزها رمزنگاری‌شده (یک‌طرفه) ذخیره می‌شوند. یک رمز جدید بگذارید؛ کاربر از بقیه‌ی دستگاه‌ها خارج می‌شود.
             </p>
             <form class="mt-4" @submit.prevent="savePassword">
-              <div class="relative">
-                <input
-                  v-model="pwValue"
-                  :type="pwVisible ? 'text' : 'password'"
-                  required
-                  minlength="10"
-                  autocomplete="new-password"
-                  placeholder="رمز جدید (حداقل ۱۰ کاراکتر)"
-                  dir="ltr"
-                  class="glass w-full rounded-lg py-2 pe-3 ps-10 text-sm text-gray-900 dark:text-white"
-                >
-                <button
-                  type="button"
-                  class="absolute start-2 top-1/2 -translate-y-1/2 rounded p-1 text-gray-500 hover:text-gray-800 dark:hover:text-gray-200"
-                  :aria-label="pwVisible ? 'پنهان کردن رمز' : 'نمایش رمز'"
-                  @click="pwVisible = !pwVisible"
-                >
-                  {{ pwVisible ? '🙈' : '👁' }}
-                </button>
-              </div>
+              <FormPasswordInput
+                v-model="pwValue"
+                v-model:visible="pwVisible"
+                required
+                minlength="10"
+                autocomplete="new-password"
+                placeholder="رمز جدید (حداقل ۱۰ کاراکتر)"
+              />
               <button type="button" class="mt-2 text-xs font-semibold text-primary-600 hover:underline dark:text-primary-400" @click="randomPassword">🎲 ساخت رمز تصادفی</button>
               <p v-if="pwError" class="mt-2 text-sm text-red-600">{{ pwError }}</p>
               <div class="mt-5 flex gap-3">
