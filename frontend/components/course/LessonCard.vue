@@ -10,7 +10,7 @@ const emit = defineEmits<{ changed: []; move: [direction: 'up' | 'down']; upload
 const { request } = useApi()
 const { upload, uploadErrorMessage } = useUpload()
 
-const MAX_VIDEO_BYTES = 5 * 1024 ** 3
+const MAX_VIDEO_BYTES = 2 * 1024 ** 3 // nginx client_max_body_size on the upload route
 const MAX_FILE_BYTES = 500 * 1024 ** 2
 const FILE_EXTENSIONS = [
   'pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'csv', 'txt', 'md', 'rtf', 'odt', 'ods', 'odp',
@@ -80,7 +80,7 @@ function pickVideo(file: File | undefined | null) {
     return
   }
   if (file.size > MAX_VIDEO_BYTES) {
-    videoError.value = 'حجم ویدیو بیشتر از ۵ گیگابایت است.'
+    videoError.value = 'حجم ویدیو بیشتر از ۲ گیگابایت است. لطفاً ویدیو را فشرده‌تر خروجی بگیرید.'
     return
   }
   if (props.lesson.has_video && !confirm('ویدیوی فعلی این جلسه با ویدیوی جدید جایگزین شود؟')) return
@@ -286,7 +286,7 @@ async function downloadFile(file: any) {
             <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
           </span>
           <span class="text-sm font-medium text-gray-700 dark:text-gray-200">ویدیو را اینجا رها کنید یا کلیک کنید</span>
-          <span class="text-xs text-gray-500 dark:text-gray-400">MP4، MOV، MKV یا WEBM — تا ۵ گیگابایت</span>
+          <span class="text-xs text-gray-500 dark:text-gray-400">MP4، MOV، MKV یا WEBM — تا ۲ گیگابایت</span>
         </button>
 
         <!-- uploading -->
