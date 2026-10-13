@@ -17,6 +17,10 @@ const dateBounds = dateTimeLocalBounds()
 
 async function addSession() {
   error.value = ''
+  if (!form.is_online && !form.location_note.trim()) {
+    error.value = 'برای جلسه‌ی حضوری، آدرس محل برگزاری را بنویسید.'
+    return
+  }
   creating.value = true
   try {
     await request('/class-sessions/', {
