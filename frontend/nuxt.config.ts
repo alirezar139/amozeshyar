@@ -31,6 +31,9 @@ export default defineNuxtConfig({
   },
 
   runtimeConfig: {
+    // Server-only: where SSR reaches the API. In production this is the backend container on the
+    // Docker network, so SSR calls skip the public hop and carry the visitor's own IP (see useApi).
+    apiBaseServer: process.env.NUXT_API_BASE_SERVER || '',
     public: {
       apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:8000/api/v1',
     },

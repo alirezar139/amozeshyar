@@ -31,6 +31,22 @@ export function useApi() {
   // this would leave the browser holding an already-blacklisted cookie
   // after the very first SSR-triggered refresh, breaking the *next*
   // reload's session restore.
+  // SSR requests leave from the frontend container, so without help every visitor would share
+  // that one IP in the backend's per-IP throttles (100 anonymous calls an hour would take the
+  // site down for everyone). Talk to the backend over the internal network and pass along the
+  // visitor's IP from X-Real-IP, which nginx sets from the TCP peer and clients can't forge.
+  const baseUrl = import.meta.server && config.apiBaseServer ? config.apiBaseServer : config.public.apiBase
+
+  // Read now, like requestEvent above: request() may run after the caller has awaited something.
+  const incoming = import.meta.server ? useRequestHeaders(['x-real-ip', 'host']) : {}
+
+  function addServerSideHeaders(headers: Headers) {
+    if (!import.meta.server || !config.apiBaseServer) return
+    if (incoming['x-real-ip']) headers.set('X-Forwarded-For', incoming['x-real-ip'])
+    if (incoming.host) headers.set('X-Forwarded-Host', incoming.host)
+    headers.set('X-Forwarded-Proto', 'https')
+  }
+
   function relaySetCookie(headers: Headers) {
     if (!requestEvent) return
     const setCookieValues = typeof (headers as any).getSetCookie === 'function' ? (headers as any).getSetCookie() : []
@@ -43,12 +59,13 @@ export function useApi() {
     const headers = new Headers(options.headers as HeadersInit)
     const cookie = forwardedCookie()
     if (cookie) headers.set('cookie', cookie)
+    addServerSideHeaders(headers)
     if (authStore.accessToken) {
       headers.set('Authorization', `Bearer ${authStore.accessToken}`)
     }
 
     try {
-      return await $fetch<T>(`${config.public.apiBase}${path}`, {
+      return await $fetch<T>(`${baseUrl}${path}`, {
         ...options,
         headers,
         credentials: 'include',
@@ -58,7 +75,7 @@ export function useApi() {
         const refreshed = await refreshSession()
         if (refreshed) {
           headers.set('Authorization', `Bearer ${authStore.accessToken}`)
-          return await $fetch<T>(`${config.public.apiBase}${path}`, {
+          return await $fetch<T>(`${baseUrl}${path}`, {
             ...options,
             headers,
             credentials: 'include',
@@ -75,7 +92,8 @@ export function useApi() {
       const headers = new Headers()
       const cookie = forwardedCookie()
       if (cookie) headers.set('cookie', cookie)
-      const res = await $fetch.raw<{ access: string }>(`${config.public.apiBase}/auth/refresh/`, {
+      addServerSideHeaders(headers)
+      const res = await $fetch.raw<{ access: string }>(`${baseUrl}/auth/refresh/`, {
         method: 'POST',
         credentials: 'include',
         headers,

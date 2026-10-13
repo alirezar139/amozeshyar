@@ -36,7 +36,9 @@ services:
 
   redis:
     image: redis:7-alpine
-    command: ["redis-server", "--maxmemory", "48mb", "--maxmemory-policy", "allkeys-lru", "--save", ""]
+    # Celery's queue and the Django cache (captcha, throttles) share this instance. volatile-lru only
+    # evicts keys with a TTL (cache entries), never the queued tasks, which have none.
+    command: ["redis-server", "--maxmemory", "64mb", "--maxmemory-policy", "volatile-lru", "--save", ""]
     mem_limit: 96m
     restart: unless-stopped
 
@@ -74,6 +76,7 @@ services:
     image: amozeshyar-frontend
     environment:
       NUXT_PUBLIC_API_BASE: ${PUBLIC_URL}/api/v1
+      NUXT_API_BASE_SERVER: http://backend:8000/api/v1
       NUXT_PUBLIC_SITE_URL: ${PUBLIC_URL}
     ports:
       - "127.0.0.1:3300:3000"
