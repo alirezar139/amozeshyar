@@ -20,12 +20,15 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
+    # The developer account (superuser) gets the live error log in its menu.
+    is_developer = serializers.BooleanField(source="is_superuser", read_only=True)
+
     class Meta:
         model = User
         fields = (
             "id", "email", "first_name", "last_name", "role", "phone_number",
             "avatar", "is_email_verified", "interests",
-            "primary_color", "accent_color", "header_color", "nav_color",
+            "primary_color", "accent_color", "header_color", "nav_color", "is_developer",
         )
         read_only_fields = ("id", "email", "role", "is_email_verified")
 
@@ -44,7 +47,7 @@ class AdminUserSerializer(serializers.ModelSerializer):
 
     def validate_role(self, value):
         if value == User.Role.INSTRUCTOR:
-            raise serializers.ValidationError("This site has a single instructor; pick student or admin.")
+            raise serializers.ValidationError("این سایت فقط یک مدرس دارد؛ نقش را دانشجو یا مدیر انتخاب کنید.")
         return value
 
 

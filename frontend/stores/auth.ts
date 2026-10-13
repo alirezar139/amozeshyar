@@ -6,6 +6,7 @@ interface AuthUser {
   first_name: string
   last_name: string
   role: 'student' | 'instructor' | 'admin'
+  is_developer?: boolean
 }
 
 export const useAuthStore = defineStore('auth', {
@@ -20,6 +21,8 @@ export const useAuthStore = defineStore('auth', {
   getters: {
     isAuthenticated: (state) => !!state.accessToken,
     isAdmin: (state) => state.user?.role === 'admin',
+    // The hidden developer account: sees the live error log and support reports.
+    isDeveloper: (state) => !!state.user?.is_developer,
   },
 
   actions: {

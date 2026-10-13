@@ -1,5 +1,6 @@
 <script setup lang="ts">
 const isDev = import.meta.dev
+const authStore = useAuthStore()
 </script>
 
 <template>
@@ -13,6 +14,6 @@ const isDev = import.meta.dev
     <GuideButton />
     <GuidePanel />
     <GuideTourOverlay />
-    <DevLiveLogPanel v-if="isDev" />
+    <DevLiveLogPanel v-if="isDev || authStore.isDeveloper" />
   </div>
 </template>

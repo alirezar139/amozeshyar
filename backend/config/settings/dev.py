@@ -8,7 +8,6 @@ INSTALLED_APPS += ["debug_toolbar"]  # noqa: F405
 MIDDLEWARE = [
     "debug_toolbar.middleware.DebugToolbarMiddleware",
     "apps.common.middleware.RequestTimingMiddleware",
-    "apps.common.live_log.APIErrorLogMiddleware",
     *MIDDLEWARE,  # noqa: F405
 ]
 INTERNAL_IPS = ["127.0.0.1"]
@@ -25,7 +24,7 @@ LOGGING = {
         "live": {"format": "%(asctime)s %(levelname)s %(message)s", "datefmt": "%H:%M:%S"},
     },
     "handlers": {
-        # Live error log (see apps/common/live_log.py): API errors, server
+        # Live error log (see apps/monitoring/middleware.py): API errors, server
         # tracebacks and browser errors. Watch it with
         #   Get-Content backend\logs\live.log -Wait -Tail 20
         "live_file": {

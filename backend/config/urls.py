@@ -15,6 +15,7 @@ api_v1_patterns = [
     path("", include("apps.messaging.urls")),
     path("", include("apps.board.urls")),
     path("", include("apps.exams.urls")),
+    path("", include("apps.monitoring.urls")),
 ]
 
 urlpatterns = [
@@ -31,9 +32,6 @@ if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     import debug_toolbar
 
-    from apps.common.live_log import client_log
-
     urlpatterns += [
         path("__debug__/", include(debug_toolbar.urls)),
-        path("api/v1/dev/client-log/", client_log, name="dev-client-log"),
     ]
