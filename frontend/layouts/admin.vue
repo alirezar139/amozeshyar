@@ -8,6 +8,17 @@ async function onLogout() {
   await logout()
   await navigateTo('/')
 }
+
+const authStore = useAuthStore()
+const { request } = useApi()
+const showReport = ref(false)
+const openReports = ref(0)
+onMounted(async () => {
+  if (!authStore.isDeveloper) return
+  try {
+    openReports.value = (await request<{ unresolved_reports: number }>('/monitoring/summary/')).unresolved_reports
+  } catch {}
+})
 </script>
 
 <template>
@@ -101,6 +112,16 @@ async function onLogout() {
           تنظیمات سایت
         </NuxtLink>
         <NuxtLink
+          v-if="authStore.isDeveloper"
+          to="/admin/dev-log"
+          class="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-gray-700 transition hover:bg-nav-500/10 hover:text-nav-700 dark:text-gray-200 dark:hover:bg-nav-500/10 dark:hover:text-nav-300"
+          active-class="bg-nav-500/15 text-nav-700 dark:bg-nav-500/15 dark:text-nav-300"
+        >
+          <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+          لاگ زنده
+          <span v-if="openReports" class="ms-auto rounded-full bg-red-600 px-1.5 text-[10px] font-bold text-white">{{ openReports }}</span>
+        </NuxtLink>
+        <NuxtLink
           to="/profile"
           class="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-gray-700 transition hover:bg-nav-500/10 hover:text-nav-700 dark:text-gray-200 dark:hover:bg-nav-500/10 dark:hover:text-nav-300"
           active-class="bg-nav-500/15 text-nav-700 dark:bg-nav-500/15 dark:text-nav-300"
@@ -108,6 +129,14 @@ async function onLogout() {
           <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
           پروفایل من
         </NuxtLink>
+        <button
+          type="button"
+          class="flex items-center gap-2.5 rounded-md px-3 py-2 text-start text-sm text-gray-700 transition hover:bg-nav-500/10 hover:text-nav-700 dark:text-gray-200 dark:hover:bg-nav-500/10 dark:hover:text-nav-300"
+          @click="showReport = true"
+        >
+          <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          گزارش مشکل به پشتیبانی
+        </button>
         <button
           class="mt-2 flex items-center gap-2.5 rounded-md px-3 py-2 text-start text-sm text-red-600 hover:bg-red-50/50 dark:hover:bg-red-950/40"
           @click="onLogout"
@@ -120,5 +149,6 @@ async function onLogout() {
     <main class="relative flex-1 p-4 sm:p-6 lg:p-8">
       <slot />
     </main>
+    <SupportReportDialog v-if="showReport" @close="showReport = false" />
   </div>
 </template>

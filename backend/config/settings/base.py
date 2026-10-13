@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     "apps.messaging",
     "apps.board",
     "apps.exams",
+    "apps.monitoring",
 ]
 
 MIDDLEWARE = [
@@ -56,6 +57,8 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    # Records API error responses for the developer's live log (apps/monitoring).
+    "apps.monitoring.middleware.APIErrorLogMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"

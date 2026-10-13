@@ -1,32 +1,51 @@
 /**
- * Dev-only live error log. Catches JS errors, unhandled promise rejections,
- * Vue render/lifecycle errors and failed API calls; shows them in the
- * on-page panel (DevLiveLogPanel) and sends them to the backend's
- * logs/live.log, next to the server's own errors.
+ * Live error log. Catches JS errors, unhandled promise rejections, Vue
+ * render/lifecycle errors and failed API calls; keeps the last 50 for the
+ * on-page panel (DevLiveLogPanel, dev mode and the developer account) and for
+ * support reports, and sends them to the backend's monitoring log, next to the
+ * server's own errors. In production only signed-in users' errors are sent.
  */
 import type { LiveLogEntry } from '~/composables/useLiveLog'
 
 export default defineNuxtPlugin((nuxtApp) => {
-  if (!import.meta.dev) return
-
   const config = useRuntimeConfig()
   const { entries } = useLiveLog()
   const authStore = useAuthStore()
-  const endpoint = `${config.public.apiBase}/dev/client-log/`
+  const endpoint = `${config.public.apiBase}/monitoring/client-log/`
   let nextId = 1
 
-  function report(entry: Omit<LiveLogEntry, 'id' | 'at'>) {
-    const item = { ...entry, id: nextId++, at: new Date().toLocaleTimeString('fa-IR') }
-    entries.value = [item, ...entries.value].slice(0, 50)
-    // The logging call itself must never raise or log (no loops).
-    navigator.sendBeacon?.(endpoint, new Blob([JSON.stringify({
+  function send(entry: Omit<LiveLogEntry, 'id' | 'at'>) {
+    const body = JSON.stringify({
       level: entry.level,
       kind: entry.kind,
       message: entry.message,
       detail: entry.detail,
       url: location.pathname + location.search,
-      user: authStore.user?.email,
-    })], { type: 'application/json' }))
+    })
+    if (import.meta.dev) {
+      navigator.sendBeacon?.(endpoint, new Blob([body], { type: 'application/json' }))
+      return
+    }
+    // Production accepts reports from signed-in users only; a beacon can't carry the token.
+    if (!authStore.accessToken) return
+    fetch(endpoint, {
+      method: 'POST',
+      keepalive: true,
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authStore.accessToken}` },
+      body,
+    }).catch(() => {})
+  }
+
+  // `serverSeen`: an API error response the backend has already recorded itself, so it only
+  // goes to the on-page list (and support reports), not to the server a second time.
+  function report(entry: Omit<LiveLogEntry, 'id' | 'at'>, serverSeen = false) {
+    const item = { ...entry, id: nextId++, at: new Date().toLocaleTimeString('fa-IR') }
+    entries.value = [item, ...entries.value].slice(0, 50)
+    if (serverSeen && !import.meta.dev) return
+    // The logging call itself must never raise or log (no loops).
+    try {
+      send(entry)
+    } catch {}
   }
 
   const describe = (err: any) => (err instanceof Error ? `${err.name}: ${err.message}` : String(err))
@@ -54,14 +73,14 @@ export default defineNuxtPlugin((nuxtApp) => {
     onResponseError({ request, response, options }) {
       const url = String(request)
       // 401 = expired access token; useApi refreshes it and retries on its own.
-      if (response.status === 401 || url.endsWith('/auth/refresh/') || url.endsWith('/dev/client-log/')) return
+      if (response.status === 401 || url.endsWith('/auth/refresh/') || url.endsWith('/monitoring/client-log/')) return
       const body = response._data
       report({
         level: response.status >= 500 ? 'error' : 'warning',
         kind: 'api',
         message: `${(options.method || 'GET').toUpperCase()} ${url.replace(config.public.apiBase, '')} → ${response.status}`,
         detail: body ? (typeof body === 'string' ? body.slice(0, 800) : JSON.stringify(body).slice(0, 800)) : undefined,
-      })
+      }, true)
     },
   }) as typeof $fetch
 })

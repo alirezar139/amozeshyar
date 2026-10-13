@@ -7,7 +7,10 @@ export interface LiveLogEntry {
   detail?: string
 }
 
-/** Errors caught on this page in dev mode (see plugins/live-log.client.ts). */
+/**
+ * Errors caught on this page (see plugins/live-log.client.ts). Shown in the corner panel to
+ * developers, and attached to support reports so the developer sees what the user saw.
+ */
 export function useLiveLog() {
   const entries = useState<LiveLogEntry[]>('live-log', () => [])
   return { entries }
