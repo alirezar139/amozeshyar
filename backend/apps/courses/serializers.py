@@ -14,6 +14,19 @@ class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
         fields = ("id", "name", "slug", "parent", "image", "course_count")
+        read_only_fields = ("slug",)
+
+    def validate_name(self, value):
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError("نام دسته‌بندی را وارد کنید.")
+        # The slug is derived from the name and is unique, so a duplicate name would crash on save.
+        clash = Category.objects.filter(name__iexact=value)
+        if self.instance:
+            clash = clash.exclude(pk=self.instance.pk)
+        if clash.exists():
+            raise serializers.ValidationError("دسته‌بندی‌ای با این نام وجود دارد.")
+        return value
 
 
 class LessonFilePublicSerializer(serializers.ModelSerializer):
