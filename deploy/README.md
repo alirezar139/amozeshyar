@@ -7,6 +7,7 @@
 - `docker-compose.prod.yml`: سرویس‌ها، با سقف رم برای سرور ۲ گیگی
 - `backend.Dockerfile`: ایمیج API و Celery (با ffmpeg)
 - `frontend.Dockerfile`: ایمیج Nuxt
+- معماری کامل و راهنمای عملیات: [`docs/architecture.md`](../docs/architecture.md)
 - `nginx.conf`: نمونه‌ی تنظیم nginx روی سرور (یک دامنه برای همه‌چیز، با محدودیت نرخ و هدرهای امنیتی)
 - `backup.sh`: بکاپ شبانه‌ی دیتابیس و فایل‌های MinIO
 

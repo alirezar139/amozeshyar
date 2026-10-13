@@ -6,6 +6,7 @@
 # --delete, so a file removed by mistake in the app is still in the backup.
 # Both live on the same disk; copy BACKUP_DIR off the box regularly for real disaster recovery.
 set -euo pipefail
+umask 077
 
 BACKUP_DIR=${BACKUP_DIR:-/var/backups/amozeshyar}
 KEEP_DAYS=${KEEP_DAYS:-14}
