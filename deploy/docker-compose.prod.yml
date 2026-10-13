@@ -61,6 +61,8 @@ services:
 
   worker:
     <<: *backend
+    # Reuses the image the backend service builds; building it twice races on the same tag.
+    build: !reset null
     # One video at a time: ffmpeg is the heaviest thing on the box.
     command: ["celery", "-A", "config", "worker", "-l", "info", "--concurrency", "1"]
     mem_limit: 768m
