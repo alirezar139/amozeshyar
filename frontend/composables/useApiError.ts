@@ -4,6 +4,30 @@
  * This normalizes all of them into one string so forms can show the real
  * cause instead of a generic "something went wrong".
  */
+// Persian names for the API's (English) field keys, so a validation error reads
+// «دسته‌بندی: …» instead of «category: …».
+const FIELD_LABELS: Record<string, string> = {
+  category: 'دسته‌بندی',
+  title: 'عنوان',
+  subtitle: 'زیرعنوان',
+  description: 'توضیحات',
+  level: 'سطح',
+  price: 'قیمت',
+  name: 'نام',
+  email: 'ایمیل',
+  password: 'رمز عبور',
+  first_name: 'نام',
+  last_name: 'نام خانوادگی',
+  phone: 'شماره موبایل',
+  file: 'فایل',
+  image: 'تصویر',
+  start_at: 'زمان شروع',
+  end_at: 'زمان پایان',
+  duration_minutes: 'مدت',
+  question: 'سؤال',
+  text: 'متن',
+}
+
 export function getErrorMessage(error: any, fallback: string): string {
   const data = error?.data ?? error?.response?._data
   if (!data) {
@@ -22,7 +46,8 @@ export function getErrorMessage(error: any, fallback: string): string {
   if (firstKey) {
     const value = data[firstKey]
     const message = Array.isArray(value) ? value[0] : value
-    return firstKey === 'non_field_errors' ? String(message) : `${firstKey}: ${message}`
+    if (firstKey === 'non_field_errors') return String(message)
+    return `${FIELD_LABELS[firstKey] ?? firstKey}: ${message}`
   }
 
   return fallback

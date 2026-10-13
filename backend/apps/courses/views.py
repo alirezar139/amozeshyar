@@ -4,7 +4,7 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, permissions, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 
 from apps.accounts.authentication import UploadJWTAuthentication
@@ -24,18 +24,29 @@ from .serializers import (
 )
 
 
-class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
-    """Public category list — `course_count` only counts published courses, so an empty
-    or all-pending category still shows up (for future admin category management) but
-    the homepage grid can filter those out client-side to avoid dead-end links."""
+class CategoryViewSet(viewsets.ModelViewSet):
+    """Anyone can list categories; only the site admin creates, renames or deletes them.
+
+    `course_count` only counts published courses, so an empty or all-pending category still
+    shows up here (the instructor needs it when creating a course) while the homepage grid
+    filters those out client-side to avoid dead-end links."""
 
     serializer_class = CategorySerializer
-    permission_classes = (permissions.AllowAny,)
+
+    def get_permissions(self):
+        if self.request.method in permissions.SAFE_METHODS:
+            return [permissions.AllowAny()]
+        return [permissions.IsAuthenticated(), IsAdminRole()]
 
     def get_queryset(self):
         return Category.objects.annotate(
             course_count=Count("courses", filter=Q(courses__status=Course.Status.PUBLISHED))
         )
+
+    def perform_destroy(self, instance):
+        if instance.courses.exists():
+            raise ValidationError({"detail": "این دسته‌بندی دوره دارد؛ اول دوره‌هایش را به دسته‌ی دیگری منتقل کنید."})
+        instance.delete()
 
 
 class PublicCourseViewSet(viewsets.ReadOnlyModelViewSet):
