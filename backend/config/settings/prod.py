@@ -39,3 +39,8 @@ CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=CORS_ALLOWED_ORI
 # TLS ends at the reverse proxy (nginx), which forwards plain HTTP. Without this
 # Django thinks every request is insecure and SECURE_SSL_REDIRECT loops forever.
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+# DRF throttles key on the client IP. Behind exactly one proxy (host nginx) the real IP is the
+# last X-Forwarded-For entry; without this a client could send its own X-Forwarded-For and get
+# a fresh throttle bucket per request (bypassing the login/payment rate limits).
+REST_FRAMEWORK["NUM_PROXIES"] = 1  # noqa: F405

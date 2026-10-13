@@ -7,7 +7,8 @@
 - `docker-compose.prod.yml`: سرویس‌ها، با سقف رم برای سرور ۲ گیگی
 - `backend.Dockerfile`: ایمیج API و Celery (با ffmpeg)
 - `frontend.Dockerfile`: ایمیج Nuxt
-- `nginx.conf`: نمونه‌ی تنظیم nginx روی سرور (یک دامنه برای همه‌چیز)
+- `nginx.conf`: نمونه‌ی تنظیم nginx روی سرور (یک دامنه برای همه‌چیز، با محدودیت نرخ و هدرهای امنیتی)
+- `backup.sh`: بکاپ شبانه‌ی دیتابیس و فایل‌های MinIO
 
 ## فایل `deploy/.env` (روی سرور، داخل git نیست)
 
@@ -41,3 +42,16 @@ docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env exec bac
 ```
 
 باکت MinIO (`modaresyar-media`) باید یک بار ساخته شود (مثلاً با boto3 از داخل کانتینر backend).
+
+## بکاپ
+
+```bash
+install -m 700 deploy/backup.sh /usr/local/bin/amozeshyar-backup
+echo '30 3 * * * root /usr/local/bin/amozeshyar-backup' > /etc/cron.d/amozeshyar-backup
+```
+
+بکاپ‌ها در `/var/backups/amozeshyar` روی همان دیسک سرور است؛ برای امنیت واقعی، گاهی یک کپی بیرون از سرور بگیرید.
+
+## پنل ادمین جنگو
+
+`/admin/` عمداً از بیرون باز نیست. برای دسترسی: `ssh -L 8100:127.0.0.1:8100 root@SERVER` و بعد `http://localhost:8100/admin/`.
