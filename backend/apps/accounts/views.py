@@ -109,7 +109,7 @@ class AdminUserViewSet(viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         if serializer.instance.id == self.request.user.id:
-            raise PermissionDenied("Cannot change your own role or active status here.")
+            raise PermissionDenied("نقش یا وضعیت فعال بودن حساب خودتان را از اینجا نمی‌توانید تغییر دهید.")
         serializer.save()
 
     def create(self, request, *args, **kwargs):
@@ -240,12 +240,12 @@ class RefreshView(APIView):
     def post(self, request, *args, **kwargs):
         raw_refresh = request.COOKIES.get(REFRESH_COOKIE_NAME)
         if not raw_refresh:
-            return Response({"detail": "Refresh cookie missing."}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response({"detail": "نشست شما پیدا نشد؛ دوباره وارد شوید."}, status=status.HTTP_401_UNAUTHORIZED)
         try:
             refresh = RefreshToken(raw_refresh)
             access = str(refresh.access_token)
         except TokenError:
-            return Response({"detail": "Invalid or expired refresh token."}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response({"detail": "نشست شما منقضی شده؛ دوباره وارد شوید."}, status=status.HTTP_401_UNAUTHORIZED)
 
         response = Response({"access": access})
         if settings.SIMPLE_JWT["ROTATE_REFRESH_TOKENS"]:

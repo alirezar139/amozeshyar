@@ -48,6 +48,15 @@ function openCreateForm() {
 
 async function createSession() {
   createError.value = ''
+  // The placeholder <option> isn't an empty value, so the browser's `required` lets it through.
+  if (!form.course) {
+    createError.value = 'دوره را انتخاب کنید.'
+    return
+  }
+  if (!form.is_online && !form.location_note.trim()) {
+    createError.value = 'برای جلسه‌ی حضوری، آدرس محل برگزاری را بنویسید.'
+    return
+  }
   creating.value = true
   try {
     await request('/class-sessions/', {

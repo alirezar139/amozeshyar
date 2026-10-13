@@ -40,7 +40,7 @@ class InitiatePaymentView(APIView):
         try:
             order = Order.objects.get(id=order_id, user=request.user, status=Order.Status.PENDING)
         except Order.DoesNotExist as exc:
-            raise NotFound("Order not found or already processed.") from exc
+            raise NotFound("سفارش پیدا نشد یا قبلاً پردازش شده است.") from exc
 
         gateway = get_gateway()
         result = gateway.create_payment_request(order, settings.ZARINPAL_CALLBACK_URL)
@@ -66,7 +66,7 @@ class PaymentCallbackView(APIView):
         try:
             payment = Payment.objects.select_related("order").get(authority=authority)
         except Payment.DoesNotExist as exc:
-            raise NotFound("Unknown payment authority.") from exc
+            raise NotFound("شناسه‌ی پرداخت نامعتبر است.") from exc
 
         if payment.status == Payment.Status.VERIFIED:
             # Already processed by a prior callback hit — return success without re-granting anything.

@@ -54,5 +54,5 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
         if not isinstance(value, list) or len(value) > 3 or not all(
             isinstance(c, str) and re.fullmatch(r"#[0-9a-fA-F]{6}", c) for c in value
         ):
-            raise serializers.ValidationError("Up to three hex colors like #157e6c.")
+            raise serializers.ValidationError("حداکثر سه رنگ، به شکل کد هگز مثل #157e6c.")
         return value

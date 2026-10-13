@@ -12,7 +12,7 @@ class CreateOrderSerializer(serializers.Serializer):
     def validate_course_ids(self, value):
         courses = Course.objects.filter(id__in=value, status=Course.Status.PUBLISHED)
         if courses.count() != len(set(value)):
-            raise serializers.ValidationError("One or more courses are unavailable.")
+            raise serializers.ValidationError("یک یا چند دوره در دسترس نیست.")
         return value
 
     def create(self, validated_data):

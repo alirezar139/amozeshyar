@@ -48,7 +48,7 @@ class PreviewStreamView(APIView):
     def get(self, request, video_id):
         video = generics.get_object_or_404(VideoAsset, id=video_id, status=VideoAsset.Status.READY)
         if not video.preview_clip_key:
-            return Response({"detail": "Preview not available yet."}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"detail": "پیش‌نمایش هنوز آماده نیست."}, status=status.HTTP_404_NOT_FOUND)
 
         from .services.signing import get_presigned_url
 
@@ -87,9 +87,9 @@ class ManifestView(APIView):
                 student=request.user, course=course, is_active=True
             ).exists()
         if not (is_enrolled or video.lesson.is_free_preview):
-            raise PermissionDenied("Enrollment required to watch the full video.")
+            raise PermissionDenied("برای تماشای کامل ویدیو باید در دوره ثبت‌نام کنید.")
         if not video.hls_master_key:
-            return Response({"detail": "Video not processed yet."}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"detail": "ویدیو هنوز در حال پردازش است."}, status=status.HTTP_404_NOT_FOUND)
 
         from .services.signing import get_presigned_url
 

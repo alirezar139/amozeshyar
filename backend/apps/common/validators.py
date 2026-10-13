@@ -23,18 +23,18 @@ def _sniff_mime_type(file_obj) -> str:
 
 def validate_video_file(file_obj):
     if file_obj.size > MAX_VIDEO_SIZE_BYTES:
-        raise ValidationError("Video file exceeds the maximum allowed size.")
+        raise ValidationError("حجم ویدیو بیشتر از ۲ گیگابایت است.")
     mime_type = _sniff_mime_type(file_obj)
     if mime_type not in ALLOWED_VIDEO_MIME_TYPES:
-        raise ValidationError(f"Unsupported video format detected: {mime_type}.")
+        raise ValidationError(f"این فایل ویدیوی قابل‌قبول نیست ({mime_type}). فرمت‌های مجاز: MP4، MOV، MKV، WEBM.")
 
 
 def validate_image_file(file_obj):
     if file_obj.size > MAX_IMAGE_SIZE_BYTES:
-        raise ValidationError("Image file exceeds the maximum allowed size.")
+        raise ValidationError("حجم تصویر بیشتر از ۵ مگابایت است.")
     mime_type = _sniff_mime_type(file_obj)
     if mime_type not in ALLOWED_IMAGE_MIME_TYPES:
-        raise ValidationError(f"Unsupported image format detected: {mime_type}.")
+        raise ValidationError(f"این فایل تصویر قابل‌قبول نیست ({mime_type}). فرمت‌های مجاز: JPG، PNG، WEBP.")
 
 
 # Course files (handouts, exercises, source code...). Served only as forced

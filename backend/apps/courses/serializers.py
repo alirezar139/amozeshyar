@@ -170,7 +170,7 @@ class CourseManageSerializer(serializers.ModelSerializer):
 
     def validate_status(self, value):
         if value not in (Course.Status.DRAFT, Course.Status.PUBLISHED):
-            raise serializers.ValidationError("Status must be draft or published.")
+            raise serializers.ValidationError("وضعیت دوره باید «پیش‌نویس» یا «منتشرشده» باشد.")
         return value
 
     def create(self, validated_data):
@@ -178,7 +178,7 @@ class CourseManageSerializer(serializers.ModelSerializer):
 
         owner = get_site_owner()
         if owner is None:
-            raise serializers.ValidationError("Site owner not set up yet — run `manage.py setup_site`.")
+            raise serializers.ValidationError("صاحب سایت هنوز تعریف نشده است؛ با پشتیبانی تماس بگیرید.")
         validated_data["instructor"] = owner
         validated_data.setdefault("status", Course.Status.PUBLISHED)
         if validated_data["status"] == Course.Status.PUBLISHED:
