@@ -101,7 +101,7 @@ function onBackdropClick() {
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">رمز عبور</label>
-              <input v-model="loginForm.password" type="password" required class="glass mt-1 block w-full rounded-md px-3 py-2 text-sm text-gray-900 dark:text-white">
+              <FormPasswordInput v-model="loginForm.password" required autocomplete="current-password" />
             </div>
             <AuthCaptchaPuzzle ref="captchaRef" @passed="onCaptchaPassed" @reset="captchaPassToken = ''" />
             <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
@@ -142,7 +142,7 @@ function onBackdropClick() {
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">رمز عبور</label>
-              <input v-model="registerForm.password" type="password" required minlength="10" class="glass mt-1 block w-full rounded-md px-3 py-2 text-sm text-gray-900 dark:text-white">
+              <FormPasswordInput v-model="registerForm.password" required minlength="10" autocomplete="new-password" />
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">علایق و مهارت‌ها (اختیاری)</label>
