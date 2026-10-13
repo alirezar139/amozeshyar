@@ -20,8 +20,8 @@ api_v1_patterns = [
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/v1/", include(api_v1_patterns)),
-    # API documentation (drf-spectacular) — kept public so instructors'
-    # integration partners and the frontend team always have an up-to-date contract.
+    # API documentation (drf-spectacular). Public in dev; staff-only in production
+    # (SPECTACULAR_SETTINGS["SERVE_PERMISSIONS"] in settings/prod.py).
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
     path("api/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
