@@ -44,3 +44,23 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 # last X-Forwarded-For entry; without this a client could send its own X-Forwarded-For and get
 # a fresh throttle bucket per request (bypassing the login/payment rate limits).
 REST_FRAMEWORK["NUM_PROXIES"] = 1  # noqa: F405
+
+# The OpenAPI schema maps every endpoint; in production only staff (the developer account) may
+# read it. Developers can still generate it locally with `manage.py spectacular`.
+SPECTACULAR_SETTINGS["SERVE_PERMISSIONS"] = ["rest_framework.permissions.IsAdminUser"]  # noqa: F405
+
+# Captcha challenges and DRF throttle counters live in the cache. The default per-process
+# LocMemCache breaks both under gunicorn's multiple workers: a puzzle created in one worker
+# can't be verified in another, and each worker counts login attempts separately.
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": env("CACHE_URL", default="redis://redis:6379/1"),
+        "KEY_PREFIX": "amozeshyar",
+    }
+}
+
+# Nuxt's SSR calls the backend directly on the Docker network (Host: backend:8000) and names the
+# public host in X-Forwarded-Host. nginx always overwrites that header for outside requests, and
+# the value is still checked against ALLOWED_HOSTS.
+USE_X_FORWARDED_HOST = True

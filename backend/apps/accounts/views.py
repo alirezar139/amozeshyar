@@ -7,6 +7,7 @@ from rest_framework import filters, generics, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import MethodNotAllowed, PermissionDenied, ValidationError
 from rest_framework.response import Response
+from rest_framework.throttling import AnonRateThrottle, ScopedRateThrottle
 from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
@@ -62,6 +63,8 @@ class RegisterView(generics.CreateAPIView):
 
     serializer_class = RegisterSerializer
     permission_classes = (permissions.AllowAny,)
+    throttle_classes = (AnonRateThrottle, ScopedRateThrottle)
+    throttle_scope = "auth"
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -171,6 +174,9 @@ class LoginView(TokenObtainPairView):
 
     serializer_class = EmailTokenObtainPairSerializer
     permission_classes = (permissions.AllowAny,)
+    # Per-IP cap on password guesses, on top of the captcha.
+    throttle_classes = (AnonRateThrottle, ScopedRateThrottle)
+    throttle_scope = "auth"
 
     def post(self, request, *args, **kwargs):
         if not captcha.consume_pass(request.data.get("captcha_pass_token")):
