@@ -68,8 +68,10 @@ async function onSubmit() {
       formData.append('cover_image', coverFile.value)
       body = formData
     }
-    await request('/courses/manage/', { method: 'POST', body })
+    const created = await request<{ id: number }>('/courses/manage/', { method: 'POST', body })
     success.value = true
+    // Straight on to adding lessons and uploading their videos; the form itself is a dead end.
+    await navigateTo(`/admin/courses/${created.id}/lessons?new=1`)
   } catch (err) {
     error.value = getErrorMessage(err, 'ثبت دوره انجام نشد.')
   } finally {
@@ -155,7 +157,7 @@ async function onSubmit() {
         />
       </div>
       <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
-      <p v-if="success" class="text-sm text-emerald-600">دوره با موفقیت ثبت و منتشر شد.</p>
+      <p v-if="success" class="text-sm text-emerald-600">دوره ثبت شد؛ در حال رفتن به صفحه‌ی جلسه‌ها و ویدیوها...</p>
       <div class="flex gap-3">
         <button
           type="submit"
