@@ -9,6 +9,7 @@ from rest_framework.response import Response
 
 from apps.accounts.authentication import UploadJWTAuthentication
 from apps.accounts.permissions import IsAdminRole
+from apps.common import public_cache
 
 from .filters import CourseFilter
 from .models import Category, ClassSession, Course, Lesson, LessonFile
@@ -32,6 +33,10 @@ class CategoryViewSet(viewsets.ModelViewSet):
     filters those out client-side to avoid dead-end links."""
 
     serializer_class = CategorySerializer
+
+    def list(self, request, *args, **kwargs):
+        # Same answer for everyone, and loaded by every homepage visit.
+        return public_cache.cached_response(request, lambda: super(CategoryViewSet, self).list(request, *args, **kwargs).data)
 
     def get_permissions(self):
         if self.request.method in permissions.SAFE_METHODS:
@@ -61,6 +66,18 @@ class PublicCourseViewSet(viewsets.ReadOnlyModelViewSet):
         if self.action == "retrieve":
             return PublicCourseDetailSerializer
         return PublicCourseListSerializer
+
+    # Anonymous visitors all get the same catalog and course pages, so those are
+    # cached; a signed-in student's answer carries their own enrollment and progress.
+    def list(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            return super().list(request, *args, **kwargs)
+        return public_cache.cached_response(request, lambda: super(PublicCourseViewSet, self).list(request, *args, **kwargs).data)
+
+    def retrieve(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            return super().retrieve(request, *args, **kwargs)
+        return public_cache.cached_response(request, lambda: super(PublicCourseViewSet, self).retrieve(request, *args, **kwargs).data)
 
 
 class CourseManageViewSet(viewsets.ModelViewSet):
@@ -111,6 +128,7 @@ class LessonViewSet(viewsets.ModelViewSet):
                 Lesson.objects.filter(pk=lesson.pk).update(order=parked)
                 Lesson.objects.filter(pk=neighbour.pk).update(order=a)
                 Lesson.objects.filter(pk=lesson.pk).update(order=b)
+                public_cache.invalidate()  # .update() sends no post_save
         return Response(self.get_serializer(self.get_queryset(), many=True).data)
 
 
