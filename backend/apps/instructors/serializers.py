@@ -10,6 +10,8 @@ class PublicInstructorSerializer(serializers.ModelSerializer):
 
     display_name = serializers.SerializerMethodField()
     phone_number = serializers.CharField(source="user.phone_number", read_only=True)
+    # The owner's profile photo; the homepage shows it when no separate cover_image is set.
+    avatar = serializers.ImageField(source="user.avatar", read_only=True)
 
     class Meta:
         model = InstructorProfile
@@ -28,6 +30,7 @@ class PublicInstructorSerializer(serializers.ModelSerializer):
             "bio",
             "credentials",
             "cover_image",
+            "avatar",
             "social_links",
             "rating_avg",
             "total_students",

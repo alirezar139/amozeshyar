@@ -12,6 +12,7 @@ export interface SiteOwner {
   bio: string
   credentials: { title: string; issuer?: string; year?: string | number }[]
   cover_image: string | null
+  avatar: string | null
   social_links: Record<string, string>
   rating_avg: string
   total_students: number

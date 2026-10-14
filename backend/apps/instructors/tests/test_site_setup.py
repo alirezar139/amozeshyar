@@ -2,6 +2,7 @@
 sign-up only makes students, and the developer account stays out of the
 instructor's reach."""
 import pytest
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.management import call_command
 from rest_framework.test import APIClient
 
@@ -126,3 +127,13 @@ def test_site_background_settings(site):
     assert bad.status_code == 400
     bad = client.patch("/api/v1/site/settings/", {"background_style": "disco"}, format="json")
     assert bad.status_code == 400
+
+
+def test_public_site_includes_the_owner_profile_photo(site):
+    assert APIClient().get("/api/v1/site/").data["avatar"] is None
+
+    site.user.avatar = SimpleUploadedFile("me.png", b"\x89PNG\r\n\x1a\n", content_type="image/png")
+    site.user.save(update_fields=["avatar"])
+
+    avatar = APIClient().get("/api/v1/site/").data["avatar"]
+    assert avatar and avatar.endswith(".png")

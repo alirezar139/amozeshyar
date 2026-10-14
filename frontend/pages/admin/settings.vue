@@ -604,7 +604,7 @@ async function save() {
           >
             <svg class="h-10 w-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
             <span class="text-sm font-medium text-gray-700 dark:text-gray-200">عکس را اینجا بکشید یا کلیک کنید</span>
-            <span class="text-xs text-gray-500 dark:text-gray-400">JPG یا PNG — بدون عکس، تصویر پیش‌فرض نمایش داده می‌شود</span>
+            <span class="text-xs text-gray-500 dark:text-gray-400">JPG یا PNG — بدون این عکس، عکس پروفایلتان (یا تصویر پیش‌فرض) نمایش داده می‌شود</span>
             <span v-if="removeCover" class="mt-1 text-xs text-amber-600">عکس فعلی بعد از ذخیره حذف می‌شود</span>
           </button>
         </section>
