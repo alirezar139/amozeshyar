@@ -244,6 +244,9 @@ class RefreshView(APIView):
         try:
             refresh = RefreshToken(raw_refresh)
         except TokenError:
+            # Leave the cookie alone: this is usually an already-rotated token from a
+            # refresh that raced another one, and the browser may by now hold the newer,
+            # valid cookie that the winner set. Clearing it here would log the user out.
             return self._expired()
 
         # A token outlives the account it was issued for: a deactivated or deleted
@@ -251,7 +254,9 @@ class RefreshView(APIView):
         user = get_user_model().objects.filter(id=refresh["user_id"], is_active=True).first()
         if user is None:
             refresh.blacklist()
-            return self._expired()
+            response = self._expired()
+            response.delete_cookie(REFRESH_COOKIE_NAME, path=REFRESH_COOKIE_PATH)
+            return response
 
         response = Response({"access": str(refresh.access_token)})
         if settings.SIMPLE_JWT["ROTATE_REFRESH_TOKENS"]:
@@ -262,9 +267,7 @@ class RefreshView(APIView):
 
     @staticmethod
     def _expired():
-        response = Response({"detail": "نشست شما منقضی شده؛ دوباره وارد شوید."}, status=status.HTTP_401_UNAUTHORIZED)
-        response.delete_cookie(REFRESH_COOKIE_NAME, path=REFRESH_COOKIE_PATH)
-        return response
+        return Response({"detail": "نشست شما منقضی شده؛ دوباره وارد شوید."}, status=status.HTTP_401_UNAUTHORIZED)
 
 
 class LogoutView(APIView):
