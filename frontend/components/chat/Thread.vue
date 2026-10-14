@@ -88,6 +88,7 @@ async function loadInitial() {
   try {
     const data = await request<any>(`/conversations/${props.conversation.id}/messages/`)
     serverTime = data.server_time
+    pollVersion = data.version ?? ''
     messages.value = data.messages
     hasMore.value = data.has_more
     othersLastRead.value = data.others_last_read
@@ -119,6 +120,8 @@ async function loadOlder() {
 }
 
 let serverTime = ''
+// The chat's change counter from the last answer; the server replies "unchanged" while it holds.
+let pollVersion: string | number = ''
 
 // Every poll costs the server several queries, so a quiet thread backs off:
 // 3s while messages are flowing, easing to 12s after about a minute of nothing.
@@ -140,7 +143,10 @@ async function poll() {
   quietPolls++
   try {
     const since = serverTime ? `&since=${encodeURIComponent(serverTime)}` : ''
-    const data = await request<any>(`/conversations/${props.conversation.id}/messages/?after=${lastServerId.value}${since}`)
+    const version = pollVersion !== '' ? `&v=${pollVersion}` : ''
+    const data = await request<any>(`/conversations/${props.conversation.id}/messages/?after=${lastServerId.value}${since}${version}`)
+    pollVersion = data.version ?? ''
+    if (data.unchanged) return
     serverTime = data.server_time
     othersLastRead.value = data.others_last_read
     // deletions and reactions on messages already on screen
