@@ -5,6 +5,8 @@ Run as a Celery task (see tasks.py) so uploads return immediately and
 processing happens off the request/response cycle.
 """
 import logging
+import os
+import shutil
 import subprocess
 import tempfile
 from pathlib import Path
@@ -18,9 +20,28 @@ class TranscodeError(RuntimeError):
     pass
 
 
+# Tuned for recorded lessons (mostly a talking head, slides or a screen):
+# CRF 26 looks the same as the default 23 for that kind of footage at a
+# noticeably smaller size, and the maxrate cap keeps busy scenes from
+# spiking the bitrate for viewers on mobile connections. yuv420p because
+# phones and some cameras record 10-bit or 4:2:2, which browsers can't play.
+VIDEO_ARGS = (
+    "-c:v", "libx264", "-preset", "medium", "-crf", "26",
+    "-maxrate", "2500k", "-bufsize", "5000k", "-pix_fmt", "yuv420p",
+)
+AUDIO_ARGS = ("-c:a", "aac", "-b:a", "96k")
+# At most 720p and never upscaled (that only makes the file bigger); both sides even, as x264 requires.
+SCALE_FILTER = "scale=-2:'min(720,trunc(ih/2)*2)'"
+
+# Lowest CPU priority: on a small server the website must stay responsive
+# while a video is being encoded. Linux only: on Windows dev machines the
+# `nice` that Git Bash provides mangles the filter's quotes on the way to ffmpeg.
+NICE = ("nice", "-n", "19") if os.name == "posix" and shutil.which("nice") else ()
+
+
 def _run_ffmpeg(*args: str) -> None:
     result = subprocess.run(
-        ["ffmpeg", "-y", *args],
+        [*NICE, "ffmpeg", "-y", *args],
         capture_output=True,
         text=True,
         timeout=60 * 60,
@@ -39,6 +60,27 @@ def probe_duration_seconds(local_path: Path) -> int:
     if result.returncode != 0:
         raise TranscodeError(result.stderr)
     return int(float(result.stdout.strip()))
+
+
+def encode_hls(source: Path, playlist: Path) -> None:
+    """The full lesson as a single-rendition HLS stream, in 6-second segments."""
+    _run_ffmpeg(
+        "-i", str(source),
+        "-vf", SCALE_FILTER, *VIDEO_ARGS, *AUDIO_ARGS,
+        "-hls_time", "6", "-hls_playlist_type", "vod",
+        str(playlist),
+    )
+
+
+def encode_preview(source: Path, target: Path, seconds: int) -> None:
+    """The free preview: a separate file cut to `seconds`, with its index up front so playback starts at once."""
+    _run_ffmpeg(
+        "-i", str(source),
+        "-t", str(seconds),
+        "-vf", SCALE_FILTER, *VIDEO_ARGS, *AUDIO_ARGS,
+        "-movflags", "+faststart",
+        str(target),
+    )
 
 
 def transcode_video_asset(video_asset_id: int) -> None:
@@ -69,24 +111,13 @@ def transcode_video_asset(video_asset_id: int) -> None:
             hls_dir = tmp_dir / "hls"
             hls_dir.mkdir()
             hls_playlist = hls_dir / "master.m3u8"
-            _run_ffmpeg(
-                "-i", str(original_path),
-                "-vf", "scale=-2:720",
-                "-c:v", "h264", "-c:a", "aac",
-                "-hls_time", "6", "-hls_playlist_type", "vod",
-                str(hls_playlist),
-            )
+            encode_hls(original_path, hls_playlist)
 
             # Preview clip: a SEPARATE, physically-truncated file (not a
             # time-limited view into the full file) — this is what makes the
             # gate unbypassable by URL manipulation.
             preview_path = tmp_dir / "preview.mp4"
-            _run_ffmpeg(
-                "-i", str(original_path),
-                "-t", str(min(preview_seconds, duration)),
-                "-c:v", "h264", "-c:a", "aac",
-                str(preview_path),
-            )
+            encode_preview(original_path, preview_path, min(preview_seconds, duration))
 
             base_key = video_asset.storage_key.rsplit(".", 1)[0]
             hls_master_key = f"{base_key}/hls/master.m3u8"
