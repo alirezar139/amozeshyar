@@ -123,7 +123,9 @@ async function deleteVideo() {
 const videoState = computed(() => {
   if (videoUpload.value) return 'uploading'
   if (!props.lesson.has_video) return 'empty'
-  return props.lesson.video_status as 'uploading' | 'processing' | 'ready' | 'failed'
+  // The server says "uploading" once the file is stored and the transcode is waiting for the worker.
+  if (props.lesson.video_status === 'uploading') return 'queued'
+  return props.lesson.video_status as 'processing' | 'ready' | 'failed'
 })
 
 // ---------- files ----------
@@ -310,6 +312,23 @@ async function downloadFile(file: any) {
             <span v-if="videoUpload?.progress?.remaining">{{ formatRemaining(videoUpload.progress.remaining) }} مانده</span>
           </div>
           <p class="mt-2 text-[11px] text-gray-500 dark:text-gray-400">تا پایان آپلود این صفحه را نبندید.</p>
+        </div>
+
+        <!-- queued: uploaded, waiting for the worker -->
+        <div v-else-if="videoState === 'queued'" class="rounded-xl bg-amber-500/10 p-4 ring-1 ring-amber-500/25">
+          <div class="flex items-center gap-3">
+            <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-500/15 text-amber-600">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            </span>
+            <div>
+              <p class="text-sm font-semibold text-amber-800 dark:text-amber-300">در صف پردازش</p>
+              <p class="text-xs text-amber-700/80 dark:text-amber-300/70">
+                <template v-if="lesson.video_queue_ahead > 0">{{ lesson.video_queue_ahead.toLocaleString('fa-IR') }} ویدیو جلوتر از این ویدیو است.</template>
+                <template v-else>نوبت این ویدیو است و پردازش به‌زودی شروع می‌شود.</template>
+                آپلود تمام شده و می‌توانید این صفحه را ببندید.
+              </p>
+            </div>
+          </div>
         </div>
 
         <!-- processing -->

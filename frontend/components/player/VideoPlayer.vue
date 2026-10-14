@@ -15,6 +15,8 @@ const props = defineProps<{
 const emit = defineEmits<{ progress: [{ lesson_id: number; position_seconds: number; completed: boolean }] }>()
 
 const { request } = useApi()
+const auth = useAuthStore()
+const frameEl = ref<HTMLDivElement | null>(null)
 const videoEl = ref<HTMLVideoElement | null>(null)
 const previewEnded = ref(false)
 const loading = ref(true)
@@ -101,10 +103,38 @@ function onTimeUpdate() {
   }
 }
 
-onMounted(loadSource)
+// Watermark: the viewer's email drifts across the full video so a screen
+// recording that gets shared can be traced back to the account. It deters,
+// it doesn't prevent: HLS has no DRM. Previews carry none (they're public).
+const WATERMARK_SPOTS = [
+  { top: '8%', left: '6%' }, { top: '8%', left: '58%' }, { top: '46%', left: '30%' },
+  { top: '78%', left: '8%' }, { top: '70%', left: '55%' },
+]
+const watermarkSpot = ref(0)
+const watermarkText = computed(() => (props.hasFullAccess ? auth.user?.email ?? '' : ''))
+let watermarkTimer: ReturnType<typeof setInterval> | null = null
+
+// The native fullscreen button fullscreens the <video> element alone, which
+// would hide the watermark; swap it for the frame that holds both.
+function onFullscreenChange() {
+  const frame = frameEl.value
+  if (frame && watermarkText.value && document.fullscreenElement === videoEl.value) {
+    document.exitFullscreen().then(() => frame.requestFullscreen()).catch(() => {})
+  }
+}
+
+onMounted(() => {
+  loadSource()
+  watermarkTimer = setInterval(() => {
+    watermarkSpot.value = (watermarkSpot.value + 1 + Math.floor(Math.random() * (WATERMARK_SPOTS.length - 1))) % WATERMARK_SPOTS.length
+  }, 15000)
+  document.addEventListener('fullscreenchange', onFullscreenChange)
+})
 onUnmounted(() => {
   reportProgress()
   hlsInstance?.destroy()
+  if (watermarkTimer) clearInterval(watermarkTimer)
+  document.removeEventListener('fullscreenchange', onFullscreenChange)
 })
 
 watch(
@@ -118,16 +148,25 @@ watch(
 </script>
 
 <template>
-  <div class="relative aspect-video w-full overflow-hidden rounded-lg bg-black">
+  <div ref="frameEl" class="relative aspect-video w-full overflow-hidden rounded-lg bg-black">
     <video
       v-show="!loading"
       ref="videoEl"
       controls
+      controlslist="nodownload"
+      disablepictureinpicture
       class="h-full w-full"
       @ended="onEnded"
       @pause="reportProgress"
       @timeupdate="onTimeUpdate"
     />
+    <span
+      v-if="watermarkText && !loading"
+      class="watermark pointer-events-none absolute select-none text-xs font-medium text-white/25 sm:text-sm"
+      :style="WATERMARK_SPOTS[watermarkSpot]"
+      dir="ltr"
+      aria-hidden="true"
+    >{{ watermarkText }}</span>
     <div v-if="loading" class="absolute inset-0 flex items-center justify-center text-gray-300">
       در حال بارگذاری پخش‌کننده...
     </div>
@@ -144,3 +183,13 @@ watch(
     </div>
   </div>
 </template>
+
+<style scoped>
+.watermark {
+  transition: top 2s ease, left 2s ease;
+  text-shadow: 0 0 2px rgb(0 0 0 / 0.35);
+}
+@media (prefers-reduced-motion: reduce) {
+  .watermark { transition: none; }
+}
+</style>

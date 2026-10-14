@@ -43,6 +43,18 @@ class VideoAsset(TimeStampedModel):
     def __str__(self):
         return f"Video for {self.lesson}"
 
+    def queue_ahead(self) -> int | None:
+        """Videos the worker handles before this one, or None once it has left the queue.
+
+        "uploading" means the file is stored and the transcode task is waiting
+        for the single worker slot; tasks run in upload order.
+        """
+        if self.status != self.Status.UPLOADING:
+            return None
+        return VideoAsset.objects.filter(
+            models.Q(status=self.Status.PROCESSING) | models.Q(status=self.Status.UPLOADING, id__lt=self.id)
+        ).count()
+
     @property
     def effective_preview_seconds(self) -> int:
         course = self.lesson.course
