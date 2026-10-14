@@ -73,6 +73,7 @@ class LessonSerializer(serializers.ModelSerializer):
     video_status = serializers.SerializerMethodField()
     video_duration = serializers.SerializerMethodField()
     video_error = serializers.SerializerMethodField()
+    video_queue_ahead = serializers.SerializerMethodField()
     progress_seconds = serializers.SerializerMethodField()
     completed = serializers.SerializerMethodField()
     files = LessonFilePublicSerializer(many=True, read_only=True)
@@ -82,7 +83,7 @@ class LessonSerializer(serializers.ModelSerializer):
         fields = (
             "id", "course", "title", "order", "is_free_preview",
             "has_video", "video_id", "video_status", "video_duration", "video_error",
-            "progress_seconds", "completed", "files",
+            "video_queue_ahead", "progress_seconds", "completed", "files",
         )
         read_only_fields = ("id",)
         extra_kwargs = {"order": {"required": False}}
@@ -107,6 +108,15 @@ class LessonSerializer(serializers.ModelSerializer):
         request = self.context.get("request")
         is_admin = bool(request and request.user.is_authenticated and request.user.role == "admin")
         return obj.video_asset.processing_error if is_admin and hasattr(obj, "video_asset") else ""
+
+    def get_video_queue_ahead(self, obj) -> int | None:
+        # How many videos the worker will process before this one (admin only;
+        # it costs a query and only matters to whoever uploaded it).
+        request = self.context.get("request")
+        is_admin = bool(request and request.user.is_authenticated and request.user.role == "admin")
+        if not is_admin or not hasattr(obj, "video_asset"):
+            return None
+        return obj.video_asset.queue_ahead()
 
     def _progress(self, obj):
         request = self.context.get("request")
