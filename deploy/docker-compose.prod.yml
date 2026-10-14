@@ -65,8 +65,11 @@ services:
     <<: *backend
     # Reuses the image the backend service builds; building it twice races on the same tag.
     build: !reset null
-    # One video at a time: ffmpeg is the heaviest thing on the box.
-    command: ["celery", "-A", "config", "worker", "-l", "info", "--concurrency", "1"]
+    # One video at a time: ffmpeg is the heaviest thing on the box. -B runs the periodic
+    # scheduler (payment reconciliation) in this same container instead of a seventh service;
+    # its state file goes to /tmp because the app user can't write to /app.
+    command: ["celery", "-A", "config", "worker", "-B", "--schedule", "/tmp/celerybeat-schedule",
+              "-l", "info", "--concurrency", "1"]
     mem_limit: 768m
 
   frontend:

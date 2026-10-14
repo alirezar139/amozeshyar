@@ -180,6 +180,13 @@ CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
+CELERY_BEAT_SCHEDULE = {
+    # Enrolls buyers whose browser never made it back to the payment callback.
+    "reconcile-pending-payments": {
+        "task": "apps.payments.tasks.reconcile_pending_payments",
+        "schedule": 600.0,
+    },
+}
 
 # --- Object storage (S3-compatible; MinIO in dev, Iranian cloud provider in prod) ---
 STORAGES = {

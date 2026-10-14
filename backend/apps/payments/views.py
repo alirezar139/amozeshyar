@@ -1,5 +1,4 @@
 from django.conf import settings
-from django.db import transaction
 from django.shortcuts import redirect
 from drf_spectacular.utils import extend_schema
 from rest_framework import generics, permissions, status
@@ -11,6 +10,7 @@ from rest_framework.views import APIView
 from .gateways.zarinpal import ZarinPalGateway
 from .models import Order, Payment
 from .serializers import CreateOrderSerializer, InitiatePaymentResponseSerializer, OrderSerializer
+from .services import finalize_payment
 
 
 def get_gateway():
@@ -68,37 +68,7 @@ class PaymentCallbackView(APIView):
         except Payment.DoesNotExist as exc:
             raise NotFound("شناسه‌ی پرداخت نامعتبر است.") from exc
 
-        if payment.status == Payment.Status.VERIFIED:
-            # Already processed by a prior callback hit — return success without re-granting anything.
-            return redirect(f"{settings.ZARINPAL_CALLBACK_URL}?order_id={payment.order_id}&status=paid")
-
-        gateway = get_gateway()
-        result = gateway.verify(authority, int(payment.order.total_amount))
-
-        with transaction.atomic():
-            payment = Payment.objects.select_for_update().get(id=payment.id)
-            if payment.status == Payment.Status.VERIFIED:
-                return redirect(f"{settings.ZARINPAL_CALLBACK_URL}?order_id={payment.order_id}&status=paid")
-
-            payment.raw_response = result.raw_response or {}
-            if not result.success:
-                payment.status = Payment.Status.FAILED
-                payment.save(update_fields=["status", "raw_response"])
-                return redirect(f"{settings.ZARINPAL_CALLBACK_URL}?order_id={payment.order_id}&status=failed")
-
-            payment.status = Payment.Status.VERIFIED
-            payment.ref_id = result.ref_id
-            payment.save(update_fields=["status", "ref_id", "raw_response"])
-
-            order = payment.order
-            order.status = Order.Status.PAID
-            order.save(update_fields=["status"])
-
-            from apps.enrollments.models import Enrollment
-
-            for item in order.items.select_related("course"):
-                Enrollment.objects.get_or_create(
-                    student=order.user, course=item.course, defaults={"order_item": item}
-                )
-
-        return redirect(f"{settings.ZARINPAL_CALLBACK_URL}?order_id={order.id}&status=paid")
+        # A repeat hit on an already-verified payment returns success without re-granting anything.
+        payment = finalize_payment(payment, get_gateway())
+        outcome = "paid" if payment.status == Payment.Status.VERIFIED else "failed"
+        return redirect(f"{settings.ZARINPAL_CALLBACK_URL}?order_id={payment.order_id}&status={outcome}")
