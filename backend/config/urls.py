@@ -5,7 +5,10 @@ from django.contrib import admin
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
+from apps.common.views import HealthView
+
 api_v1_patterns = [
+    path("health/", HealthView.as_view(), name="health"),
     path("auth/", include("apps.accounts.urls")),
     path("site/", include("apps.instructors.urls")),
     path("", include("apps.courses.urls")),
