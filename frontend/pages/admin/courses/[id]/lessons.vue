@@ -5,7 +5,7 @@ const courseId = Number(route.params.id)
 const { request } = useApi()
 
 const { data: course } = await useAsyncData(`admin-course-${courseId}`, () =>
-  request<{ title: string; slug: string; status: string }>(`/courses/manage/${courseId}/`).catch(() => null),
+  request<{ title: string; slug: string; status: string; cover_image: string | null }>(`/courses/manage/${courseId}/`).catch(() => null),
 )
 </script>
 
@@ -28,6 +28,14 @@ const { data: course } = await useAsyncData(`admin-course-${courseId}`, () =>
         دیدن صفحه‌ی دوره ↗
       </NuxtLink>
     </div>
+
+    <CourseCoverEditor
+      v-if="course"
+      :course-id="courseId"
+      :src="course.cover_image"
+      class="mt-6"
+      @changed="(src) => course && (course.cover_image = src)"
+    />
 
     <CourseLessonManager :course-id="courseId" data-tour="lesson-manager" class="mt-6" />
 

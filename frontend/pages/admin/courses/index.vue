@@ -63,7 +63,13 @@ async function setStatus(id: number, status: 'published' | 'draft') {
         </thead>
         <tbody>
           <tr v-for="course in courses" :key="course.id" class="border-t border-white/30 dark:border-white/10">
-            <td class="px-3 py-2 text-gray-900 dark:text-white">{{ course.title }}</td>
+            <td class="px-3 py-2 text-gray-900 dark:text-white">
+              <NuxtLink :to="`/admin/courses/${course.id}/lessons`" class="flex items-center gap-3">
+                <img v-if="course.cover_image" :src="course.cover_image" alt="" class="aspect-video w-16 shrink-0 rounded-md object-cover">
+                <span v-else class="flex aspect-video w-16 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-primary-700 to-primary-950 text-[10px] text-white/80">بدون عکس</span>
+                <span class="min-w-0">{{ course.title }}</span>
+              </NuxtLink>
+            </td>
             <td class="px-3 py-2 text-gray-600 dark:text-gray-400">
               {{ Number(course.price) === 0 ? 'رایگان' : `${Number(course.price).toLocaleString('fa-IR')} تومان` }}
             </td>
@@ -75,7 +81,7 @@ async function setStatus(id: number, status: 'published' | 'draft') {
             <td class="px-3 py-2">
               <div class="flex flex-wrap items-center justify-end gap-3">
                 <NuxtLink :to="`/admin/courses/${course.id}/lessons`" class="text-sm font-medium text-primary-600 hover:underline dark:text-primary-400">
-                  سرفصل‌ها، ویدیوها و جلسه‌ها
+                  عکس، سرفصل‌ها، ویدیوها و جلسه‌ها
                 </NuxtLink>
                 <button
                   type="button"
@@ -92,5 +98,7 @@ async function setStatus(id: number, status: 'published' | 'draft') {
       </table>
       <p v-if="courses && courses.length === 0" class="p-4 text-gray-600 dark:text-gray-400">هنوز دوره‌ای ثبت نشده است.</p>
     </div>
+
+    <CourseCategoryPhotos class="mt-8" />
   </div>
 </template>

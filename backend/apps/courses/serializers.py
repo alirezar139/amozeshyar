@@ -3,7 +3,7 @@ from datetime import timedelta
 from django.utils import timezone
 from rest_framework import serializers
 
-from apps.common.validators import validate_course_file
+from apps.common.validators import validate_course_file, validate_image_file
 
 from .models import Category, ClassSession, Course, Lesson, LessonFile
 
@@ -15,6 +15,7 @@ class CategorySerializer(serializers.ModelSerializer):
         model = Category
         fields = ("id", "name", "slug", "parent", "image", "course_count")
         read_only_fields = ("slug",)
+        extra_kwargs = {"image": {"validators": [validate_image_file]}}
 
     def validate_name(self, value):
         value = value.strip()
@@ -177,6 +178,7 @@ class CourseManageSerializer(serializers.ModelSerializer):
             "price", "discount_price", "cover_image", "preview_seconds_override", "status",
         )
         read_only_fields = ("id", "slug")
+        extra_kwargs = {"cover_image": {"validators": [validate_image_file]}}
 
     def validate_status(self, value):
         if value not in (Course.Status.DRAFT, Course.Status.PUBLISHED):

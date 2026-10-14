@@ -90,6 +90,12 @@ async function buyNow() {
   <div v-if="course" class="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
     <div class="grid grid-cols-1 gap-8 lg:grid-cols-3">
       <div class="lg:col-span-2">
+        <img
+          v-if="course.cover_image"
+          :src="course.cover_image"
+          :alt="course.title"
+          class="mb-6 aspect-video w-full rounded-2xl object-cover shadow-lg ring-1 ring-black/5 dark:ring-white/10"
+        >
         <h1 class="text-2xl font-bold text-gray-900 sm:text-3xl dark:text-white">{{ course.title }}</h1>
         <p class="mt-2 text-gray-600 dark:text-gray-300">{{ course.subtitle }}</p>
 

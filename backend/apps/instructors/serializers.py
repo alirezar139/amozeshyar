@@ -2,6 +2,8 @@ import re
 
 from rest_framework import serializers
 
+from apps.common.validators import validate_image_file
+
 from .models import InstructorProfile
 
 
@@ -52,6 +54,7 @@ class SiteSettingsSerializer(serializers.ModelSerializer):
             "background_style", "background_colors", "background_image", "background_motion", "background_speed",
             "allow_peer_chat",
         )
+        extra_kwargs = {field: {"validators": [validate_image_file]} for field in ("logo", "cover_image", "background_image")}
 
     def validate_background_colors(self, value):
         if not isinstance(value, list) or len(value) > 3 or not all(
