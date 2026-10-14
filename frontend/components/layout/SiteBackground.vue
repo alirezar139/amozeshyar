@@ -115,7 +115,7 @@ onBeforeUnmount(() => {
   <div
     ref="root"
     aria-hidden="true"
-    :class="['site-bg pointer-events-none fixed inset-0 -z-10 overflow-hidden', { 'is-still': !background.motion }]"
+    :class="['site-bg pointer-events-none fixed inset-x-0 top-0 -z-10 overflow-hidden', { 'is-still': !background.motion }]"
     :style="rootStyle"
   >
     <!-- زنده (WebGL) -->
@@ -331,6 +331,11 @@ onBeforeUnmount(() => {
   --px: 0;
   --py: 0;
   --dur: 2.2;
+  /* The large viewport, not inset: 0 — on phones the address bar coming and
+     going while scrolling would otherwise resize this layer and make every
+     %-positioned blob, wave and seed jump. */
+  height: 100vh;
+  height: 100lvh;
 }
 
 /* Parallax: deeper layers move more; a long ease keeps it floaty. */

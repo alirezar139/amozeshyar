@@ -26,8 +26,17 @@ function palette(): [number, number, number][] {
   return [0, 1, 2].map((i) => parseColor(props.colors[i] || (i === 2 && props.colors[0]) || fallback[i])) as [number, number, number][]
 }
 
+// Follows the canvas's own box (fixed at the large viewport height), not
+// window.innerHeight: on phones the address bar fires resize on every scroll,
+// and resizing the buffer each time cleared the canvas and made it flicker.
+let lastSize = ''
 function resize() {
-  renderer?.resize(window.innerWidth * RESOLUTION, window.innerHeight * RESOLUTION)
+  const el = canvas.value
+  if (!el) return
+  const size = `${el.clientWidth}x${el.clientHeight}`
+  if (size === lastSize) return
+  lastSize = size
+  renderer?.resize(el.clientWidth * RESOLUTION, el.clientHeight * RESOLUTION)
   if (!props.motion) draw()
 }
 
