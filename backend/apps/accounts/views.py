@@ -243,22 +243,39 @@ class RefreshView(APIView):
             return Response({"detail": "نشست شما پیدا نشد؛ دوباره وارد شوید."}, status=status.HTTP_401_UNAUTHORIZED)
         try:
             refresh = RefreshToken(raw_refresh)
-            access = str(refresh.access_token)
         except TokenError:
-            return Response({"detail": "نشست شما منقضی شده؛ دوباره وارد شوید."}, status=status.HTTP_401_UNAUTHORIZED)
+            return self._expired()
 
-        response = Response({"access": access})
+        # A token outlives the account it was issued for: a deactivated or deleted
+        # user must not keep minting access tokens until the cookie expires.
+        user = get_user_model().objects.filter(id=refresh["user_id"], is_active=True).first()
+        if user is None:
+            refresh.blacklist()
+            return self._expired()
+
+        response = Response({"access": str(refresh.access_token)})
         if settings.SIMPLE_JWT["ROTATE_REFRESH_TOKENS"]:
-            from apps.accounts.models import User
-
-            user = User.objects.get(id=refresh["user_id"])
             refresh.blacklist()
             new_refresh = RefreshToken.for_user(user)
             response.set_cookie(REFRESH_COOKIE_NAME, str(new_refresh), **_refresh_cookie_kwargs())
         return response
 
+    @staticmethod
+    def _expired():
+        response = Response({"detail": "نشست شما منقضی شده؛ دوباره وارد شوید."}, status=status.HTTP_401_UNAUTHORIZED)
+        response.delete_cookie(REFRESH_COOKIE_NAME, path=REFRESH_COOKIE_PATH)
+        return response
+
 
 class LogoutView(APIView):
+    """Revokes the refresh cookie the request carries and clears it.
+
+    Open to anonymous requests: it only acts on the caller's own cookie, and
+    logging out must still work after the 15-minute access token has expired.
+    """
+
+    permission_classes = (permissions.AllowAny,)
+
     @extend_schema(request=None, responses={205: None})
     def post(self, request, *args, **kwargs):
         raw_refresh = request.COOKIES.get(REFRESH_COOKIE_NAME)
