@@ -120,8 +120,24 @@ async function loadOlder() {
 
 let serverTime = ''
 
+// Every poll costs the server several queries, so a quiet thread backs off:
+// 3s while messages are flowing, easing to 12s after about a minute of nothing.
+// Anything happening (a new or changed message, sending, coming back to the tab) speeds it up again.
+const POLL_FAST_MS = 3000
+const POLL_SLOW_MS = 12000
+const QUIET_POLLS_BEFORE_SLOWING = 20
+let quietPolls = 0
+function pollDelay() {
+  const extra = Math.max(0, quietPolls - QUIET_POLLS_BEFORE_SLOWING) * 1000
+  return Math.min(POLL_SLOW_MS, POLL_FAST_MS + extra)
+}
+function noteActivity() {
+  quietPolls = 0
+}
+
 async function poll() {
   if (loading.value) return
+  quietPolls++
   try {
     const since = serverTime ? `&since=${encodeURIComponent(serverTime)}` : ''
     const data = await request<any>(`/conversations/${props.conversation.id}/messages/?after=${lastServerId.value}${since}`)
@@ -135,10 +151,12 @@ async function poll() {
         if (changed.is_deleted && m.reply_to?.id === changed.id) m.reply_to = { ...m.reply_to, text: '', attachment_kind: '', deleted: true }
       }
     }
+    if (data.changed?.length) noteActivity()
     if (data.conversation) emit('updated', data.conversation)
     const known = new Set(messages.value.map((m) => m.id))
     const fresh = (data.messages as ChatMessage[]).filter((m) => !known.has(m.id))
     if (!fresh.length) return
+    noteActivity()
     messages.value.push(...fresh)
     const fromOthers = fresh.some((m) => !m.is_mine)
     if (atBottom.value) scrollToBottom(true)
@@ -152,20 +170,30 @@ async function poll() {
   }
 }
 
-let pollTimer: ReturnType<typeof setInterval> | null = null
+let pollTimer: ReturnType<typeof setTimeout> | null = null
+let unmounted = false
+function schedulePoll() {
+  if (unmounted) return
+  pollTimer = setTimeout(async () => {
+    if (document.visibilityState === 'visible') await poll()
+    schedulePoll()
+  }, pollDelay())
+}
 function onVisible() {
   if (document.visibilityState === 'visible') {
+    noteActivity()
     poll()
     markRead()
   }
 }
 onMounted(() => {
   loadInitial()
-  pollTimer = setInterval(() => document.visibilityState === 'visible' && poll(), 3000)
+  schedulePoll()
   document.addEventListener('visibilitychange', onVisible)
 })
 onBeforeUnmount(() => {
-  if (pollTimer) clearInterval(pollTimer)
+  unmounted = true
+  if (pollTimer) clearTimeout(pollTimer)
   document.removeEventListener('visibilitychange', onVisible)
 })
 
@@ -310,6 +338,7 @@ function send(payload: { text: string; file?: File; voice?: boolean; duration?: 
       } else {
         saved = await request<ChatMessage>(path, { method: 'POST', body: { text: payload.text, reply_to: quoting?.id ?? null } })
       }
+      noteActivity() // a reply is likely; keep polling fast
       const index = messages.value.indexOf(temp)
       if (index !== -1 && !messages.value.some((m) => m.id === saved.id)) messages.value.splice(index, 1, saved)
       else if (index !== -1) messages.value.splice(index, 1)
