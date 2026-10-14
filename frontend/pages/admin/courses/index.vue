@@ -80,8 +80,11 @@ async function setStatus(id: number, status: 'published' | 'draft') {
             </td>
             <td class="px-3 py-2">
               <div class="flex flex-wrap items-center justify-end gap-3">
-                <NuxtLink :to="`/admin/courses/${course.id}/lessons`" class="text-sm font-medium text-primary-600 hover:underline dark:text-primary-400">
-                  عکس، سرفصل‌ها، ویدیوها و جلسه‌ها
+                <NuxtLink
+                  :to="`/admin/courses/${course.id}/lessons`"
+                  class="rounded-md bg-primary-600 px-3 py-1 text-xs font-semibold text-white hover:bg-primary-500"
+                >
+                  جلسه‌ها و ویدیوها
                 </NuxtLink>
                 <button
                   type="button"
