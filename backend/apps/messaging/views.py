@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from apps.accounts.authentication import UploadJWTAuthentication
 from apps.accounts.models import User
 
-from . import services
+from . import services, versions
 from .models import Conversation, ConversationMember, ConversationRead, Message, MessageReaction
 from .serializers import (
     AuditMessageSerializer,
@@ -142,6 +142,7 @@ class ConversationViewSet(mixins.DestroyModelMixin, viewsets.ReadOnlyModelViewSe
         ConversationMember.objects.bulk_create(
             [ConversationMember(conversation=conversation, user=u) for u in students], ignore_conflicts=True
         )
+        versions.bump(conversation.pk)  # bulk_create sends no post_save
         return students
 
     @action(detail=True, methods=["patch"], url_path="settings")
@@ -218,8 +219,17 @@ class ConversationViewSet(mixins.DestroyModelMixin, viewsets.ReadOnlyModelViewSe
         if request.method == "POST":
             return self._send(request, conversation)
 
-        messages = conversation.messages.select_related("sender", "reply_to__sender").prefetch_related("reactions")
+        # Both taken before querying: a change that lands mid-request bumps the version
+        # again and is newer than server_time, so the next poll still picks it up.
+        version = versions.current(conversation.pk)
+        server_time = timezone.now()
         after, before = request.query_params.get("after"), request.query_params.get("before")
+        if after and request.query_params.get("v") == str(version):
+            # Nothing changed since the caller's last poll. No server_time either: the
+            # caller keeps its old `since`, so nothing edited in between can be skipped.
+            return Response({"unchanged": True, "version": version})
+
+        messages = conversation.messages.select_related("sender", "reply_to__sender").prefetch_related("reactions")
         since = self._parse_since(request.query_params.get("since"))
         changed = []
         if after:
@@ -234,7 +244,8 @@ class ConversationViewSet(mixins.DestroyModelMixin, viewsets.ReadOnlyModelViewSe
         row = self._rows(Conversation.objects.filter(pk=conversation.pk)).get()
         context = {"request": request, "read_markers": self._markers(conversation)}
         return Response({
-            "server_time": timezone.now(),
+            "version": version,
+            "server_time": server_time,
             "changed": MessageSerializer(changed, many=True, context=context).data,
             "messages": MessageSerializer(page, many=True, context=context).data,
             "has_more": bool(page) and not after and conversation.messages.filter(id__lt=page[0].id).exists(),
