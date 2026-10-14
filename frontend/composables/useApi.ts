@@ -1,5 +1,9 @@
 import { appendResponseHeader } from 'h3'
 
+// The refresh in flight in this browser tab, shared by every request that hits a 401 meanwhile.
+// Client only: on the server this module is shared by every visitor's SSR request.
+let clientRefresh: Promise<boolean> | null = null
+
 /**
  * Thin wrapper around $fetch: attaches the in-memory access token and
  * transparently retries once via the refresh-cookie endpoint on a 401,
@@ -87,7 +91,27 @@ export function useApi() {
     }
   }
 
+  // The backend rotates the refresh cookie and revokes the old one on every use. When the
+  // access token expires, a page that fires several requests at once (the messenger does)
+  // used to start one refresh per request with the same cookie: the first won, the rest were
+  // refused, and that refusal logged the user out. Now concurrent callers share one refresh,
+  // and a refusal is retried once after a moment, by which time the browser holds the cookie
+  // that a parallel refresh (say, in another tab) just received.
   async function refreshSession(): Promise<boolean> {
+    if (import.meta.server) return refreshOnce()
+    if (!clientRefresh) {
+      clientRefresh = (async () => {
+        if (await refreshOnce()) return true
+        await new Promise((resolve) => setTimeout(resolve, 400))
+        return refreshOnce()
+      })().finally(() => {
+        clientRefresh = null
+      })
+    }
+    return clientRefresh
+  }
+
+  async function refreshOnce(): Promise<boolean> {
     try {
       const headers = new Headers()
       const cookie = forwardedCookie()

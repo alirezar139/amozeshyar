@@ -100,3 +100,17 @@ def test_deleted_account_gets_401_not_a_server_error(student):
 def test_garbage_and_missing_cookies_are_401():
     assert refresh_with("not-a-jwt").status_code == 401
     assert APIClient().post("/api/v1/auth/refresh/").status_code == 401
+
+
+def test_losing_a_refresh_race_does_not_clear_the_winners_cookie(student):
+    """Two requests refresh with the same cookie at once: the loser's 401 must not
+    carry a Set-Cookie that wipes the new cookie the winner just set."""
+    token = login(APIClient()).cookies[views.REFRESH_COOKIE_NAME].value
+
+    winner = refresh_with(token)
+    loser = refresh_with(token)
+
+    assert winner.status_code == 200
+    assert loser.status_code == 401
+    assert views.REFRESH_COOKIE_NAME not in loser.cookies
+    assert refresh_with(winner.cookies[views.REFRESH_COOKIE_NAME].value).status_code == 200
