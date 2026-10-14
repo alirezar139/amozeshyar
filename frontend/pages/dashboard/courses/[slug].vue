@@ -72,11 +72,14 @@ useSeoMeta({ title: () => course.value?.title ?? 'یادگیری' })
     <template v-else>
       <!-- Header + overall progress -->
       <div class="mt-3 flex flex-wrap items-center justify-between gap-4">
-        <div class="min-w-0">
-          <h1 class="text-2xl font-extrabold text-gray-900 dark:text-white">{{ course.title }}</h1>
-          <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            {{ completedCount.toLocaleString('fa-IR') }} از {{ lessons.length.toLocaleString('fa-IR') }} جلسه تکمیل شده است
-          </p>
+        <div class="flex min-w-0 items-center gap-4">
+          <img v-if="course.cover_image" :src="course.cover_image" alt="" class="hidden aspect-video w-28 shrink-0 rounded-xl object-cover shadow-md sm:block">
+          <div class="min-w-0">
+            <h1 class="text-2xl font-extrabold text-gray-900 dark:text-white">{{ course.title }}</h1>
+            <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+              {{ completedCount.toLocaleString('fa-IR') }} از {{ lessons.length.toLocaleString('fa-IR') }} جلسه تکمیل شده است
+            </p>
+          </div>
         </div>
         <CourseProgressRing data-tour="learn-progress" :percent="percent" :size="64" />
       </div>

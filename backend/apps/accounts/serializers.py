@@ -2,6 +2,8 @@ from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
+from apps.common.validators import validate_image_file
+
 from .models import User
 
 
@@ -31,6 +33,7 @@ class UserSerializer(serializers.ModelSerializer):
             "primary_color", "accent_color", "header_color", "nav_color", "is_developer",
         )
         read_only_fields = ("id", "email", "role", "is_email_verified")
+        extra_kwargs = {"avatar": {"validators": [validate_image_file]}}
 
 
 class AdminUserSerializer(serializers.ModelSerializer):

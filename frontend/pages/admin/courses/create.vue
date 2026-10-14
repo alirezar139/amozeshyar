@@ -15,6 +15,17 @@ const form = reactive({
   level: 'beginner',
   price: 0,
 })
+const coverFile = ref<File | null>(null)
+const coverPreview = ref<string | null>(null)
+function onCoverSelect(file: File) {
+  coverFile.value = file
+  coverPreview.value = URL.createObjectURL(file)
+}
+function onCoverRemove() {
+  coverFile.value = null
+  coverPreview.value = null
+}
+
 const error = ref('')
 const success = ref(false)
 const loading = ref(false)
@@ -50,7 +61,14 @@ async function onSubmit() {
   }
   loading.value = true
   try {
-    await request('/courses/manage/', { method: 'POST', body: form })
+    let body: FormData | typeof form = form
+    if (coverFile.value) {
+      const formData = new FormData()
+      for (const [key, value] of Object.entries(form)) formData.append(key, String(value ?? ''))
+      formData.append('cover_image', coverFile.value)
+      body = formData
+    }
+    await request('/courses/manage/', { method: 'POST', body })
     success.value = true
   } catch (err) {
     error.value = getErrorMessage(err, 'ثبت دوره انجام نشد.')
@@ -124,6 +142,17 @@ async function onSubmit() {
       <div>
         <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">قیمت (تومان)</label>
         <input v-model.number="form.price" type="number" min="0" class="glass mt-1 block w-full rounded-md px-3 py-2 text-sm text-gray-900 dark:text-white">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">عکس دوره <span class="font-normal text-gray-500">(اختیاری، بعداً هم می‌شود گذاشت)</span></label>
+        <FormImagePicker
+          class="mt-1"
+          :src="coverPreview"
+          :pending="!!coverFile"
+          hint="قاب افقی ۱۶ به ۹"
+          @select="onCoverSelect"
+          @remove="onCoverRemove"
+        />
       </div>
       <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
       <p v-if="success" class="text-sm text-emerald-600">دوره با موفقیت ثبت و منتشر شد.</p>
