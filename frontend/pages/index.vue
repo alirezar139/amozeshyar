@@ -109,11 +109,11 @@ const levelLabels: Record<string, string> = { beginner: 'مقدماتی', interm
       </div>
 
       <!-- Portrait: animated stack of color cards behind, floating badges in front, so even a plain ID photo reads as a designed hero -->
-      <div class="relative mx-auto w-full max-w-[22rem] lg:col-span-5">
+      <div class="relative mx-auto w-full max-w-[17rem] sm:max-w-[22rem] lg:col-span-5">
         <div class="absolute -inset-6 -z-10 rounded-full bg-primary-500/20 blur-3xl" />
         <IllustrationPortraitStack :src="owner?.cover_image" :alt="teacherName" />
 
-        <div class="glass absolute -bottom-5 -start-6 flex items-center gap-3 rounded-2xl px-4 py-3 shadow-xl sm:-start-10">
+        <div class="glass absolute -bottom-5 -start-3 flex items-center gap-3 rounded-2xl px-4 py-3 shadow-xl sm:-start-10">
           <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
           </span>
@@ -122,7 +122,7 @@ const levelLabels: Record<string, string> = { beginner: 'مقدماتی', interm
             <p class="text-xs text-gray-500 dark:text-gray-400">گفت‌وگوی مستقیم با استاد</p>
           </div>
         </div>
-        <div v-if="catalog?.total" class="glass absolute -end-4 top-8 rounded-2xl px-4 py-3 text-center shadow-xl sm:-end-8">
+        <div v-if="catalog?.total" class="glass absolute -end-2 top-8 rounded-2xl px-4 py-3 text-center shadow-xl sm:-end-8">
           <p class="text-2xl font-black text-primary-700 dark:text-primary-300">{{ catalog.total.toLocaleString('fa-IR') }}</p>
           <p class="text-xs text-gray-600 dark:text-gray-300">دوره‌ی آموزشی</p>
         </div>

@@ -67,19 +67,38 @@
    crystal" direction (not the earlier all-over teal/amber wash).
    Painted on <html> only: <body> stays transparent, otherwise its own
    opaque background would sit on top of the site-wide animated
-   backdrop (LayoutSiteBackground, a fixed -z-10 layer) and hide it. */
+   backdrop (LayoutSiteBackground, a fixed -z-10 layer) and hide it.
+   The gradients sit on a fixed ::before sized to the *large* viewport
+   (100lvh), not on <html> with background-attachment: fixed: on phones the
+   address bar showing/hiding while scrolling resized that background and
+   made the whole page look like it was shaking. */
 html {
   background-color: #f3f4f6;
+  /* Nothing may widen the page: the hero's swinging cards and badges poke
+     past the screen edge on phones, and every swing nudged the page sideways.
+     clip (not hidden) so the sticky header keeps working; hidden is the
+     fallback for browsers without clip. */
+  overflow-x: hidden;
+  overflow-x: clip;
+  min-height: 100vh;
+}
+html::before {
+  content: '';
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: 100vh;
+  height: 100lvh;
+  z-index: -20;
+  pointer-events: none;
   background-image:
     radial-gradient(at 15% 10%, rgba(148, 163, 184, 0.30) 0px, transparent 55%),
     radial-gradient(at 85% 15%, rgb(var(--c-primary-500) / 0.12) 0px, transparent 50%),
     radial-gradient(at 20% 85%, rgb(var(--c-accent-500) / 0.10) 0px, transparent 50%),
     radial-gradient(at 90% 90%, rgba(148, 163, 184, 0.25) 0px, transparent 55%);
-  background-attachment: fixed;
-  min-height: 100vh;
 }
 body {
   background: transparent;
+  overflow-x: clip;
   min-height: 100vh;
 }
 
@@ -88,6 +107,8 @@ body {
    theme is a user choice now, not just a mirror of the OS setting. */
 html.dark {
   background-color: #0a0c0f;
+}
+html.dark::before {
   background-image:
     radial-gradient(at 15% 10%, rgba(148, 163, 184, 0.14) 0px, transparent 55%),
     radial-gradient(at 85% 15%, rgb(var(--c-primary-500) / 0.16) 0px, transparent 50%),
