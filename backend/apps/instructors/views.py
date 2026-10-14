@@ -2,6 +2,7 @@ from django.http import Http404
 from rest_framework import generics, permissions
 
 from apps.accounts.permissions import IsAdminRole
+from apps.common import public_cache
 
 from .serializers import PublicInstructorSerializer, SiteSettingsSerializer
 from .site import get_site_owner
@@ -22,6 +23,10 @@ class SiteOwnerView(generics.RetrieveAPIView):
 
     def get_object(self):
         return _site_owner_or_404()
+
+    def retrieve(self, request, *args, **kwargs):
+        # The same for every visitor and fetched on every page (header, footer, hero).
+        return public_cache.cached_response(request, lambda: super(SiteOwnerView, self).retrieve(request, *args, **kwargs).data)
 
 
 class SiteSettingsView(generics.RetrieveUpdateAPIView):
