@@ -10,7 +10,7 @@ useSeoMeta({
   description: seoDescription,
   ogTitle: siteName,
   ogDescription: seoDescription,
-  ogImage: () => owner.value?.cover_image || undefined,
+  ogImage: () => owner.value?.cover_image || owner.value?.avatar || undefined,
   ogType: 'website',
 })
 
@@ -111,7 +111,7 @@ const levelLabels: Record<string, string> = { beginner: 'مقدماتی', interm
       <!-- Portrait: animated stack of color cards behind, floating badges in front, so even a plain ID photo reads as a designed hero -->
       <div class="relative mx-auto w-full max-w-[17rem] sm:max-w-[22rem] lg:col-span-5">
         <div class="absolute -inset-6 -z-10 rounded-full bg-primary-500/20 blur-3xl" />
-        <IllustrationPortraitStack :src="owner?.cover_image" :alt="teacherName" />
+        <IllustrationPortraitStack :src="owner?.cover_image || owner?.avatar" :alt="teacherName" />
 
         <div class="glass absolute -bottom-5 -start-3 flex items-center gap-3 rounded-2xl px-4 py-3 shadow-xl sm:-start-10">
           <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
