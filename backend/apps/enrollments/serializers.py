@@ -1,5 +1,6 @@
 from rest_framework import serializers
 
+from apps.courses.models import Course
 from apps.courses.serializers import PublicCourseListSerializer
 
 from .models import Enrollment, LessonProgress, WishlistItem
@@ -54,6 +55,13 @@ class WishlistItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = WishlistItem
         fields = ("id", "course", "course_id", "created_at")
+
+    def validate_course_id(self, value):
+        if not Course.objects.filter(id=value, status=Course.Status.PUBLISHED).exists():
+            raise serializers.ValidationError("دوره پیدا نشد.")
+        if WishlistItem.objects.filter(student=self.context["request"].user, course_id=value).exists():
+            raise serializers.ValidationError("این دوره قبلاً به علاقه‌مندی‌ها اضافه شده است.")
+        return value
 
     def create(self, validated_data):
         validated_data["student"] = self.context["request"].user
