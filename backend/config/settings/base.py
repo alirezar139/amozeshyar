@@ -214,6 +214,8 @@ DEFAULT_PREVIEW_SECONDS = env.int("DEFAULT_PREVIEW_SECONDS", default=30)
 # --- Payments (ZarinPal) ---
 ZARINPAL_MERCHANT_ID = env("ZARINPAL_MERCHANT_ID", default="")
 ZARINPAL_SANDBOX = env.bool("ZARINPAL_SANDBOX", default=True)
+# The site page a buyer lands on after paying (gets ?order_id=&status=paid|failed).
+# ZarinPal itself returns to the API's /payments/callback/, which verifies first.
 ZARINPAL_CALLBACK_URL = env("ZARINPAL_CALLBACK_URL", default="http://localhost:3000/checkout/callback")
 
 # --- Sentry ---

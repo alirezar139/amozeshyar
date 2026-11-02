@@ -8,6 +8,10 @@ contract.
 from dataclasses import dataclass
 
 
+class PaymentGatewayError(Exception):
+    """The gateway refused or failed to start a payment (bad amount, merchant, network)."""
+
+
 @dataclass
 class PaymentRequestResult:
     redirect_url: str
