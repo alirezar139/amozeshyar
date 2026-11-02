@@ -48,10 +48,60 @@ docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env exec bac
 
 ```bash
 install -m 700 deploy/backup.sh /usr/local/bin/amozeshyar-backup
-echo '30 3 * * * root /usr/local/bin/amozeshyar-backup' > /etc/cron.d/amozeshyar-backup
+echo '30 3 * * * root /usr/local/bin/amozeshyar-backup >> /var/log/amozeshyar-backup.log 2>&1' > /etc/cron.d/amozeshyar-backup
 ```
 
-بکاپ‌ها در `/var/backups/amozeshyar` روی همان دیسک سرور است؛ برای امنیت واقعی، گاهی یک کپی بیرون از سرور بگیرید.
+هر شب دیتابیس (۱۴ نسخه‌ی آخر) و فایل‌های MinIO در `/var/backups/amozeshyar` ذخیره می‌شوند. این کپی روی همان دیسک سرور است، پس برای خرابی کامل سرور کافی نیست؛ بخش بعد کپی بیرون از سرور را راه می‌اندازد.
+
+### کپی بیرون از سرور (rclone)
+
+اسکریپت بعد از بکاپ محلی، اگر `OFFSITE_REMOTE` تنظیم شده باشد، همه‌چیز را با [rclone](https://rclone.org) به آن مقصد می‌فرستد. مقصد هر چیزی می‌تواند باشد که rclone می‌شناسد؛ پیشنهاد: **فضای ذخیره‌سازی ابری آروان (S3)** چون از سرور ایران سریع و بدون مشکل تحریم در دسترس است. یک سرور دیگر با SFTP هم کار می‌کند.
+
+کپی قبل از خروج از سرور با یک remote از نوع `crypt` رمزنگاری می‌شود (بکاپ ایمیل و اطلاعات دانشجوها را دارد) و صاحب فضای ابری هم نمی‌تواند آن را بخواند.
+
+۱. نصب: `apt install rclone`
+
+۲. ساخت دو remote با `rclone config` (تنظیمات در `/root/.config/rclone/rclone.conf` ذخیره می‌شود):
+   - `offsite`: نوع `s3`، provider `Other` (یا `Arvan` اگر در لیست بود)، endpoint و access key/secret از پنل آروان. یک باکت خصوصی در پنل بسازید (مثلاً `amozeshyar-backup`).
+   - `offsite-crypt`: نوع `crypt`، با `remote = offsite:amozeshyar-backup`، رمزنگاری نام فایل `standard`، و دو رمز تصادفی (`rclone config` خودش می‌سازد).
+
+۳. **رمزهای `offsite-crypt` را بیرون از سرور نگه دارید** (مثلاً در password manager خودتان). اگر سرور از بین برود و این رمزها فقط روی آن بوده باشند، بکاپ بیرونی قابل باز کردن نیست. ساده‌ترین راه: یک کپی از `rclone.conf` را جای امنی ذخیره کنید.
+
+۴. فایل `/etc/amozeshyar-backup.conf` (دسترسی `600`):
+   ```bash
+   OFFSITE_REMOTE=offsite-crypt:
+   OFFSITE_BWLIMIT=2M   # اختیاری: سقف سرعت آپلود تا سایت کند نشود
+   ```
+
+۵. یک بار دستی اجرا و بررسی کنید:
+   ```bash
+   /usr/local/bin/amozeshyar-backup
+   rclone ls offsite-crypt:db | tail -3
+   ```
+
+اولین اجرا همه‌ی ویدیوها را می‌فرستد و ممکن است چند ساعت طول بکشد؛ از آن به بعد فقط فایل‌های جدید آن روز. دیتابیس در مقصد هم مثل سرور ۱۴ نسخه نگه داشته می‌شود؛ فایل‌های رسانه هیچ‌وقت از مقصد پاک نمی‌شوند.
+
+وضعیت هر شب در `/var/log/amozeshyar-backup.log` است (`local backup ok` و `off-site copy ok`). هر چند وقت یک بار نگاهی بیندازید.
+
+### بازیابی از کپی بیرونی (روی سرور جدید)
+
+بعد از راه‌اندازی سرور طبق بخش «راه‌اندازی» و گذاشتن `rclone.conf` ذخیره‌شده در `/root/.config/rclone/`:
+
+```bash
+rclone copy offsite-crypt:db /var/backups/amozeshyar/db
+rclone copy offsite-crypt:media /var/backups/amozeshyar/media
+C="docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env"
+
+# فایل‌ها: MinIO را متوقف کنید، محتوای volume را برگردانید، دوباره روشن کنید
+$C stop minio
+rsync -a /var/backups/amozeshyar/media/ "$(docker volume inspect amozeshyar_minio-data --format '{{ .Mountpoint }}')/"
+$C start minio
+
+# دیتابیس: آخرین dump
+$C stop backend worker
+docker exec -i amozeshyar-postgres-1 pg_restore -U amozeshyar -d amozeshyar --clean --if-exists     < "$(ls -1 /var/backups/amozeshyar/db/amozeshyar_*.dump | tail -1)"
+$C start backend worker
+```
 
 ## پنل ادمین جنگو
 
