@@ -229,7 +229,7 @@ ssh -L 8100:127.0.0.1:8100 root@SERVER
 ## ۹. بکاپ و بازیابی
 
 - هر شب ساعت ۳:۳۰: `pg_dump` (۱۴ نسخه‌ی آخر) + کپی rsync از فایل‌های MinIO (بدون حذف، تا فایل پاک‌شده‌ی اشتباهی بماند). لاگ: `/var/log/amozeshyar-backup.log`.
-- بکاپ‌ها روی همان دیسک‌اند؛ برای خرابی کامل سرور، گاهی یک کپی از `/var/backups/amozeshyar` بیرون از سرور بگیرید.
+- بعد از بکاپ محلی، اگر `OFFSITE_REMOTE` در `/etc/amozeshyar-backup.conf` تنظیم شده باشد، همان‌ها با rclone (از طریق یک remote رمزنگار `crypt`) به فضای بیرون از سرور فرستاده می‌شوند. راه‌اندازی و بازیابی: [`deploy/README.md`](../deploy/README.md#بکاپ).
 
 بازیابی دیتابیس:
 
@@ -285,5 +285,5 @@ $C exec backend python manage.py setup_site --email ... --password ... --first-n
 ## ۱۲. کارهای باز
 
 - زرین‌پال هنوز در حالت Sandbox است؛ با گرفتن merchant ID واقعی، `ZARINPAL_MERCHANT_ID` و `ZARINPAL_SANDBOX=False` در `.env` تنظیم و backend ری‌استارت شود.
-- بکاپ خارج از سرور هنوز تنظیم نشده.
+- بکاپ خارج از سرور در اسکریپت آماده است؛ باید روی سرور rclone و مقصد آن تنظیم شود ([`deploy/README.md`](../deploy/README.md#بکاپ)).
 - مانیتورینگ خطا (Sentry) با `SENTRY_DSN` آماده است ولی فعال نشده.
