@@ -4,9 +4,35 @@ Shared by the browser callback and the periodic reconciliation task, so a
 payment is finalized the same way whichever of the two reaches it first.
 """
 from django.db import transaction
+from django.db.models import F
 
 from .gateways.base import PaymentGateway
-from .models import Order, Payment
+from .models import Coupon, Order, Payment
+
+
+def fulfil_order(order: Order) -> None:
+    """Mark ``order`` paid, enroll its buyer in every course, and count its coupon as used.
+
+    Call inside a transaction holding the row that guards against double
+    fulfilment (the payment, or the freshly created free order).
+    """
+    order.status = Order.Status.PAID
+    order.save(update_fields=["status"])
+
+    if order.coupon_id:
+        Coupon.objects.filter(id=order.coupon_id).update(used_count=F("used_count") + 1)
+
+    from apps.enrollments.models import Enrollment
+
+    for item in order.items.select_related("course"):
+        enrollment, created = Enrollment.objects.get_or_create(
+            student=order.user, course=item.course, defaults={"order_item": item}
+        )
+        if not created and not enrollment.is_active:
+            # Buying again after the instructor removed them restores access.
+            enrollment.is_active = True
+            enrollment.order_item = item
+            enrollment.save(update_fields=["is_active", "order_item"])
 
 
 def finalize_payment(payment: Payment, gateway: PaymentGateway, *, mark_failed: bool = True) -> Payment:
@@ -39,13 +65,6 @@ def finalize_payment(payment: Payment, gateway: PaymentGateway, *, mark_failed: 
         payment.raw_response = result.raw_response or {}
         payment.save(update_fields=["status", "ref_id", "raw_response"])
 
-        order = payment.order
-        order.status = Order.Status.PAID
-        order.save(update_fields=["status"])
-
-        from apps.enrollments.models import Enrollment
-
-        for item in order.items.select_related("course"):
-            Enrollment.objects.get_or_create(student=order.user, course=item.course, defaults={"order_item": item})
+        fulfil_order(payment.order)
 
     return payment

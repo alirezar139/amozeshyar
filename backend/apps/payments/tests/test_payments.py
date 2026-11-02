@@ -5,9 +5,7 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from apps.accounts.models import User
-from apps.courses.models import Category, Course
 from apps.enrollments.models import Enrollment
-from apps.instructors.models import InstructorProfile
 from apps.payments import views
 from apps.payments.gateways.base import PaymentGateway, PaymentVerifyResult
 from apps.payments.models import Order, OrderItem, Payment
@@ -38,16 +36,6 @@ def gateway(monkeypatch):
     fake = FakeGateway()
     monkeypatch.setattr(views, "get_gateway", lambda: fake)
     return fake
-
-
-@pytest.fixture
-def course():
-    teacher = User.objects.create_user(email="t@example.com", password="x", role=User.Role.ADMIN)
-    InstructorProfile.objects.create(user=teacher, is_site_owner=True)
-    category = Category.objects.create(name="c", slug="c")
-    return Course.objects.create(
-        instructor=teacher.instructor_profile, category=category, title="Python", status=Course.Status.PUBLISHED
-    )
 
 
 def make_payment(course, authority, minutes_ago=0, email=None):

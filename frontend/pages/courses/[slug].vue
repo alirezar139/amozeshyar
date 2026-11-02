@@ -33,7 +33,8 @@ useHead(() => ({
             },
             offers: {
               '@type': 'Offer',
-              price: course.value.effective_price,
+              // Prices are stored in Toman; schema.org wants the ISO currency (Rial).
+              price: Number(course.value.effective_price) * 10,
               priceCurrency: 'IRR',
             },
           }),
@@ -70,19 +71,38 @@ function selectLesson(lesson: any) {
   activeLessonId.value = lesson.id
 }
 
+const { openLogin } = useAuthModal()
+const couponCode = ref('')
+const buying = ref(false)
+const buyError = ref('')
+
+// A free course (or a 100% coupon) comes back from /orders/ already paid,
+// so the student is enrolled on the spot and never sees the gateway.
 async function buyNow() {
   if (!authStore.isAuthenticated) {
-    return navigateTo('/auth/login')
+    openLogin()
+    return
   }
-  const order = await request<{ id: number }>('/payments/orders/', {
-    method: 'POST',
-    body: { course_ids: [course.value.id] },
-  })
-  const { redirect_url } = await request<{ redirect_url: string }>(
-    `/payments/initiate/${order.id}/`,
-    { method: 'POST' }
-  )
-  window.location.href = redirect_url
+  if (buying.value) return
+  buying.value = true
+  buyError.value = ''
+  try {
+    const body: Record<string, unknown> = { course_ids: [course.value.id] }
+    if (couponCode.value.trim()) body.coupon_code = couponCode.value.trim()
+    const order = await request<{ id: number; status: string }>('/payments/orders/', { method: 'POST', body })
+    if (order.status === 'paid') {
+      await navigateTo(`/checkout/callback?order_id=${order.id}&status=paid`)
+      return
+    }
+    const { redirect_url } = await request<{ redirect_url: string }>(
+      `/payments/initiate/${order.id}/`,
+      { method: 'POST' }
+    )
+    window.location.href = redirect_url
+  } catch (error) {
+    buyError.value = getFirstErrorMessage(error, 'ثبت سفارش انجام نشد. لطفاً دوباره تلاش کنید.')
+    buying.value = false
+  }
 }
 </script>
 
@@ -145,7 +165,8 @@ async function buyNow() {
           </ClientOnly>
 
           <div class="mt-4 text-xl font-bold text-gray-900 dark:text-white">
-            {{ Number(course.effective_price).toLocaleString('fa-IR') }} تومان
+            <template v-if="Number(course.effective_price) > 0">{{ Number(course.effective_price).toLocaleString('fa-IR') }} تومان</template>
+            <template v-else>رایگان</template>
           </div>
           <template v-if="course.is_enrolled">
             <p class="mt-4 rounded-md bg-emerald-500/10 px-4 py-2 text-center text-sm font-semibold text-emerald-600">
@@ -159,14 +180,26 @@ async function buyNow() {
               ورود به دوره
             </NuxtLink>
           </template>
-          <button
-            v-else
-            data-tour="course-buy-cta"
-            class="mt-4 w-full rounded-md bg-accent-500 px-4 py-2 text-sm font-semibold text-white hover:bg-accent-400"
-            @click="buyNow"
-          >
-            ثبت‌نام در دوره
-          </button>
+          <template v-else>
+            <input
+              v-if="Number(course.effective_price) > 0"
+              v-model="couponCode"
+              type="text"
+              dir="ltr"
+              placeholder="کد تخفیف (اختیاری)"
+              class="glass mt-4 block w-full rounded-md px-3 py-2 text-center text-sm text-gray-900 placeholder:text-gray-400 dark:text-white"
+              @keyup.enter="buyNow"
+            >
+            <button
+              data-tour="course-buy-cta"
+              :disabled="buying"
+              class="mt-3 w-full rounded-md bg-accent-500 px-4 py-2 text-sm font-semibold text-white hover:bg-accent-400 disabled:cursor-wait disabled:opacity-60"
+              @click="buyNow"
+            >
+              {{ buying ? 'در حال انتقال...' : Number(course.effective_price) > 0 ? 'ثبت‌نام در دوره' : 'ثبت‌نام رایگان' }}
+            </button>
+            <p v-if="buyError" class="mt-2 text-center text-xs text-red-600 dark:text-red-400">{{ buyError }}</p>
+          </template>
         </div>
       </div>
     </div>
