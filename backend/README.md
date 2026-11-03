@@ -34,6 +34,10 @@ python manage.py runserver
 pytest
 ```
 
+تست‌ها به PostgreSQL نیاز دارند (`docker compose up -d postgres`)؛ اگر در دسترس نباشد، بعد از چند ثانیه با خطای اتصال متوقف می‌شوند.
+
+هر push روی `main` و هر Pull Request در GitHub Actions بررسی می‌شود ([`.github/workflows/ci.yml`](../.github/workflows/ci.yml)): `ruff check`، چک migrationهای جاافتاده (`makemigrations --check`)، و کل تست‌ها روی Postgres 16 — به‌علاوه‌ی لینت و build فرانت.
+
 ## استاندارد کد
 
 - `ruff check .` — لینت (شامل قوانین pydocstyle؛ توابع/کلاس‌های عمومی باید docstring داشته باشند)

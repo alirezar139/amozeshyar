@@ -12,3 +12,6 @@ STORAGES["default"] = {  # noqa: F405
 
 CELERY_TASK_ALWAYS_EAGER = True
 CELERY_TASK_EAGER_PROPAGATES = True
+
+# Fail in seconds, not minutes, when Postgres isn't running (e.g. Docker is off).
+DATABASES["default"].setdefault("OPTIONS", {})["connect_timeout"] = 5  # noqa: F405
