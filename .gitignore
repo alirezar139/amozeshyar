@@ -52,3 +52,6 @@ redis-data/
 .DS_Store
 Thumbs.db
 *.log
+
+# --- Claude Code: per-machine settings (permissions for this laptop) ---
+.claude/settings.local.json

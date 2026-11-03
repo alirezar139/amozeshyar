@@ -256,13 +256,14 @@ $C restart backend         # راه‌اندازی دوباره
 docker stats --no-stream   # مصرف رم
 ```
 
-**انتشار نسخه‌ی جدید** (از لپ‌تاپ، روی برنچ ادغام‌شده):
+**انتشار نسخه‌ی جدید** (از لپ‌تاپ، روی `main` به‌روز):
 
 ```bash
-git archive --format=tar HEAD | ssh root@SERVER 'tar -x -C /srv/amozeshyar'
-ssh root@SERVER 'cd /srv/amozeshyar && C="docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env" \
-  && $C build && $C up -d && $C exec -T backend python manage.py migrate --noinput'
+bash deploy/release.sh                                  # کد، build، migrate، چک سلامت
+APK=~/Desktop/app-release.apk bash deploy/release.sh    # + انتشار اپ اندروید برای دانلود از فوتر
 ```
+
+اسکریپت ([`deploy/release.sh`](../deploy/release.sh)) فقط وقتی اجرا می‌شود که checkout دقیقاً `origin/main` و بدون تغییر commit‌نشده باشد؛ همه‌ی مراحلش تکرارپذیرند.
 
 `git archive` فقط فایل‌های commit‌شده را می‌فرستد و `.env` سرور دست نمی‌خورد. اگر `deploy/nginx.conf` تغییر کرد، تغییر را دستی در فایل سرور اعمال کنید (خطوط certbot را نگه دارید) و `nginx -t && systemctl reload nginx`.
 
