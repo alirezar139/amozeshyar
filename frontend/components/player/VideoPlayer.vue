@@ -47,7 +47,9 @@ function attachSource(url: string) {
   hlsInstance?.destroy()
   hlsInstance = null
 
-  if (url.endsWith('.m3u8') && video.canPlayType('application/vnd.apple.mpegurl') === '') {
+  // Judge by the path: signed links end in a query string, not ".m3u8".
+  const isHls = new URL(url, window.location.href).pathname.endsWith('.m3u8')
+  if (isHls && video.canPlayType('application/vnd.apple.mpegurl') === '') {
     import('hls.js').then(({ default: Hls }) => {
       if (Hls.isSupported()) {
         hlsInstance = new Hls()

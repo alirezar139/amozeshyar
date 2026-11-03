@@ -1,3 +1,6 @@
+from django.http import HttpResponse, HttpResponseForbidden
+from django.urls import reverse
+from django.views.decorators.http import require_safe
 from drf_spectacular.utils import extend_schema
 from rest_framework import generics, permissions, status
 from rest_framework.exceptions import PermissionDenied
@@ -91,10 +94,35 @@ class ManifestView(APIView):
         if not video.hls_master_key:
             return Response({"detail": "ویدیو هنوز در حال پردازش است."}, status=status.HTTP_404_NOT_FOUND)
 
-        from .services.signing import get_presigned_url
+        from .services.signing import make_playlist_token
 
         WatchSession.issue(video, request.user, has_full_access=True, client_ip=_client_ip(request))
-        return Response({"url": get_presigned_url(video.hls_master_key)})
+        playlist = reverse("video-playlist", kwargs={"video_id": video.id})
+        return Response({"url": request.build_absolute_uri(f"{playlist}?t={make_playlist_token(video.id)}")})
+
+
+@require_safe
+def playlist_view(request, video_id):
+    """The HLS playlist with a presigned URL per segment (see services.signing).
+
+    A plain Django view, not DRF: players (hls.js, Safari's own) fetch it
+    directly and expect the raw playlist, and the token in `?t=` (minted by
+    ManifestView after the enrollment check) is the only credential.
+    """
+    from .services.signing import playlist_token_is_valid, signed_playlist
+
+    if not playlist_token_is_valid(request.GET.get("t", ""), video_id):
+        return HttpResponseForbidden("invalid or expired playback link")
+    try:
+        video = VideoAsset.objects.get(id=video_id, status=VideoAsset.Status.READY)
+    except VideoAsset.DoesNotExist:
+        return HttpResponseForbidden("invalid or expired playback link")
+    response = HttpResponse(
+        signed_playlist(video.hls_master_key, video.duration_seconds),
+        content_type="application/vnd.apple.mpegurl",
+    )
+    response["Cache-Control"] = "private, no-store"
+    return response
 
 
 class VideoDownloadView(APIView):
