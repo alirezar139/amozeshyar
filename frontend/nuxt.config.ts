@@ -68,7 +68,17 @@ export default defineNuxtConfig({
   app: {
     head: {
       htmlAttrs: { lang: 'fa', dir: 'rtl' },
+      // Installable app (PWA): the manifest is built per site in server/routes/;
+      // the apple-* tags are what iPhone/iPad use for "Add to Home Screen".
+      meta: [
+        { name: 'theme-color', content: '#157E6C' },
+        { name: 'mobile-web-app-capable', content: 'yes' },
+        { name: 'apple-mobile-web-app-capable', content: 'yes' },
+        { name: 'apple-mobile-web-app-status-bar-style', content: 'default' },
+      ],
       link: [
+        { rel: 'manifest', href: '/manifest.webmanifest' },
+        { rel: 'apple-touch-icon', href: '/icons/apple-touch-icon.png' },
         { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
         { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
         {
