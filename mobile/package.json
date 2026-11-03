@@ -3,7 +3,8 @@
   "private": true,
   "description": "Android app shell: runs the instructor's live site with native extras",
   "scripts": {
-    "sync": "cap sync android"
+    "sync": "cap sync android",
+    "assets": "node assets/render.mjs && capacitor-assets generate --android --iconBackgroundColor \"#157E6C\" --splashBackgroundColor \"#157E6C\""
   },
   "dependencies": {
     "@capacitor/android": "^8.6.0",
@@ -13,6 +14,7 @@
     "@capacitor/status-bar": "^8.0.4"
   },
   "devDependencies": {
+    "@capacitor/assets": "^4.0.0",
     "@capacitor/cli": "^8.6.0",
     "typescript": "^6.0.3"
   }

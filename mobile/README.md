@@ -46,4 +46,10 @@ base64 -w0 release.jks   # خروجی را در secret زیر بگذارید
 
 ## آیکون و اسپلش
 
-فعلاً آیکون پیش‌فرض Capacitor است. برای آیکون هر مدرس: یک لوگوی ۱۰۲۴×۱۰۲۴ در `mobile/assets/icon.png` بگذارید و `npx @capacitor/assets generate --android` را اجرا کنید.
+آیکون پیش‌فرض یک کتاب باز با رنگ‌های پیش‌فرض سایت است (سبز `#157E6C` و نارنجی). منبعش `assets/icon-foreground.svg` و `assets/icon-background.svg` است. برای برند یک مدرس، این دو SVG را عوض کنید (یا رنگ‌ها را در `package.json` ← `assets`) و اجرا کنید:
+
+```bash
+npm run assets   # همه‌ی اندازه‌های آیکون و اسپلش اندروید را در android/app/src/main/res می‌سازد
+```
+
+نتیجه را commit کنید. فایل‌های PNG داخل `assets/` خروجی موقت‌اند و در git نیستند.

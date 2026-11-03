@@ -7,3 +7,4 @@ android/app/release/
 *.keystore
 *.jks
 keystore.properties
+assets/*.png
