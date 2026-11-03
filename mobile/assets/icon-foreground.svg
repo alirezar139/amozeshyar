@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- Open book: the site's default brand mark. Kept inside the adaptive-icon
+       safe zone (a 676px circle), since launchers crop the rest. -->
+  <g transform="translate(512 535)">
+    <path d="M-250 -165 C-170 -205 -70 -200 -14 -140 L-14 200 C-75 145 -170 140 -250 170 Z" fill="#ffffff"/>
+    <path d="M250 -165 C170 -205 70 -200 14 -140 L14 200 C75 145 170 140 250 170 Z" fill="#ffffff" fill-opacity="0.86"/>
+    <path d="M105 -196 L105 -30 L142 -62 L179 -30 L179 -186 C155 -194 130 -197 105 -196 Z" fill="#F98307"/>
+  </g>
+</svg>
