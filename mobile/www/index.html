@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>اتصال برقرار نیست</title>
+  <!-- Shown by the app in place of the site when it can't be reached.
+       Self-contained on purpose: no network means no external fonts or CSS. -->
+  <style>
+    :root { color-scheme: light dark; --bg: #f8fafc; --fg: #0f172a; --muted: #64748b; --accent: #4f46e5; }
+    @media (prefers-color-scheme: dark) { :root { --bg: #0f172a; --fg: #f1f5f9; --muted: #94a3b8; --accent: #818cf8; } }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      background: var(--bg); color: var(--fg); padding: 24px;
+      font-family: system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif; text-align: center;
+    }
+    svg { width: 64px; height: 64px; color: var(--muted); }
+    h1 { font-size: 1.25rem; margin: 16px 0 8px; }
+    p { color: var(--muted); margin: 0 0 24px; line-height: 1.8; }
+    button {
+      border: 0; border-radius: 12px; padding: 12px 28px; font: inherit; font-weight: 600;
+      background: var(--accent); color: #fff;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M3 3l18 18M8.5 16.5a5 5 0 017 0M5 13a10 10 0 015.2-2.8M12 20h.01M19 13a10 10 0 00-2.4-1.7M2 9.5a15 15 0 014.6-3M22 9.5A15 15 0 0011.5 5"/>
+    </svg>
+    <h1>اتصال به اینترنت برقرار نیست</h1>
+    <p>اینترنت گوشی را بررسی کنید و دوباره تلاش کنید.</p>
+    <button type="button" onclick="location.reload()">تلاش دوباره</button>
+  </main>
+</body>
+</html>
