@@ -13,7 +13,10 @@ RUN apt-get update \
 
 WORKDIR /app
 COPY backend/requirements/ requirements/
-RUN pip install --no-cache-dir -r requirements/prod.txt
+# PyPI is slow and drops connections from the server's network: wait longer, retry, and keep
+# downloaded wheels in a build cache so a re-run resumes instead of starting over.
+ENV PIP_DEFAULT_TIMEOUT=120 PIP_RETRIES=10
+RUN --mount=type=cache,target=/root/.cache/pip pip install -r requirements/prod.txt
 
 COPY backend/ .
 # Static files (Django admin / API docs) are baked in and served by whitenoise.
