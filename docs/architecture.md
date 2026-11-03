@@ -259,11 +259,11 @@ docker stats --no-stream   # مصرف رم
 **انتشار نسخه‌ی جدید** (از لپ‌تاپ، روی `main` به‌روز):
 
 ```bash
-bash deploy/release.sh                                  # کد، build، migrate، چک سلامت
+bash deploy/release.sh                                  # کد، ایمیج‌های ساخته‌شده در CI، migrate، چک سلامت
 APK=~/Desktop/app-release.apk bash deploy/release.sh    # + انتشار اپ اندروید برای دانلود از فوتر
 ```
 
-اسکریپت ([`deploy/release.sh`](../deploy/release.sh)) فقط وقتی اجرا می‌شود که checkout دقیقاً `origin/main` و بدون تغییر commit‌نشده باشد؛ همه‌ی مراحلش تکرارپذیرند.
+اسکریپت ([`deploy/release.sh`](../deploy/release.sh)) فقط وقتی اجرا می‌شود که checkout دقیقاً `origin/main` و بدون تغییر commit‌نشده باشد؛ همه‌ی مراحلش تکرارپذیرند. اول منتظر می‌ماند تا workflow‌ی `Images` برای همان commit ایمیج‌ها را بسازد، بعد سرور همان‌ها را pull می‌کند (نیاز به `gh` لاگین‌شده).
 
 `git archive` فقط فایل‌های commit‌شده را می‌فرستد و `.env` سرور دست نمی‌خورد. اگر `deploy/nginx.conf` تغییر کرد، تغییر را دستی در فایل سرور اعمال کنید (خطوط certbot را نگه دارید) و `nginx -t && systemctl reload nginx`.
 

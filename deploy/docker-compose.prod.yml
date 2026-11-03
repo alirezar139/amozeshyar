@@ -1,14 +1,16 @@
 # One instructor site on a single small VPS (2 GB RAM). Run from the repository root:
-#   docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env up -d --build
-# deploy/.env holds the secrets (see deploy/README.md); nginx on the host terminates TLS and
-# proxies to the 127.0.0.1 ports below. Memory limits keep it from starving other apps on the box.
+#   docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env up -d
+# The images come from GitHub Actions (.github/workflows/images.yml), not built here: the server
+# times out on PyPI and npm. deploy/.env holds the secrets (see deploy/README.md) and IMAGE_TAG,
+# the commit to run (deploy/release.sh sets it). nginx on the host terminates TLS and proxies to
+# the 127.0.0.1 ports below. Memory limits keep it from starving other apps on the box.
 name: amozeshyar
 
 x-backend: &backend
   build:
     context: ..
     dockerfile: deploy/backend.Dockerfile
-  image: amozeshyar-backend
+  image: ghcr.io/alirezar139/amozeshyar-backend:${IMAGE_TAG:-main}
   env_file: .env
   restart: unless-stopped
   depends_on:
@@ -76,7 +78,7 @@ services:
     build:
       context: ..
       dockerfile: deploy/frontend.Dockerfile
-    image: amozeshyar-frontend
+    image: ghcr.io/alirezar139/amozeshyar-frontend:${IMAGE_TAG:-main}
     environment:
       NUXT_PUBLIC_API_BASE: ${PUBLIC_URL}/api/v1
       NUXT_API_BASE_SERVER: http://backend:8000/api/v1

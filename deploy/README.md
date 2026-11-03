@@ -36,8 +36,11 @@ ZARINPAL_CALLBACK_URL=https://SITE_HOST/checkout/callback
 
 ## راه‌اندازی
 
+ایمیج‌ها را GitHub Actions می‌سازد ([`images.yml`](../.github/workflows/images.yml)) و سرور فقط از `ghcr.io` می‌کشد؛ build روی خود سرور به خاطر قطعی PyPI/npm قابل اعتماد نیست. `IMAGE_TAG` در `.env` مشخص می‌کند کدام commit اجرا شود (`release.sh` خودش تنظیمش می‌کند).
+
 ```bash
-docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env up -d --build
+docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env pull
+docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env up -d
 docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env exec backend python manage.py migrate
 docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env exec backend python manage.py setup_site --email ... --password ... --first-name ... --last-name ...
 ```
