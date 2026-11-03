@@ -123,6 +123,29 @@ function onFullscreenChange() {
   }
 }
 
+// iPhone has no fullscreen API for anything but the <video> itself, and its
+// own video fullscreen covers the page, watermark included. So there the
+// native fullscreen is closed as soon as it opens and the frame (video +
+// watermark) covers the screen instead. Other devices never get here: they
+// support frame.requestFullscreen and take the path above.
+const pageFullscreen = ref(false)
+
+function onNativeVideoFullscreen() {
+  const video = videoEl.value as (HTMLVideoElement & { webkitExitFullscreen?: () => void }) | null
+  const frame = frameEl.value as (HTMLDivElement & { webkitRequestFullscreen?: () => void }) | null
+  if (!video || !frame || !watermarkText.value) return
+  if (frame.requestFullscreen || frame.webkitRequestFullscreen) return
+  const wasPlaying = !video.paused
+  video.webkitExitFullscreen?.()
+  pageFullscreen.value = true
+  if (wasPlaying) video.play().catch(() => {})
+}
+
+watch(pageFullscreen, (on) => {
+  // Keep the page behind from scrolling while the player covers it.
+  document.documentElement.style.overflow = on ? 'hidden' : ''
+})
+
 onMounted(() => {
   loadSource()
   watermarkTimer = setInterval(() => {
@@ -135,6 +158,8 @@ onUnmounted(() => {
   hlsInstance?.destroy()
   if (watermarkTimer) clearInterval(watermarkTimer)
   document.removeEventListener('fullscreenchange', onFullscreenChange)
+  pageFullscreen.value = false
+  document.documentElement.style.overflow = ''
 })
 
 watch(
@@ -148,14 +173,25 @@ watch(
 </script>
 
 <template>
-  <div ref="frameEl" class="relative aspect-video w-full overflow-hidden rounded-lg bg-black">
+  <div
+    ref="frameEl"
+    :class="[
+      'overflow-hidden bg-black',
+      pageFullscreen ? 'fixed inset-0 z-[200]' : 'relative aspect-video w-full rounded-lg',
+    ]"
+  >
+    <!-- playsinline: without it an iPhone plays every video in its own
+         fullscreen, where the watermark can't be shown. -->
     <video
       v-show="!loading"
       ref="videoEl"
       controls
+      playsinline
+      webkit-playsinline
       controlslist="nodownload"
       disablepictureinpicture
       class="h-full w-full"
+      @webkitbeginfullscreen="onNativeVideoFullscreen"
       @ended="onEnded"
       @pause="reportProgress"
       @timeupdate="onTimeUpdate"
@@ -167,6 +203,15 @@ watch(
       dir="ltr"
       aria-hidden="true"
     >{{ watermarkText }}</span>
+    <button
+      v-if="pageFullscreen"
+      type="button"
+      aria-label="خروج از تمام‌صفحه"
+      class="absolute end-3 top-3 z-10 rounded-full bg-black/50 p-2 text-white"
+      @click="pageFullscreen = false"
+    >
+      <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+    </button>
     <div v-if="loading" class="absolute inset-0 flex items-center justify-center text-gray-300">
       در حال بارگذاری پخش‌کننده...
     </div>
