@@ -27,6 +27,14 @@ APK در GitHub Actions ساخته می‌شود ([`.github/workflows/android.ym
 
 `versionCode` خودکار شماره‌ی اجرای workflow است و همیشه بزرگ‌تر می‌شود، همان‌طور که مارکت‌ها می‌خواهند.
 
+## دانلود از خود سایت
+
+دکمه‌ی «دانلود اپ اندروید» در فوتر سایت، وقتی یک APK منتشر شده باشد ظاهر می‌شود (روی آیفون و داخل خود اپ نه). فایل روی فضای ذخیره‌سازی سایت (MinIO) نگه داشته می‌شود، نه در git، و با لینک امضاشده دانلود می‌شود. انتشار یا جایگزینی نسخه، از لپ‌تاپ:
+
+```bash
+cat app-release.apk | ssh root@SERVER 'cd /srv/amozeshyar && docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env exec -T backend python manage.py publish_android_app -'
+```
+
 ## کلید امضای انتشار
 
 یک بار بسازید و **برای همیشه نگه دارید**. اگر گم شود، دیگر نمی‌شود برای همان اپ در مارکت به‌روزرسانی منتشر کرد.
