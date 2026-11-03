@@ -7,6 +7,8 @@ caller's permissions have already been checked by the view.
 from urllib.parse import quote
 
 from django.conf import settings
+from django.core import signing
+from django.core.files.storage import default_storage
 
 from apps.common.storage import SharedSessionS3Storage
 
@@ -39,3 +41,46 @@ def get_download_url(storage_key: str, filename: str, expires_in: int = 300) -> 
         Params={"Bucket": settings.AWS_STORAGE_BUCKET_NAME, "Key": storage_key, **params},
         ExpiresIn=expires_in,
     )
+
+
+# --- HLS playback -----------------------------------------------------------
+# A presigned URL covers exactly one object, but an HLS playlist points at
+# many segment files by relative name. So the playlist itself is served by
+# the API (behind a short-lived token minted after the access check), with
+# every segment line rewritten to its own presigned URL.
+
+PLAYLIST_TOKEN_SALT = "videos.hls-playlist"
+PLAYLIST_TOKEN_MAX_AGE = 600  # seconds to start playback after the access check
+
+
+def make_playlist_token(video_id: int) -> str:
+    return signing.dumps({"v": video_id}, salt=PLAYLIST_TOKEN_SALT, compress=True)
+
+
+def playlist_token_is_valid(token: str, video_id: int) -> bool:
+    try:
+        payload = signing.loads(token, salt=PLAYLIST_TOKEN_SALT, max_age=PLAYLIST_TOKEN_MAX_AGE)
+    except signing.BadSignature:  # also covers SignatureExpired
+        return False
+    return payload.get("v") == video_id
+
+
+def segment_url_lifetime(duration_seconds: int | None) -> int:
+    """Segments must stay fetchable for the whole viewing (pauses included), so
+    twice the video's length, at least 2 hours and at most 12."""
+    return min(max(2 * (duration_seconds or 0), 2 * 3600), 12 * 3600)
+
+
+def signed_playlist(playlist_key: str, duration_seconds: int | None) -> str:
+    """The stored playlist with every segment URI swapped for a presigned URL."""
+    with default_storage.open(playlist_key, "rb") as fh:
+        text = fh.read().decode("utf-8")
+    folder = playlist_key.rsplit("/", 1)[0]
+    expires_in = segment_url_lifetime(duration_seconds)
+    lines = []
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped and not stripped.startswith("#"):
+            line = get_presigned_url(f"{folder}/{stripped}", expires_in=expires_in)
+        lines.append(line)
+    return "\n".join(lines) + "\n"
