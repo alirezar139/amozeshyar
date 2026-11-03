@@ -1,0 +1,6 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <!-- app_name and title_activity_main come from Gradle (-PappName), see app/build.gradle. -->
+    <string name="package_name">site.modaresyar.app</string>
+    <string name="custom_url_scheme">site.modaresyar.app</string>
+</resources>

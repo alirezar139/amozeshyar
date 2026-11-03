@@ -1,0 +1,90 @@
+name: Android
+
+# Builds the instructor-site app. Pushes that touch mobile/ build the
+# default site; "Run workflow" builds any instructor's site with its own
+# package id and name.
+on:
+  push:
+    paths:
+      - "mobile/**"
+      - ".github/workflows/android.yml"
+  workflow_dispatch:
+    inputs:
+      site_url:
+        description: Site the app opens
+        default: https://modaresyar-org.site
+      app_id:
+        description: Android package id (unique per instructor, never changes after release)
+        default: site.modaresyar.app
+      app_name:
+        description: Name under the icon
+        default: مدرس‌یار
+      version_name:
+        description: Version shown to users
+        default: "1.0"
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    env:
+      SITE_URL: ${{ inputs.site_url || 'https://modaresyar-org.site' }}
+      APP_ID: ${{ inputs.app_id || 'site.modaresyar.app' }}
+      APP_NAME: ${{ inputs.app_name || 'مدرس‌یار' }}
+      VERSION_NAME: ${{ inputs.version_name || '1.0' }}
+      HAS_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+      - run: npm ci
+      - name: Copy the site URL and plugins into the native project
+        run: npx cap sync android
+
+      - name: Release signing key
+        if: env.HAS_KEYSTORE == 'true'
+        working-directory: mobile/android
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          {
+            echo "storeFile=$RUNNER_TEMP/release.jks"
+            echo "storePassword=$KEYSTORE_PASSWORD"
+            echo "keyAlias=$KEY_ALIAS"
+            echo "keyPassword=$KEY_PASSWORD"
+          } > keystore.properties
+
+      - name: Build
+        working-directory: mobile/android
+        # versionCode must grow with every release; the run number always does.
+        run: >-
+          ./gradlew --no-daemon
+          -PappId="$APP_ID" -PappName="$APP_NAME"
+          -PversionCode=${{ github.run_number }} -PversionName="$VERSION_NAME"
+          assembleDebug ${{ env.HAS_KEYSTORE == 'true' && 'assembleRelease' || '' }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: apk-${{ env.APP_ID }}-${{ env.VERSION_NAME }}-${{ github.run_number }}
+          path: |
+            mobile/android/app/build/outputs/apk/debug/*.apk
+            mobile/android/app/build/outputs/apk/release/*.apk
+          if-no-files-found: error

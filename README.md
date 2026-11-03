@@ -10,6 +10,7 @@
 amozeshyar/
 ├── backend/       # Django + DRF — کل API
 ├── frontend/      # Nuxt 3 (Vue.js) — رندر سمت سرور برای سئو
+├── mobile/        # اپ اندروید (Capacitor) — سایت زنده + جلوگیری از ضبط صفحه، تمام‌صفحه، دانلود
 ├── docs/          # مستندات معماری و تصمیم‌های فنی (ADR)
 └── docker-compose.yml
 ```
