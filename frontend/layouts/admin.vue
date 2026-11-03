@@ -17,7 +17,9 @@ onMounted(async () => {
   if (!authStore.isDeveloper) return
   try {
     openReports.value = (await request<{ unresolved_reports: number }>('/monitoring/summary/')).unresolved_reports
-  } catch {}
+  } catch {
+    // Just the badge count; the menu works without it.
+  }
 })
 </script>
 

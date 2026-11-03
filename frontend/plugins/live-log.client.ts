@@ -45,7 +45,9 @@ export default defineNuxtPlugin((nuxtApp) => {
     // The logging call itself must never raise or log (no loops).
     try {
       send(entry)
-    } catch {}
+    } catch {
+      // Swallowed on purpose: see above.
+    }
   }
 
   const describe = (err: any) => (err instanceof Error ? `${err.name}: ${err.message}` : String(err))
