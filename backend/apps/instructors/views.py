@@ -1,4 +1,5 @@
-from django.http import Http404
+from django.http import Http404, HttpResponseRedirect
+from drf_spectacular.utils import extend_schema
 from rest_framework import generics, permissions
 
 from apps.accounts.permissions import IsAdminRole
@@ -27,6 +28,22 @@ class SiteOwnerView(generics.RetrieveAPIView):
     def retrieve(self, request, *args, **kwargs):
         # The same for every visitor and fetched on every page (header, footer, hero).
         return public_cache.cached_response(request, lambda: super(SiteOwnerView, self).retrieve(request, *args, **kwargs).data)
+
+
+class AndroidAppDownloadView(generics.GenericAPIView):
+    """Public: download the site's Android app (redirects to a short-lived signed link)."""
+
+    permission_classes = (permissions.AllowAny,)
+
+    @extend_schema(responses={302: None, 404: None})
+    def get(self, request):
+        from . import android_app
+
+        if not android_app.is_published():
+            raise Http404("No Android app has been published for this site.")
+        owner = get_site_owner()
+        name = (owner.site_name if owner and owner.site_name else "app").strip()
+        return HttpResponseRedirect(android_app.download_url(f"{name}.apk"))
 
 
 class SiteSettingsView(generics.RetrieveUpdateAPIView):

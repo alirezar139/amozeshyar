@@ -18,6 +18,7 @@ export interface SiteOwner {
   total_students: number
   phone_number: string
   allow_peer_chat: boolean
+  android_app: boolean
 }
 
 /**

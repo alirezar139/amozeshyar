@@ -14,6 +14,8 @@ class PublicInstructorSerializer(serializers.ModelSerializer):
     phone_number = serializers.CharField(source="user.phone_number", read_only=True)
     # The owner's profile photo; the homepage shows it when no separate cover_image is set.
     avatar = serializers.ImageField(source="user.avatar", read_only=True)
+    # Whether an APK has been published (manage.py publish_android_app); drives the footer link.
+    android_app = serializers.SerializerMethodField()
 
     class Meta:
         model = InstructorProfile
@@ -37,7 +39,13 @@ class PublicInstructorSerializer(serializers.ModelSerializer):
             "rating_avg",
             "total_students",
             "phone_number",
+            "android_app",
         )
+
+    def get_android_app(self, obj) -> bool:
+        from . import android_app
+
+        return android_app.is_published()
 
     def get_display_name(self, obj) -> str:
         return obj.user.get_full_name() or obj.user.email.split("@")[0]
