@@ -15,3 +15,8 @@ CELERY_TASK_EAGER_PROPAGATES = True
 
 # Fail in seconds, not minutes, when Postgres isn't running (e.g. Docker is off).
 DATABASES["default"].setdefault("OPTIONS", {})["connect_timeout"] = 5  # noqa: F405
+
+# Signed media links are computed locally (no request to the storage server),
+# but boto3 still needs a key pair to sign with; never use the real one here.
+AWS_ACCESS_KEY_ID = "test-access-key"  # noqa: S105
+AWS_SECRET_ACCESS_KEY = "test-secret-key"  # noqa: S105
