@@ -7,7 +7,22 @@ const { data: course } = await useAsyncData(`course-${route.params.slug}`, () =>
   request<any>(`/courses/${route.params.slug}/`)
 )
 
-const { siteName, teacherName } = useSite()
+const { owner, siteName, teacherName } = useSite()
+
+const levelLabels: Record<string, string> = { beginner: 'مقدماتی', intermediate: 'متوسط', advanced: 'پیشرفته' }
+const lessonCount = computed(() => course.value?.lessons?.length ?? 0)
+const durationLabel = computed(() => {
+  const total = Number(course.value?.total_duration_seconds) || 0
+  if (!total) return ''
+  const hours = Math.floor(total / 3600)
+  const minutes = Math.round((total % 3600) / 60)
+  return [hours && `${hours.toLocaleString('fa-IR')} ساعت`, minutes && `${minutes.toLocaleString('fa-IR')} دقیقه`]
+    .filter(Boolean)
+    .join(' و ')
+})
+const hasDiscount = computed(
+  () => course.value?.discount_price != null && Number(course.value.discount_price) < Number(course.value.price),
+)
 
 useSeoMeta({
   title: () => `${course.value?.title ?? ''} | ${siteName.value}`,
@@ -117,12 +132,22 @@ async function buyNow() {
           class="mb-6 aspect-video w-full rounded-2xl object-cover shadow-lg ring-1 ring-black/5 dark:ring-white/10"
         >
         <h1 class="text-2xl font-bold text-gray-900 sm:text-3xl dark:text-white">{{ course.title }}</h1>
-        <p class="mt-2 text-gray-600 dark:text-gray-300">{{ course.subtitle }}</p>
+        <p v-if="course.subtitle" class="mt-2 text-gray-600 dark:text-gray-300">{{ course.subtitle }}</p>
 
-        <p class="mt-6 whitespace-pre-line text-gray-700 dark:text-gray-200">{{ course.description }}</p>
+        <ul class="mt-4 flex flex-wrap gap-2 text-xs font-medium">
+          <li v-if="course.category_name" class="glass rounded-full px-3 py-1 text-gray-700 dark:text-gray-200">{{ course.category_name }}</li>
+          <li v-if="levelLabels[course.level]" class="glass rounded-full px-3 py-1 text-gray-700 dark:text-gray-200">سطح {{ levelLabels[course.level] }}</li>
+          <li v-if="lessonCount" class="glass rounded-full px-3 py-1 text-gray-700 dark:text-gray-200">{{ lessonCount.toLocaleString('fa-IR') }} جلسه</li>
+          <li v-if="durationLabel" class="glass rounded-full px-3 py-1 text-gray-700 dark:text-gray-200">{{ durationLabel }}</li>
+        </ul>
+
+        <p v-if="course.description" class="mt-6 whitespace-pre-line leading-8 text-gray-700 dark:text-gray-200">{{ course.description }}</p>
 
         <h2 class="mt-8 text-lg font-semibold text-gray-900 dark:text-white">سرفصل‌ها</h2>
-        <ul data-tour="lesson-list" class="glass mt-3 divide-y divide-white/30 rounded-md dark:divide-white/10">
+        <p v-if="!lessonCount" class="glass mt-3 rounded-md px-4 py-6 text-center text-sm text-gray-600 dark:text-gray-300">
+          سرفصل‌های این دوره به‌زودی اضافه می‌شوند.
+        </p>
+        <ul v-else data-tour="lesson-list" class="glass mt-3 divide-y divide-white/30 rounded-md dark:divide-white/10">
           <li
             v-for="lesson in course.lessons"
             :key="lesson.id"
@@ -164,9 +189,14 @@ async function buyNow() {
             </PlayerVideoPlayer>
           </ClientOnly>
 
-          <div class="mt-4 text-xl font-bold text-gray-900 dark:text-white">
-            <template v-if="Number(course.effective_price) > 0">{{ Number(course.effective_price).toLocaleString('fa-IR') }} تومان</template>
-            <template v-else>رایگان</template>
+          <div class="mt-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <span class="text-xl font-bold text-gray-900 dark:text-white">
+              <template v-if="Number(course.effective_price) > 0">{{ Number(course.effective_price).toLocaleString('fa-IR') }} تومان</template>
+              <template v-else>رایگان</template>
+            </span>
+            <span v-if="hasDiscount" class="text-sm text-gray-500 line-through dark:text-gray-400">
+              {{ Number(course.price).toLocaleString('fa-IR') }}
+            </span>
           </div>
           <template v-if="course.is_enrolled">
             <p class="mt-4 rounded-md bg-emerald-500/10 px-4 py-2 text-center text-sm font-semibold text-emerald-600">
@@ -201,6 +231,18 @@ async function buyNow() {
             <p v-if="buyError" class="mt-2 text-center text-xs text-red-600 dark:text-red-400">{{ buyError }}</p>
           </template>
         </div>
+
+        <NuxtLink v-if="owner" to="/" class="glass mt-4 flex items-center gap-3 rounded-lg p-4 transition hover:-translate-y-0.5">
+          <img v-if="owner.avatar" :src="owner.avatar" :alt="teacherName" class="h-12 w-12 shrink-0 rounded-full object-cover">
+          <span v-else class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary-600 font-bold text-white">
+            {{ teacherName[0] }}
+          </span>
+          <span class="min-w-0">
+            <span class="block text-xs text-gray-500 dark:text-gray-400">مدرس دوره</span>
+            <span class="block truncate font-semibold text-gray-900 dark:text-white">{{ teacherName }}</span>
+            <span v-if="owner.headline" class="block truncate text-xs text-gray-600 dark:text-gray-300">{{ owner.headline }}</span>
+          </span>
+        </NuxtLink>
       </div>
     </div>
   </div>
