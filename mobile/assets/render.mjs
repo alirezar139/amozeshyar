@@ -1,5 +1,5 @@
 // Turns the SVG sources here into the PNGs @capacitor/assets expects
-// (it doesn't read SVG), then `capacitor-assets generate` makes every
+// (it doesn't read SVG) plus the website's PWA icons, then `capacitor-assets generate` makes every
 // launcher-icon and splash size from them. For an instructor's own
 // branding, edit the SVGs (or drop in a 1024px icon-only.png) and run
 // `npm run assets`.
@@ -24,3 +24,16 @@ const splash = async (file) => {
 }
 await splash('splash.png')
 await splash('splash-dark.png')
+
+// The same mark for the website's PWA (iPhone "Add to Home Screen", Android
+// "Install app"): frontend/public/icons/. iOS ignores transparency, so its
+// apple-touch-icon is the flattened icon.
+const web = new URL('../../frontend/public/icons/', import.meta.url).pathname
+const flat = await sharp(background).composite([{ input: foreground }]).png().toBuffer()
+for (const size of [192, 512]) {
+  await sharp(flat).resize(size).toFile(`${web}icon-${size}.png`)
+}
+// "maskable": launchers crop it to their own shape, so the mark sits in the middle 80%.
+const inner = await sharp(foreground).resize(Math.round(512 * 0.8)).toBuffer()
+await sharp(background).resize(512, 512).composite([{ input: inner, gravity: 'center' }]).toFile(`${web}maskable-512.png`)
+await sharp(flat).resize(180).toFile(`${web}apple-touch-icon.png`)

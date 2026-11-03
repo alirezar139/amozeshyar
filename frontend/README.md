@@ -33,6 +33,15 @@ npm run dev
 
 > نکته‌ی مخصوص ویندوز: اگر بعد از هر `npm install` با خطای مربوط به native binding پکیج `rolldown` مواجه شدید (یک باگ شناخته‌شده‌ی npm با وابستگی‌های اختیاریِ مخصوص هر پلتفرم)، قبل از نصب دوباره حتماً سرور توسعه را کاملاً ببندید و این‌ها را پاک کنید: `node_modules`، `package-lock.json`، `.nuxt`، سپس `npm cache clean --force` و دوباره `npm install`.
 
+## نصب به‌عنوان اپ (PWA)
+
+سایت روی آیفون (Safari ← Share ← Add to Home Screen) و اندروید (Chrome ← Install app) مثل اپ نصب می‌شود.
+
+- `server/routes/manifest.webmanifest.ts`: manifest با نام سایت از تنظیمات مدرس
+- `public/sw.js`: service worker حداقلی. هیچ چیزی را کش نمی‌کند (محتوای دوره فقط پخش آنلاین است) و فقط وقتی صفحه بارگذاری نشود، `public/offline.html` را نشان می‌دهد
+- `components/pwa/IosInstallHint.vue`: راهنمای نصب برای کاربران آیفون
+- آیکون‌ها در `public/icons/` از `mobile/assets/` ساخته می‌شوند (`cd mobile && npm run assets`)
+
 ## لینت
 
 `npm run lint` (ESLint با `@nuxt/eslint-config`، تنظیمات در `eslint.config.mjs`). در CI روی هر Pull Request اجرا می‌شود.
