@@ -79,12 +79,10 @@ export default defineNuxtConfig({
       link: [
         { rel: 'manifest', href: '/manifest.webmanifest' },
         { rel: 'apple-touch-icon', href: '/icons/apple-touch-icon.png' },
-        { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
-        { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
-        {
-          rel: 'stylesheet',
-          href: 'https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap',
-        },
+        // Vazirmatn is served from the site itself (see assets/css/main.css),
+        // never from Google Fonts: Google is filtered in Iran, and a blocked
+        // render-blocking stylesheet left the page white (notably in the app).
+        { rel: 'preload', href: '/fonts/Vazirmatn-Variable.woff2', as: 'font', type: 'font/woff2', crossorigin: '' },
       ],
       // Applies the saved theme and colors (or the OS preference / default
       // colors) before Vue even hydrates, so there's no flash of the wrong

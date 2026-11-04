@@ -1,3 +1,14 @@
+/* Vazirmatn (OFL), self-hosted: one variable file covers every weight the
+   site uses. Not from Google Fonts — it's filtered in Iran and blocked the
+   first paint. Preloaded from nuxt.config.ts. */
+@font-face {
+  font-family: 'Vazirmatn';
+  src: url('/fonts/Vazirmatn-Variable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* Default color ramps — the values every visitor sees before any JS has
    run. A logged-in-or-returning user's actual picked colors (free-form
    hex per role, not a fixed palette; see useTheme.ts and
