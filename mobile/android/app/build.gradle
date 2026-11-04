@@ -48,6 +48,15 @@ android {
         resValues true
     }
     buildTypes {
+        // Debug builds get the release key too when it's there. Otherwise
+        // each CI runner signs with a fresh throwaway debug key, and Android
+        // refuses to update an installed app signed differently — the user
+        // has to uninstall first and loses their sign-in.
+        debug {
+            if (keystoreProps.storeFile) {
+                signingConfig signingConfigs.release
+            }
+        }
         release {
             if (keystoreProps.storeFile) {
                 signingConfig signingConfigs.release
