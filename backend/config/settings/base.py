@@ -166,12 +166,15 @@ SPECTACULAR_SETTINGS = {
     "DESCRIPTION": "REST API for the Amozeshyar online-learning & instructor-marketing platform.",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
-    # Both Course.Status and InstructorProfile.Status are plain "status"
-    # choice fields; without this, drf-spectacular gives them disambiguating
-    # hash suffixes (Status1a4Enum) instead of readable names.
+    # Several models have a plain "status" choice field; without this,
+    # drf-spectacular gives them disambiguating hash suffixes (Status1a4Enum)
+    # instead of readable names.
     "ENUM_NAME_OVERRIDES": {
         "CourseStatusEnum": "apps.courses.models.Course.Status",
         "InstructorStatusEnum": "apps.instructors.models.InstructorProfile.Status",
+        "OrderStatusEnum": "apps.payments.models.Order.Status",
+        "PaymentStatusEnum": "apps.payments.models.Payment.Status",
+        "RefundStatusEnum": "apps.payments.models.RefundRequest.Status",
     },
 }
 
