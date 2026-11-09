@@ -30,7 +30,13 @@ STORAGE_REGION=us-east-1
 ZARINPAL_MERCHANT_ID=
 ZARINPAL_SANDBOX=True
 ZARINPAL_CALLBACK_URL=https://SITE_HOST/checkout/callback
+SITE_URL=https://SITE_HOST
+EMAIL_URL=smtp+tls://USER:PASSWORD@SMTP_HOST:587
+DEFAULT_FROM_EMAIL=no-reply@SITE_HOST
+SMS_PROVIDER=
 ```
+
+`EMAIL_URL` برای بازیابی رمز عبور لازم است: بدون آن لینک بازیابی به هیچ‌جا فرستاده نمی‌شود (هم ایمیل خاموش است و هم پیامک، تا وقتی `SMS_PROVIDER` تنظیم نشده باشد). در آن حالت مدرس هنوز می‌تواند از «مدیریت دسترسی کاربران» رمز را دستی عوض کند. رسید خرید و نتیجه‌ی استرداد در هر حال در پیام‌رسان سایت به دانشجو می‌رسد.
 
 `STORAGE_ENDPOINT_URL` عمداً آدرس عمومی سایت است: لینک‌های امضاشده‌ی ویدیو برای همین دامنه ساخته می‌شوند و nginx آن‌ها را به MinIO می‌رساند.
 

@@ -379,7 +379,7 @@ function timeLabel(iso: string) {
 function showDay(i: number) {
   return i === 0 || dayKey(messages.value[i].created_at) !== dayKey(messages.value[i - 1].created_at)
 }
-const BOT_NAMES: Record<string, string> = { exam: '🤖 دستیار آزمون' }
+const BOT_NAMES: Record<string, string> = { exam: '🤖 دستیار آزمون', notify: '🔔 اطلاع‌رسانی سایت' }
 function showSender(i: number) {
   const m = messages.value[i]
   if (m.bot) return true

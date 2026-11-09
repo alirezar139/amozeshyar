@@ -1,7 +1,10 @@
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
+from django.contrib.auth.tokens import default_token_generator
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.utils.encoding import force_bytes, force_str
+from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from drf_spectacular.utils import extend_schema
 from rest_framework import filters, generics, permissions, status, viewsets
 from rest_framework.decorators import action
@@ -14,6 +17,8 @@ from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, Ou
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 
+from apps.notifications.service import notify
+
 from . import captcha
 from .permissions import IsAdminRole
 from .serializers import (
@@ -24,6 +29,8 @@ from .serializers import (
     CaptchaVerifyNumberRequestSerializer,
     CaptchaVerifyRequestSerializer,
     EmailTokenObtainPairSerializer,
+    PasswordResetConfirmSerializer,
+    PasswordResetRequestSerializer,
     RefreshResponseSerializer,
     RegisterSerializer,
     UserSerializer,
@@ -290,6 +297,77 @@ class LogoutView(APIView):
         response = Response(status=status.HTTP_205_RESET_CONTENT)
         response.delete_cookie(REFRESH_COOKIE_NAME, path=REFRESH_COOKIE_PATH)
         return response
+
+
+RESET_SENT = "اگر حسابی با این ایمیل وجود داشته باشد، لینک بازیابی رمز برایش فرستاده شد."
+
+
+class PasswordResetRequestView(APIView):
+    """Public: email a reset link (and SMS it, when an SMS provider is set up).
+
+    Always answers the same way, so it can't be used to find out which emails have accounts.
+    The link carries Django's password-reset token: signed with SECRET_KEY, valid for
+    PASSWORD_RESET_TIMEOUT, and bound to the current password hash and last login, so it stops
+    working as soon as it has been used (or the password changes any other way).
+    """
+
+    permission_classes = (permissions.AllowAny,)
+    authentication_classes = ()
+    throttle_classes = (AnonRateThrottle, ScopedRateThrottle)
+    throttle_scope = "password_reset"
+    serializer_class = PasswordResetRequestSerializer
+
+    @extend_schema(request=PasswordResetRequestSerializer, responses={200: None})
+    def post(self, request):
+        payload = PasswordResetRequestSerializer(data=request.data)
+        payload.is_valid(raise_exception=True)
+        user = User.objects.filter(email__iexact=payload.validated_data["email"], is_active=True).first()
+        if user is not None:
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
+            token = default_token_generator.make_token(user)
+            # In the fragment, not the query string: browsers never send it to the server, so the token
+            # stays out of nginx access logs, Nuxt SSR logs and Referer headers.
+            link = f"{settings.SITE_URL}/auth/reset-password#uid={uid}&token={token}"
+            notify(user, "password_reset", link=link, minutes=settings.PASSWORD_RESET_TIMEOUT // 60)
+        return Response({"detail": RESET_SENT})
+
+
+class PasswordResetConfirmView(APIView):
+    """Public: set a new password with the link's uid and token, then sign out everywhere."""
+
+    permission_classes = (permissions.AllowAny,)
+    authentication_classes = ()
+    throttle_classes = (AnonRateThrottle, ScopedRateThrottle)
+    throttle_scope = "auth"
+    serializer_class = PasswordResetConfirmSerializer
+
+    @extend_schema(request=PasswordResetConfirmSerializer, responses={200: None})
+    def post(self, request):
+        payload = PasswordResetConfirmSerializer(data=request.data)
+        payload.is_valid(raise_exception=True)
+        data = payload.validated_data
+        invalid = Response(
+            {"detail": "این لینک معتبر نیست یا منقضی شده است؛ دوباره درخواست بازیابی بدهید."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+        try:
+            user = User.objects.get(pk=force_str(urlsafe_base64_decode(data["uid"])), is_active=True)
+        except (User.DoesNotExist, ValueError, TypeError, OverflowError, DjangoValidationError):
+            return invalid
+        if not default_token_generator.check_token(user, data["token"]):
+            return invalid
+        try:
+            validate_password(data["password"], user)
+        except DjangoValidationError as e:
+            raise ValidationError({"password": list(e.messages)}) from None
+
+        user.set_password(data["password"])
+        user.save(update_fields=["password"])  # also invalidates this link: the token hashes the password
+        BlacklistedToken.objects.bulk_create(
+            [BlacklistedToken(token=t) for t in OutstandingToken.objects.filter(user=user)], ignore_conflicts=True
+        )
+        notify(user, "password_changed")
+        return Response({"detail": "رمز عبور تازه ثبت شد؛ حالا با آن وارد شوید."})
 
 
 class MeView(generics.RetrieveUpdateAPIView):

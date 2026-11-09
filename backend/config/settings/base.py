@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     "apps.board",
     "apps.exams",
     "apps.monitoring",
+    "apps.notifications",
 ]
 
 MIDDLEWARE = [
@@ -139,6 +140,7 @@ REST_FRAMEWORK = {
         "auth": "10/minute",
         "payment_callback": "30/minute",
         "video_manifest": "120/minute",
+        "password_reset": "5/hour",
     },
     "EXCEPTION_HANDLER": "apps.common.exceptions.custom_exception_handler",
 }
@@ -217,6 +219,25 @@ ZARINPAL_SANDBOX = env.bool("ZARINPAL_SANDBOX", default=True)
 # The site page a buyer lands on after paying (gets ?order_id=&status=paid|failed).
 # ZarinPal itself returns to the API's /payments/callback/, which verifies first.
 ZARINPAL_CALLBACK_URL = env("ZARINPAL_CALLBACK_URL", default="http://localhost:3000/checkout/callback")
+
+# --- Public site address (links in emails/SMS, e.g. the password reset page) ---
+SITE_URL = env("SITE_URL", default="http://localhost:3300").rstrip("/")
+
+# --- Password reset: a signed link valid this long, and only until the password changes ---
+PASSWORD_RESET_TIMEOUT = env.int("PASSWORD_RESET_TIMEOUT_MINUTES", default=30) * 60
+
+# --- Notifications (apps/notifications) ---
+# Channels a notification may use; each also needs its own configuration below.
+NOTIFICATION_CHANNELS = env.list("NOTIFICATION_CHANNELS", default=["inbox", "email", "sms"])
+# Email is on only when EMAIL_URL is set, e.g. smtp+tls://user:password@smtp.example.com:587
+_email_url = env("EMAIL_URL", default="")
+EMAIL_ENABLED = bool(_email_url)
+if EMAIL_ENABLED:
+    vars().update(env.email_url("EMAIL_URL"))
+EMAIL_TIMEOUT = 10
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="no-reply@localhost")
+# Dotted path to an SMS provider class with send(phone, text); empty = no SMS.
+SMS_PROVIDER = env("SMS_PROVIDER", default="")
 
 # --- Sentry ---
 SENTRY_DSN = env("SENTRY_DSN", default="")
