@@ -1,6 +1,9 @@
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
 from django.utils import timezone
 from rest_framework import serializers
+
+from apps.common.file_types import check_file_type
 
 from . import services
 from .models import Attempt, Choice, Exam, MediaKind, Question, QuestionMedia
@@ -20,12 +23,22 @@ def media_kind(upload) -> str:
     if ext in IMAGE_EXTENSIONS:
         if upload.size > MAX_IMAGE_BYTES:
             raise serializers.ValidationError({"file": "حجم عکس بیشتر از ۱۰ مگابایت است."})
+        _check_content(upload, IMAGE_EXTENSIONS)
         return MediaKind.IMAGE
     if ext in AUDIO_EXTENSIONS:
         if upload.size > MAX_AUDIO_BYTES:
             raise serializers.ValidationError({"file": "حجم فایل صوتی بیشتر از ۳۰ مگابایت است."})
+        _check_content(upload, AUDIO_EXTENSIONS)
         return MediaKind.AUDIO
     raise serializers.ValidationError({"file": "فقط عکس (jpg, png, webp, gif) یا صوت (mp3, m4a, ogg, webm, wav) مجاز است."})
+
+
+def _check_content(upload, extensions) -> None:
+    """The extension alone proves nothing: the bytes must be that kind of file too."""
+    try:
+        check_file_type(upload, extensions)
+    except DjangoValidationError as e:
+        raise serializers.ValidationError({"file": e.messages}) from None
 
 
 def file_url(field) -> str | None:

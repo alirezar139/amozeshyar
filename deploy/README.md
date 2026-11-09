@@ -106,6 +106,22 @@ docker exec -i amozeshyar-postgres-1 pg_restore -U amozeshyar -d amozeshyar --cl
 $C start backend worker
 ```
 
+## نوع فایل‌های ذخیره‌شده (یک بار، بعد از انتشار اصلاح SEC-01)
+
+فایل‌هایی که قبل از این اصلاح آپلود شده‌اند با `Content-Type`ی ذخیره شده‌اند که مرورگر کاربر فرستاده بود (ممکن است `text/html` باشد). هدرهای جدید nginx روی `/modaresyar-media/` همین حالا جلوی اجرای آن‌ها را می‌گیرند؛ این دستور خود فایل‌ها را هم درست می‌کند:
+
+```bash
+C="docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env"
+$C exec backend python manage.py secure_media_headers           # فقط گزارش: کدام فایل‌ها عوض می‌شوند
+$C exec backend python manage.py secure_media_headers --apply   # بازنویسی هدرها
+```
+
+فقط `ContentType`/`ContentDisposition` هر شیء عوض می‌شود (کپی درجا با `MetadataDirective=REPLACE`)؛ محتوا و نام فایل‌ها دست نمی‌خورد و چیزی پاک نمی‌شود. اجرای دوباره بی‌خطر است.
+
+### دامنه‌ی جدا برای فایل‌ها (پیشنهادی)
+
+قوی‌ترین جداسازی این است که فایل‌ها اصلاً روی دامنه‌ی سایت نباشند. برای این کار یک زیر‌دامنه (مثلاً `media.SITE_HOST`) با گواهی جدا بسازید، یک `server` در nginx برای آن با همان `location /modaresyar-media/` (و همان هدرها) تعریف کنید و `STORAGE_ENDPOINT_URL=https://media.SITE_HOST` بگذارید. بعد از آن کوکی‌های سایت به آن دامنه فرستاده نمی‌شوند. فعلاً اختیاری است، چون سه لایه‌ی بالا مستقل از دامنه کار می‌کنند.
+
 ## گزارش پرداخت‌ها (`audit_payments`)
 
 این دستور فقط گزارش می‌دهد و چیزی را تغییر نمی‌دهد. پرداخت دوباره برای یک سفارش یا یک دوره، کد تخفیفی که از سقفش رد شده، و پرداخت‌هایی را که بعد از دو روز هنوز روشن نشده‌اند فهرست می‌کند:

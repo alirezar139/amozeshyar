@@ -40,6 +40,8 @@ jobs:
       - run: pip install -r requirements/dev.txt
       - name: Lint
         run: ruff check .
+      - name: Known vulnerabilities in the production dependencies
+        run: pip-audit -r requirements/prod.txt --timeout 60
       - name: Migrations match the models
         run: python manage.py makemigrations --check --dry-run
         env:

@@ -70,7 +70,7 @@ flowchart LR
 | `/api/v1/videos/upload/` | backend | بدنه تا ۲ گیگ، بدون بافر، timeout ده دقیقه |
 | `/api/` | backend | محدودیت نرخ ۵۰ درخواست/ثانیه (burst ۱۰۰)، بدنه تا ۵۱۲ مگ |
 | `/static/` | backend | فایل‌های استاتیک جنگو (whitenoise) |
-| `/modaresyar-media/` | MinIO | لینک‌های امضاشده‌ی S3؛ هدر Host دست‌نخورده می‌ماند چون جزو امضاست |
+| `/modaresyar-media/` | MinIO | لینک‌های امضاشده‌ی S3؛ هدر Host دست‌نخورده می‌ماند چون جزو امضاست. هدر `Content-Security-Policy: sandbox` و `nosniff` دارد تا هیچ فایل کاربری، حتی اگر HTML باشد، روی دامنه‌ی سایت اسکریپت اجرا نکند (بخش «فایل‌های کاربران») |
 | `/` | frontend | هدرهای امنیتی (HSTS، X-Frame-Options، nosniff، Referrer-Policy، Permissions-Policy) |
 | `/api/docs/`، `/api/schema/` | backend | در prod فقط برای staff (حساب توسعه‌دهنده)؛ بقیه 401 می‌گیرند |
 | `www.` و `http://` | ریدایرکت ۳۰۱ | همه به `https://modaresyar-org.site` |
@@ -114,6 +114,15 @@ DRF برای هر IP/کاربر سقف دارد (`anon` ۱۰۰/ساعت، `user`
 ### تنظیمات
 - `config/settings/base.py` مشترک، `dev.py` محلی، `test.py` تست، `prod.py` تولید.
 - prod: `DEBUG=False`، کوکی‌های Secure، HSTS، ریدایرکت SSL، و `SECURE_PROXY_SSL_HEADER` (چون TLS در nginx تمام می‌شود).
+
+### فایل‌های کاربران
+فایل‌ها (چت، پاسخ آزمون، فایل درس، عکس‌ها، ویدیو) روی **همان دامنه‌ی سایت** سرو می‌شوند، پس فایلی که مرورگر آن را HTML بداند می‌تواند در سایت اسکریپت اجرا کند و سشن کاربر را بدزدد. سه قفل جلوی این را می‌گیرد:
+
+1. **پذیرش با محتوای واقعی** (`apps/common/file_types.py`، `check_file_type`): پسوند باید مجاز باشد و magic bytes فایل باید با همان پسوند بخواند. HTML/SVG/JS با هر پسوندی رد می‌شود و هدر `Content-Type` کلاینت هیچ‌جا خوانده نمی‌شود.
+2. **ذخیره با نوعی که سرور تعیین می‌کند** (`SharedSessionS3Storage._get_write_parameters` ← `storage_headers`): عکس، صدا و ویدیو با نوع واقعی‌شان (برای `<img>`، `<audio>` و پلیر)؛ بقیه `application/octet-stream` + `Content-Disposition: attachment`، یعنی باز کردن لینک فقط دانلود می‌کند.
+3. **هدرهای nginx روی `/modaresyar-media/`**: `Content-Security-Policy: sandbox; default-src 'none'…` و `nosniff`. حتی فایلی که قبل از این تغییر با نوع اشتباه ذخیره شده، اسکریپتی اجرا نمی‌کند.
+
+فایل‌های قدیمی را `manage.py secure_media_headers` (بدون `--apply` فقط گزارش می‌دهد) با همین قاعده بازنویسی می‌کند؛ فقط هدرها عوض می‌شوند، نه محتوا.
 
 ---
 
