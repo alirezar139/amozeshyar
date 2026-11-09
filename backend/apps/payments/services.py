@@ -60,7 +60,7 @@ def enrolled_course_ids(user, course_ids) -> set[int]:
 
 # ---------- coupons ----------
 
-def _holding_orders(coupon: Coupon):
+def held_coupon_orders(coupon: Coupon):
     """Unpaid orders whose hold on `coupon` hasn't run out (an order's hold restarts when its
     payment is started, see `start_payment`)."""
     return Order.objects.filter(
@@ -78,7 +78,7 @@ def coupon_problem(coupon: Coupon, user, *, exclude_order_id=None, at_payment=Fa
     """
     if not at_payment and not coupon.is_valid_at(timezone.now()):
         return "کد تخفیف معتبر نیست یا منقضی شده است."
-    held = _holding_orders(coupon).exclude(id=exclude_order_id)
+    held = held_coupon_orders(coupon).exclude(id=exclude_order_id)
     if coupon.max_uses is not None:
         taken = coupon.used_count + (0 if at_payment else held.count())
         if taken >= coupon.max_uses:
@@ -154,13 +154,15 @@ def start_payment(order_id: int, user, gateway: PaymentGateway, callback_url: st
 
 # ---------- finishing a payment ----------
 
-def fulfil_order(order: Order) -> None:
-    """Mark ``order`` paid, enroll its buyer in every course, and count its coupon as used.
+def fulfil_order(order: Order, ref_id: str = "") -> None:
+    """Mark ``order`` paid, enroll its buyer in every course, count its coupon as used, and
+    send the buyer a receipt once the transaction commits.
 
     Call inside a transaction holding the buyer's row (see `lock_buyer`).
     """
     order.status = Order.Status.PAID
-    order.save(update_fields=["status", "updated_at"])
+    order.paid_at = timezone.now()
+    order.save(update_fields=["status", "paid_at", "updated_at"])
 
     if order.coupon_id:
         Coupon.objects.filter(id=order.coupon_id).update(used_count=F("used_count") + 1)
@@ -176,6 +178,13 @@ def fulfil_order(order: Order) -> None:
             enrollment.is_active = True
             enrollment.order_item = item
             enrollment.save(update_fields=["is_active", "order_item", "updated_at"])
+
+    from apps.notifications.service import notify
+
+    notify(
+        order.user, "payment_succeeded", order_id=order.id, amount=int(order.total_amount), ref_id=ref_id,
+        courses=list(order.items.values_list("course__title", flat=True)),
+    )
 
 
 def _cancel(payment: Payment, order: Order, note: str) -> Payment:
@@ -248,7 +257,7 @@ def finalize_payment(payment: Payment, gateway: PaymentGateway, *, mark_failed: 
         payment.ref_id = result.ref_id
         payment.raw_response = result.raw_response or {}
         payment.save(update_fields=["status", "ref_id", "raw_response", "updated_at"])
-        fulfil_order(order)
+        fulfil_order(order, ref_id=payment.ref_id)
         logger.info("Payment %s verified (ref %s); order %s paid", payment.id, payment.ref_id, order.id)
         return payment
 

@@ -5,7 +5,7 @@ from apps.courses.models import Course
 from apps.enrollments.models import Enrollment
 
 from . import services
-from .models import Coupon, Order, OrderItem, Payment
+from .models import Coupon, Order, OrderItem, Payment, RefundRequest
 
 
 class CreateOrderSerializer(serializers.Serializer):
@@ -90,10 +90,16 @@ class OrderItemSerializer(serializers.ModelSerializer):
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
     coupon_code = serializers.CharField(source="coupon.code", read_only=True, default=None)
+    refund = serializers.SerializerMethodField()
 
     class Meta:
         model = Order
-        fields = ("id", "status", "total_amount", "currency", "coupon_code", "items", "created_at")
+        fields = ("id", "status", "total_amount", "currency", "coupon_code", "items", "refund", "created_at")
+
+    def get_refund(self, obj) -> dict | None:
+        """The latest refund request (prefetch `refund_requests` to avoid a query per order)."""
+        latest = max(obj.refund_requests.all(), key=lambda r: r.created_at, default=None)
+        return RefundStatusSerializer(latest).data if latest else None
 
 
 class InitiatePaymentResponseSerializer(serializers.Serializer):
@@ -105,3 +111,118 @@ class PaymentSerializer(serializers.ModelSerializer):
         model = Payment
         fields = ("id", "order", "gateway", "status", "created_at")
         read_only_fields = fields
+
+
+# ---------- refunds (student side) ----------
+
+class RefundStatusSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RefundRequest
+        fields = ("id", "status", "reason", "admin_note", "created_at", "decided_at")
+        read_only_fields = fields
+
+
+class RefundRequestCreateSerializer(serializers.Serializer):
+    reason = serializers.CharField(max_length=1000, trim_whitespace=True)
+
+
+# ---------- the instructor's sales panel ----------
+
+class BuyerSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    email = serializers.EmailField()
+    first_name = serializers.CharField()
+    last_name = serializers.CharField()
+    phone_number = serializers.CharField()
+
+
+class AdminPaymentSerializer(serializers.ModelSerializer):
+    buyer_email = serializers.EmailField(source="order.user.email", read_only=True)
+
+    class Meta:
+        model = Payment
+        fields = ("id", "order", "buyer_email", "gateway", "authority", "ref_id", "status", "note", "created_at")
+        read_only_fields = fields
+
+
+class AdminRefundSerializer(serializers.ModelSerializer):
+    buyer = BuyerSerializer(source="order.user", read_only=True)
+    order_total = serializers.DecimalField(source="order.total_amount", max_digits=12, decimal_places=0, read_only=True)
+    decided_by_email = serializers.EmailField(source="decided_by.email", read_only=True, default=None)
+    courses = serializers.SerializerMethodField()
+
+    class Meta:
+        model = RefundRequest
+        fields = (
+            "id", "order", "order_total", "buyer", "courses", "reason", "status", "amount", "reference",
+            "admin_note", "decided_by_email", "decided_at", "created_at",
+        )
+        read_only_fields = fields
+
+    def get_courses(self, obj) -> list[str]:
+        return [i.course.title for i in obj.order.items.all()]
+
+
+class AdminOrderSerializer(serializers.ModelSerializer):
+    buyer = BuyerSerializer(source="user", read_only=True)
+    items = OrderItemSerializer(many=True, read_only=True)
+    coupon_code = serializers.CharField(source="coupon.code", read_only=True, default=None)
+    payments = AdminPaymentSerializer(many=True, read_only=True)
+    refunds = RefundStatusSerializer(source="refund_requests", many=True, read_only=True)
+
+    class Meta:
+        model = Order
+        fields = (
+            "id", "status", "total_amount", "currency", "coupon_code", "buyer", "items", "payments", "refunds",
+            "created_at", "paid_at",
+        )
+        read_only_fields = fields
+
+
+class RefundDecisionSerializer(serializers.Serializer):
+    reference = serializers.CharField(max_length=100, required=False, allow_blank=True, default="")
+    note = serializers.CharField(max_length=2000, required=False, allow_blank=True, default="")
+
+
+class AdminCouponSerializer(serializers.ModelSerializer):
+    held_orders = serializers.SerializerMethodField()
+    paid_orders = serializers.IntegerField(read_only=True, default=0)
+
+    class Meta:
+        model = Coupon
+        fields = (
+            "id", "code", "discount_percent", "discount_amount", "valid_from", "valid_to",
+            "max_uses", "max_uses_per_user", "used_count", "held_orders", "paid_orders", "created_at",
+        )
+        read_only_fields = ("id", "used_count", "held_orders", "paid_orders", "created_at")
+
+    def get_held_orders(self, obj) -> int:
+        return services.held_coupon_orders(obj).count()
+
+    def validate_code(self, value):
+        value = value.strip().upper()
+        if not value or " " in value:
+            raise serializers.ValidationError("کد را بدون فاصله وارد کنید.")
+        clash = Coupon.objects.filter(code__iexact=value)
+        if self.instance:
+            clash = clash.exclude(pk=self.instance.pk)
+        if clash.exists():
+            raise serializers.ValidationError("کدی با همین نام وجود دارد.")
+        return value
+
+    def validate(self, attrs):
+        get = lambda f: attrs[f] if f in attrs else getattr(self.instance, f, None)  # noqa: E731
+        percent, amount = get("discount_percent"), get("discount_amount")
+        if bool(percent) == bool(amount):
+            raise serializers.ValidationError("فقط یکی از «درصد» یا «مبلغ» تخفیف را وارد کنید.")
+        if percent is not None and percent and not 1 <= percent <= 100:
+            raise serializers.ValidationError({"discount_percent": "درصد تخفیف باید بین ۱ تا ۱۰۰ باشد."})
+        if amount is not None and amount and amount <= 0:
+            raise serializers.ValidationError({"discount_amount": "مبلغ تخفیف باید بیشتر از صفر باشد."})
+        valid_from, valid_to = get("valid_from"), get("valid_to")
+        if valid_from and valid_to and valid_to <= valid_from:
+            raise serializers.ValidationError({"valid_to": "پایان اعتبار باید بعد از شروع آن باشد."})
+        used = self.instance.used_count if self.instance else 0
+        if get("max_uses") is not None and get("max_uses") < used:
+            raise serializers.ValidationError({"max_uses": f"این کد تا الان {used} بار استفاده شده؛ سقف نمی‌تواند کمتر باشد."})
+        return attrs
