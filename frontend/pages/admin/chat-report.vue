@@ -142,8 +142,9 @@ function when(iso: string) {
               <a
                 v-if="m.attachment_url"
                 :href="m.attachment_url"
-                target="_blank"
-                rel="noopener"
+                :download="m.attachment_kind === 'file' ? m.attachment_name || '' : undefined"
+                :target="m.attachment_kind === 'file' ? undefined : '_blank'"
+                rel="noopener noreferrer"
                 class="mt-1 inline-flex items-center gap-1.5 text-xs text-primary-600 hover:underline dark:text-primary-400"
               >
                 {{ { image: '📷', file: '📎', voice: '🎤' }[m.attachment_kind as string] }} {{ m.attachment_name }}

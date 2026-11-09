@@ -555,8 +555,8 @@ function showSender(i: number) {
               <a
                 v-else-if="m.attachment_kind === 'file' || (m.attachment_kind && !m.attachment_url)"
                 :href="m.attachment_url || undefined"
-                target="_blank"
-                rel="noopener"
+                :download="m.attachment_name || ''"
+                rel="noopener noreferrer"
                 :class="['mb-1 flex items-center gap-3 rounded-xl p-2', m.is_mine ? 'bg-white/15' : 'bg-black/[0.04] dark:bg-white/5']"
               >
                 <CourseFileIcon :extension="m.attachment_name.split('.').pop()" size="sm" />

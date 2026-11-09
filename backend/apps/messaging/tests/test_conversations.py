@@ -3,6 +3,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework.test import APIClient
 
 from apps.accounts.models import User
+from apps.common.tests import file_samples
 from apps.courses.models import Category, Course
 from apps.enrollments.models import Enrollment
 from apps.instructors.models import InstructorProfile
@@ -92,13 +93,13 @@ def test_group_chat_reaches_enrolled_students(world):
 def test_attachments_image_file_voice_and_rejections(world):
     cid = next(c for c in conversations(world["alice"]) if c["kind"] == "direct")["id"]
 
-    image = send(world["alice"], cid, file=SimpleUploadedFile("shot.png", b"\x89PNG..."))
+    image = send(world["alice"], cid, file=SimpleUploadedFile("shot.png", file_samples.image()))
     assert image.status_code == 201 and image.data["attachment_kind"] == "image" and image.data["attachment_url"]
 
-    doc = send(world["alice"], cid, file=SimpleUploadedFile("تمرین.pdf", b"%PDF"), text="تمرین من")
+    doc = send(world["alice"], cid, file=SimpleUploadedFile("تمرین.pdf", file_samples.PDF), text="تمرین من")
     assert doc.data["attachment_kind"] == "file" and doc.data["attachment_name"] == "تمرین.pdf"
 
-    voice = send(world["alice"], cid, file=SimpleUploadedFile("voice.webm", b"webm"), voice="true", duration_seconds=7)
+    voice = send(world["alice"], cid, file=SimpleUploadedFile("voice.webm", file_samples.WEBM), voice="true", duration_seconds=7)
     assert voice.data["attachment_kind"] == "voice" and voice.data["duration_seconds"] == 7
 
     assert send(world["alice"], cid, file=SimpleUploadedFile("x.html", b"<script>")).status_code == 400
