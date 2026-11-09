@@ -6,6 +6,7 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from apps.accounts.models import User
+from apps.common.tests import file_samples
 from apps.courses.models import Category, Course
 from apps.enrollments.models import Enrollment
 from apps.exams.models import Answer, Attempt, Exam
@@ -80,7 +81,7 @@ def test_teacher_question_validation_and_publish_needs_questions(teacher, course
     media = client.post("/api/v1/exam-question-media/", {
         "question": client.post("/api/v1/exam-questions/", {"exam": exam["id"], "kind": "essay", "text": "توضیح بده"}, format="json").data["id"],
         "role": "answer",
-        "file": SimpleUploadedFile("key.mp3", b"ID3" + b"\0" * 100, content_type="audio/mpeg"),
+        "file": SimpleUploadedFile("key.mp3", file_samples.MP3, content_type="audio/mpeg"),
     }, format="multipart")
     assert media.status_code == 201 and media.data["kind"] == "audio" and media.data["role"] == "answer"
 
@@ -179,7 +180,7 @@ def test_essay_with_voice_waits_for_teacher_then_notifies(teacher, course, stude
 
     s = as_(student)
     attempt_id = s.post(f"/api/v1/exams/{exam['id']}/start/").data["id"]
-    voice = SimpleUploadedFile("voice.webm", b"\x1aE\xdf\xa3" + b"\0" * 100, content_type="audio/webm")
+    voice = SimpleUploadedFile("voice.webm", file_samples.WEBM, content_type="audio/webm")
     uploaded = s.post(f"/api/v1/exam-attempts/{attempt_id}/files/", {"question": essay["id"], "file": voice, "duration_seconds": "12"}, format="multipart")
     assert uploaded.status_code == 201 and uploaded.data["kind"] == "audio"
     bad = SimpleUploadedFile("x.exe", b"MZ", content_type="application/octet-stream")

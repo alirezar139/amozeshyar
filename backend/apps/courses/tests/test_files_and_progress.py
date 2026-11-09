@@ -8,6 +8,7 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from apps.accounts.models import User
+from apps.common.tests import file_samples
 from apps.courses.models import Category, ClassSession, Course, Lesson, LessonFile
 from apps.enrollments.models import Enrollment
 from apps.instructors.models import InstructorProfile
@@ -33,7 +34,7 @@ def client_for(user):
     return client
 
 
-def upload(client, lesson, name="جزوه.pdf", content=b"%PDF-1.4 data"):
+def upload(client, lesson, name="جزوه.pdf", content=file_samples.PDF):
     return client.post(
         "/api/v1/lesson-files/",
         {"lesson": lesson.id, "file": SimpleUploadedFile(name, content)},
@@ -150,7 +151,7 @@ def test_upload_accepts_recently_expired_token_but_other_endpoints_do_not(owner,
 
     response = client.post(
         "/api/v1/lesson-files/",
-        {"lesson": lesson.id, "file": SimpleUploadedFile("a.pdf", b"%PDF")},
+        {"lesson": lesson.id, "file": SimpleUploadedFile("a.pdf", file_samples.PDF)},
         format="multipart",
     )
     assert response.status_code == 201
@@ -160,7 +161,7 @@ def test_upload_accepts_recently_expired_token_but_other_endpoints_do_not(owner,
     client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
     response = client.post(
         "/api/v1/lesson-files/",
-        {"lesson": lesson.id, "file": SimpleUploadedFile("a.pdf", b"%PDF")},
+        {"lesson": lesson.id, "file": SimpleUploadedFile("a.pdf", file_samples.PDF)},
         format="multipart",
     )
     assert response.status_code == 401

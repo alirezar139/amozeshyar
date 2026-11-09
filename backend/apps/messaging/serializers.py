@@ -1,6 +1,8 @@
+from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
-from apps.common.validators import ALLOWED_COURSE_FILE_EXTENSIONS
+from apps.common.file_types import check_file_type
+from apps.common.validators import ALLOWED_COURSE_FILE_EXTENSIONS, validate_image_file
 
 from . import services
 from .models import Conversation, Message
@@ -135,6 +137,16 @@ class SendMessageSerializer(serializers.Serializer):
                 if upload.size > MAX_FILE_BYTES:
                     raise serializers.ValidationError({"file": "حجم فایل بیشتر از ۵۰ مگابایت است."})
                 attrs["kind"] = Message.AttachmentKind.FILE
+            # The extension alone proves nothing: the bytes must be that kind of file too.
+            allowed = {
+                Message.AttachmentKind.VOICE: VOICE_EXTENSIONS,
+                Message.AttachmentKind.IMAGE: IMAGE_EXTENSIONS,
+                Message.AttachmentKind.FILE: ALLOWED_COURSE_FILE_EXTENSIONS,
+            }[attrs["kind"]]
+            try:
+                check_file_type(upload, allowed)
+            except DjangoValidationError as e:
+                raise serializers.ValidationError({"file": e.messages}) from None
         return attrs
 
 
@@ -282,6 +294,7 @@ class GroupSettingsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Conversation
         fields = ("title", "avatar", "announcement_only", "member_ids")
+        extra_kwargs = {"avatar": {"validators": [validate_image_file]}}
 
 
 class AuditMessageSerializer(MessageSerializer):
