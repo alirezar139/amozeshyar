@@ -12,17 +12,23 @@ class Coupon(TimeStampedModel):
     valid_from = models.DateTimeField()
     valid_to = models.DateTimeField()
     max_uses = models.PositiveIntegerField(null=True, blank=True)
-    used_count = models.PositiveIntegerField(default=0)
+    # Uses per buyer (null: no per-buyer limit). Checked against their paid and held orders.
+    max_uses_per_user = models.PositiveIntegerField(null=True, blank=True)
+    used_count = models.PositiveIntegerField(default=0)  # paid orders only; see services.coupon_problem
 
     def __str__(self):
         return self.code
+
+    def is_valid_at(self, when) -> bool:
+        """Within its dates. How many uses are left is `services.coupon_problem`'s job, since it
+        also counts orders still being paid."""
+        return self.valid_from <= when <= self.valid_to
 
     @property
     def is_valid(self) -> bool:
         from django.utils import timezone
 
-        now = timezone.now()
-        if not (self.valid_from <= now <= self.valid_to):
+        if not self.is_valid_at(timezone.now()):
             return False
         if self.max_uses is not None and self.used_count >= self.max_uses:
             return False
@@ -64,13 +70,17 @@ class Payment(TimeStampedModel):
         INITIATED = "initiated", "Initiated"
         VERIFIED = "verified", "Verified"
         FAILED = "failed", "Failed"
+        # Paid at the gateway but deliberately never verified (the course was already bought, or
+        # the coupon ran out), so ZarinPal returns the money to the buyer. `note` says why.
+        CANCELED = "canceled", "Canceled (not verified, refunded by the gateway)"
 
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="payments")
     gateway = models.CharField(max_length=30, default="zarinpal")
-    authority = models.CharField(max_length=100, blank=True)  # ZarinPal "Authority" token
+    authority = models.CharField(max_length=100, blank=True, db_index=True)  # ZarinPal "Authority" token
     ref_id = models.CharField(max_length=100, blank=True)  # ZarinPal ref id on success
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.INITIATED)
     raw_response = models.JSONField(default=dict, blank=True)  # full gateway payload, for audit/debugging
+    note = models.CharField(max_length=255, blank=True)  # why a payment was canceled, for the admin
 
     def __str__(self):
         return f"Payment #{self.id} for Order #{self.order_id} ({self.status})"

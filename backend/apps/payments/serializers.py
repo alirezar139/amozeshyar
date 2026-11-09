@@ -1,8 +1,10 @@
+from django.db import transaction
 from rest_framework import serializers
 
 from apps.courses.models import Course
 from apps.enrollments.models import Enrollment
 
+from . import services
 from .models import Coupon, Order, OrderItem, Payment
 
 
@@ -29,14 +31,38 @@ class CreateOrderSerializer(serializers.Serializer):
         return coupon
 
     def create(self, validated_data):
+        """Place the order, or hand back the buyer's identical open order (``self.reused``).
+
+        The checks above ran without locks; they are repeated here under the buyer's row lock
+        (and the coupon's), which is what makes them hold under simultaneous requests.
+        A free order (free course, 100% coupon) is fulfilled in the same transaction.
+        """
         user = self.context["request"].user
+        course_ids = set(validated_data["course_ids"])
         coupon = validated_data.get("coupon_code")
-        courses = Course.objects.filter(id__in=validated_data["course_ids"])
-        subtotal = sum(c.effective_price for c in courses)
-        order = Order.objects.create(user=user, total_amount=apply_coupon(subtotal, coupon), coupon=coupon)
-        OrderItem.objects.bulk_create(
-            [OrderItem(order=order, course=c, price_at_purchase=c.effective_price) for c in courses]
-        )
+        with transaction.atomic():
+            services.lock_buyer(user.id)
+            if services.enrolled_course_ids(user, course_ids):
+                raise serializers.ValidationError({"course_ids": "شما قبلاً در این دوره ثبت‌نام کرده‌اید."})
+            if coupon is not None:
+                coupon = Coupon.objects.select_for_update().get(id=coupon.id)
+            existing = services.reuse_or_retire_open_orders(user, course_ids, coupon)
+            if existing is not None:
+                self.reused = True
+                return existing
+            if coupon is not None:
+                problem = services.coupon_problem(coupon, user)
+                if problem:
+                    raise serializers.ValidationError({"coupon_code": problem})
+            courses = Course.objects.filter(id__in=course_ids)
+            subtotal = sum(c.effective_price for c in courses)
+            order = Order.objects.create(user=user, total_amount=apply_coupon(subtotal, coupon), coupon=coupon)
+            OrderItem.objects.bulk_create(
+                [OrderItem(order=order, course=c, price_at_purchase=c.effective_price) for c in courses]
+            )
+            if order.total_amount == 0:
+                services.fulfil_order(order)
+        self.reused = False
         return order
 
 

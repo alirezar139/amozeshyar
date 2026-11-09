@@ -106,6 +106,16 @@ docker exec -i amozeshyar-postgres-1 pg_restore -U amozeshyar -d amozeshyar --cl
 $C start backend worker
 ```
 
+## گزارش پرداخت‌ها (`audit_payments`)
+
+این دستور فقط گزارش می‌دهد و چیزی را تغییر نمی‌دهد. پرداخت دوباره برای یک سفارش یا یک دوره، کد تخفیفی که از سقفش رد شده، و پرداخت‌هایی را که بعد از دو روز هنوز روشن نشده‌اند فهرست می‌کند:
+
+```bash
+docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env exec backend python manage.py audit_payments
+```
+
+یک بار قبل از انتشار اصلاح پرداخت (PAY-01/02/03) اجرایش کنید و موارد قدیمی را دستی در پنل زرین‌پال پیگیری کنید (استرداد). بعد از آن هم گاهی اجرا شود. پرداختی که الان `canceled` می‌شود نیازی به کار دستی ندارد، چون verify نشده و زرین‌پال خودکار پولش را برمی‌گرداند.
+
 ## پنل ادمین جنگو
 
 `/admin/` عمداً از بیرون باز نیست. برای دسترسی: `ssh -L 8100:127.0.0.1:8100 root@SERVER` و بعد `http://localhost:8100/admin/`.
