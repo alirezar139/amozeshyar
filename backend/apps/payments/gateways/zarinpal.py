@@ -7,9 +7,20 @@ sandbox-only bug ships unnoticed.
 import requests
 from django.conf import settings
 
-from .base import PaymentGateway, PaymentGatewayError, PaymentRequestResult, PaymentVerifyResult
+from .base import (
+    PaymentGateway,
+    PaymentGatewayError,
+    PaymentGatewayUnavailable,
+    PaymentRequestResult,
+    PaymentVerifyResult,
+)
 
 REQUEST_TIMEOUT = 15
+# Verify answers that prove the buyer did not pay this authority: -50 amount differs, -51 not
+# paid (or cancelled), -53 authority belongs to another merchant, -54 invalid authority.
+# Everything else (-9 validation, -10/-11 merchant or terminal problems, -12 too many attempts,
+# unknown codes) says nothing about the payment itself.
+DEFINITE_FAILURE_CODES = {-50, -51, -53, -54}
 
 
 def to_rial(toman) -> int:
@@ -43,25 +54,43 @@ class ZarinPalGateway(PaymentGateway):
         authority = data.get("authority", "")
         if data.get("code") != 100 or not authority:
             raise PaymentGatewayError(str(body.get("errors") or body))
-        return PaymentRequestResult(
-            redirect_url=f"{self.gateway_redirect_base}{authority}",
-            authority=authority,
-        )
+        return PaymentRequestResult(redirect_url=self.redirect_url(authority), authority=authority)
+
+    def redirect_url(self, authority: str) -> str:
+        return f"{self.gateway_redirect_base}{authority}"
 
     def verify(self, authority: str, amount: int) -> PaymentVerifyResult:
+        """Ask ZarinPal whether `authority` was paid.
+
+        Raises PaymentGatewayUnavailable when there is no usable answer. A JSON refusal is an
+        answer, but only the codes in DEFINITE_FAILURE_CODES prove the buyer didn't pay; any
+        other refusal comes back with definite=False so the payment is asked about again.
+        """
         payload = {"merchant_id": self.merchant_id, "amount": to_rial(amount), "authority": authority}
-        response = requests.post(self.verify_url, json=payload, timeout=REQUEST_TIMEOUT)
-        # An unpaid authority comes back as 4xx with a JSON reason: that's an
-        # answer ("not paid"), not an outage, so only 5xx raises.
-        if response.status_code >= 500:
-            response.raise_for_status()
-        body = response.json()
-        data = body.get("data") or {}
+        try:
+            response = requests.post(self.verify_url, json=payload, timeout=REQUEST_TIMEOUT)
+            # An unpaid authority comes back as 4xx with a JSON reason: that's an
+            # answer ("not paid"), not an outage, so only 5xx counts as one.
+            if response.status_code >= 500:
+                response.raise_for_status()
+                raise PaymentGatewayUnavailable(f"HTTP {response.status_code}")
+            body = response.json()
+        except requests.RequestException as exc:
+            raise PaymentGatewayUnavailable(f"{type(exc).__name__}: {exc}") from exc
+        except ValueError as exc:
+            raise PaymentGatewayUnavailable("unreadable response body") from exc
+        if not isinstance(body, dict):
+            raise PaymentGatewayUnavailable("unexpected response body")
+
+        data = body.get("data") if isinstance(body.get("data"), dict) else {}
+        errors = body.get("errors") if isinstance(body.get("errors"), dict) else {}
         # ZarinPal codes 100 (verified) and 101 (already verified) both count as success.
-        success = data.get("code") in (100, 101)
+        if data.get("code") in (100, 101):
+            return PaymentVerifyResult(success=True, ref_id=str(data.get("ref_id", "")), raw_response=body)
+        code = errors.get("code", data.get("code"))
         return PaymentVerifyResult(
-            success=success,
-            ref_id=str(data.get("ref_id", "")),
+            success=False,
+            definite=code in DEFINITE_FAILURE_CODES,
             raw_response=body,
-            error_message="" if success else (body.get("errors") or {}).get("message", "Verification failed"),
+            error_message=errors.get("message", "Verification failed"),
         )

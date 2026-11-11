@@ -11,7 +11,7 @@ class OrderItemInline(admin.TabularInline):
 class PaymentInline(admin.TabularInline):
     model = Payment
     extra = 0
-    readonly_fields = ("gateway", "authority", "ref_id", "status", "created_at")
+    readonly_fields = ("gateway", "authority", "ref_id", "status", "note", "created_at")
 
 
 @admin.register(Order)
@@ -24,4 +24,7 @@ class OrderAdmin(admin.ModelAdmin):
 
 @admin.register(Coupon)
 class CouponAdmin(admin.ModelAdmin):
-    list_display = ("code", "discount_percent", "discount_amount", "valid_from", "valid_to", "used_count")
+    list_display = (
+        "code", "discount_percent", "discount_amount", "valid_from", "valid_to",
+        "max_uses", "max_uses_per_user", "used_count",
+    )

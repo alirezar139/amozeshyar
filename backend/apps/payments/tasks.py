@@ -38,12 +38,19 @@ def reconcile_pending_payments() -> int:
     gateway = get_gateway()
     verified = 0
     for payment in stale:
+        # Only a definite "not paid" from the gateway, and only past GIVE_UP_AFTER, makes a
+        # payment failed; an outage or unclear answer leaves it for the next run.
         try:
             payment = finalize_payment(payment, gateway, mark_failed=payment.created_at <= now - GIVE_UP_AFTER)
-        except Exception:  # one unreachable/odd payment must not stop the rest
+        except Exception:  # one odd payment must not stop the rest
             logger.exception("Could not reconcile payment %s", payment.id)
             continue
         if payment.status == Payment.Status.VERIFIED:
             verified += 1
             logger.info("Reconciled payment %s for order %s", payment.id, payment.order_id)
+        elif payment.status == Payment.Status.INITIATED and payment.created_at <= now - LOOK_BACK + timedelta(hours=1):
+            logger.error(
+                "Payment %s (authority %s) still unsettled after %s; check it in the ZarinPal panel",
+                payment.id, payment.authority, LOOK_BACK - timedelta(hours=1),
+            )
     return verified

@@ -20,3 +20,10 @@ DATABASES["default"].setdefault("OPTIONS", {})["connect_timeout"] = 5  # noqa: F
 # but boto3 still needs a key pair to sign with; never use the real one here.
 AWS_ACCESS_KEY_ID = "test-access-key"  # noqa: S105
 AWS_SECRET_ACCESS_KEY = "test-secret-key"  # noqa: S105
+
+# Emails land in django.core.mail.outbox; SMS goes nowhere unless a test sets a provider.
+EMAIL_ENABLED = True
+EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+SMS_PROVIDER = ""
+NOTIFICATION_CHANNELS = ["inbox", "email", "sms"]
+SITE_URL = "https://site.test"

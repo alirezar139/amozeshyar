@@ -27,5 +27,6 @@ RUN useradd --system --uid 1001 app && mkdir -p /app/logs && chown -R app /app
 USER app
 
 EXPOSE 8000
-# Sync workers + threads; long timeout because lesson videos are uploaded through the API.
-CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "2", "--threads", "2", "--timeout", "600"]
+# Threaded workers; long timeout because lesson videos are uploaded through the API. The
+# production command (with tuning) is in deploy/docker-compose.prod.yml; this is the fallback.
+CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--worker-class", "gthread", "--workers", "2", "--threads", "4", "--timeout", "600"]

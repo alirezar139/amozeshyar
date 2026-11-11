@@ -12,6 +12,14 @@ async function onLogout() {
 const authStore = useAuthStore()
 const { request } = useApi()
 const showReport = ref(false)
+const openRefunds = ref(0)
+onMounted(async () => {
+  try {
+    openRefunds.value = (await request<{ count: number }>('/payments/admin/refunds/?status=pending&page_size=1')).count
+  } catch {
+    // Just the badge count; the menu works without it.
+  }
+})
 const openReports = ref(0)
 onMounted(async () => {
   if (!authStore.isDeveloper) return
@@ -52,6 +60,31 @@ onMounted(async () => {
         >
           <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg>
           دوره‌ها
+        </NuxtLink>
+        <NuxtLink
+          to="/admin/sales"
+          class="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-gray-700 transition hover:bg-nav-500/10 hover:text-nav-700 dark:text-gray-200 dark:hover:bg-nav-500/10 dark:hover:text-nav-300"
+          active-class="bg-nav-500/15 text-nav-700 dark:bg-nav-500/15 dark:text-nav-300"
+        >
+          <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3v18h18M7 15l4-4 3 3 5-6" /></svg>
+          فروش و سفارش‌ها
+        </NuxtLink>
+        <NuxtLink
+          to="/admin/coupons"
+          class="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-gray-700 transition hover:bg-nav-500/10 hover:text-nav-700 dark:text-gray-200 dark:hover:bg-nav-500/10 dark:hover:text-nav-300"
+          active-class="bg-nav-500/15 text-nav-700 dark:bg-nav-500/15 dark:text-nav-300"
+        >
+          <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5a1.99 1.99 0 011.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
+          کدهای تخفیف
+        </NuxtLink>
+        <NuxtLink
+          to="/admin/refunds"
+          class="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-gray-700 transition hover:bg-nav-500/10 hover:text-nav-700 dark:text-gray-200 dark:hover:bg-nav-500/10 dark:hover:text-nav-300"
+          active-class="bg-nav-500/15 text-nav-700 dark:bg-nav-500/15 dark:text-nav-300"
+        >
+          <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>
+          درخواست‌های استرداد
+          <span v-if="openRefunds" class="ms-auto rounded-full bg-amber-500 px-1.5 text-[10px] font-bold text-white">{{ openRefunds.toLocaleString('fa-IR') }}</span>
         </NuxtLink>
         <NuxtLink
           to="/admin/exams"

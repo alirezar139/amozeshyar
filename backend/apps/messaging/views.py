@@ -9,6 +9,7 @@ from rest_framework.response import Response
 
 from apps.accounts.authentication import UploadJWTAuthentication
 from apps.accounts.models import User
+from apps.common.params import id_param
 
 from . import services, versions
 from .models import Conversation, ConversationMember, ConversationRead, Message, MessageReaction
@@ -23,6 +24,7 @@ from .serializers import (
 
 PAGE = 40
 REACTION_EMOJIS = {"👍", "❤️", "😂", "😮", "😢", "🙏", "🔥", "👏", "🎉", "💯", "✅", "🤔"}
+
 
 
 class ConversationViewSet(mixins.DestroyModelMixin, viewsets.ReadOnlyModelViewSet):
@@ -90,10 +92,10 @@ class ConversationViewSet(mixins.DestroyModelMixin, viewsets.ReadOnlyModelViewSe
         `student_id`, a student with the teacher (no id), or a student with
         a classmate (`student_id`, when peer chat is on)."""
         user = request.user
-        other_id = request.data.get("student_id")
+        other_id = id_param(request.data.get("student_id"), "student_id")
         if services.is_teacher(user):
             conversation = services.get_or_create_direct(get_object_or_404(User, pk=other_id, role=User.Role.STUDENT))
-        elif other_id and int(other_id) != user.id:
+        elif other_id and other_id != user.id:
             if not services.peer_chat_allowed():
                 raise PermissionDenied("گفت‌وگوی دانشجویان با یکدیگر غیرفعال است.")
             classmate = services.classmates(user).filter(pk=other_id).first()
@@ -223,8 +225,8 @@ class ConversationViewSet(mixins.DestroyModelMixin, viewsets.ReadOnlyModelViewSe
         # again and is newer than server_time, so the next poll still picks it up.
         version = versions.current(conversation.pk)
         server_time = timezone.now()
-        after, before = request.query_params.get("after"), request.query_params.get("before")
-        if after and request.query_params.get("v") == str(version):
+        after, before = id_param(request.query_params.get("after"), "after"), id_param(request.query_params.get("before"), "before")
+        if after is not None and request.query_params.get("v") == str(version):
             # Nothing changed since the caller's last poll. No server_time either: the
             # caller keeps its old `since`, so nothing edited in between can be skipped.
             return Response({"unchanged": True, "version": version})
@@ -232,14 +234,14 @@ class ConversationViewSet(mixins.DestroyModelMixin, viewsets.ReadOnlyModelViewSe
         messages = conversation.messages.select_related("sender", "reply_to__sender").prefetch_related("reactions")
         since = self._parse_since(request.query_params.get("since"))
         changed = []
-        if after:
-            page = list(messages.filter(id__gt=int(after)).order_by("id")[:200])
+        if after is not None:
+            page = list(messages.filter(id__gt=after).order_by("id")[:200])
             if since:
                 # Already-loaded messages that changed (deleted, reactions) since the last poll.
-                changed = list(messages.filter(id__lte=int(after), updated_at__gt=since).order_by("id")[:200])
+                changed = list(messages.filter(id__lte=after, updated_at__gt=since).order_by("id")[:200])
         else:
-            if before:
-                messages = messages.filter(id__lt=int(before))
+            if before is not None:
+                messages = messages.filter(id__lt=before)
             page = list(messages.order_by("-id")[:PAGE])[::-1]
         row = self._rows(Conversation.objects.filter(pk=conversation.pk)).get()
         context = {"request": request, "read_markers": self._markers(conversation)}
@@ -362,9 +364,9 @@ class ConversationViewSet(mixins.DestroyModelMixin, viewsets.ReadOnlyModelViewSe
             raise PermissionDenied()
         conversation = get_object_or_404(Conversation, pk=conversation_id)
         messages = conversation.messages.select_related("sender", "reply_to__sender", "deleted_by").prefetch_related("reactions")
-        before = request.query_params.get("before")
-        if before:
-            messages = messages.filter(id__lt=int(before))
+        before = id_param(request.query_params.get("before"), "before")
+        if before is not None:
+            messages = messages.filter(id__lt=before)
         page = list(messages.order_by("-id")[:100])[::-1]
         context = {"request": request, "audit": True}
         return Response({

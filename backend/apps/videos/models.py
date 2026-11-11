@@ -39,6 +39,13 @@ class VideoAsset(TimeStampedModel):
     file_size_bytes = models.BigIntegerField(null=True, blank=True)
     checksum_sha256 = models.CharField(max_length=64, blank=True)
     processing_error = models.TextField(blank=True)
+    # How many times a worker has started on this video, and when the current try began: lets
+    # `recover_stuck_videos` tell a transcode in progress from one whose worker died.
+    attempts = models.PositiveSmallIntegerField(default=0)
+    processing_started_at = models.DateTimeField(null=True, blank=True)
+    # The Celery task working on it: lets a redelivery of that same task (its worker was stopped
+    # mid-way) take the video over, while any other delivery is skipped.
+    processing_task_id = models.CharField(max_length=64, blank=True)
 
     def __str__(self):
         return f"Video for {self.lesson}"

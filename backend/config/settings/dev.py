@@ -49,6 +49,11 @@ LOGGING = {
         "apps": {"handlers": ["live_file"], "level": "WARNING", "propagate": True},
     },
 }
+# Without EMAIL_URL, emails (password reset links...) are printed to the runserver console.
+if not EMAIL_ENABLED:  # noqa: F405
+    EMAIL_ENABLED = True
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+
 # Redirect interception is more confusing than useful when just clicking
 # around the admin/login flow during dev.
 DEBUG_TOOLBAR_CONFIG = {"INTERCEPT_REDIRECTS": False}
@@ -74,5 +79,6 @@ REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"] = {  # noqa: F405
     "user": "10000/hour",
     "auth": "1000/minute",
     "payment_callback": "1000/minute",
+    "password_reset": "1000/hour",
     "video_manifest": "1000/minute",
 }

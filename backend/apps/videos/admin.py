@@ -5,7 +5,7 @@ from .models import PreviewPolicy, VideoAsset, WatchSession
 
 @admin.register(VideoAsset)
 class VideoAssetAdmin(admin.ModelAdmin):
-    list_display = ("lesson", "status", "duration_seconds", "created_at")
+    list_display = ("lesson", "status", "attempts", "duration_seconds", "processing_started_at", "created_at")
     list_filter = ("status",)
     readonly_fields = ("storage_key", "hls_master_key", "preview_clip_key", "checksum_sha256")
 

@@ -102,6 +102,9 @@ function onBackdropClick() {
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">رمز عبور</label>
               <FormPasswordInput v-model="loginForm.password" required autocomplete="current-password" />
+              <NuxtLink to="/auth/forgot-password" class="mt-1.5 inline-block text-xs text-primary-600 hover:underline dark:text-primary-400" @click="close">
+                رمز را فراموش کرده‌اید؟
+              </NuxtLink>
             </div>
             <AuthCaptchaPuzzle ref="captchaRef" @passed="onCaptchaPassed" @reset="captchaPassToken = ''" />
             <p v-if="error" class="text-sm text-red-600">{{ error }}</p>

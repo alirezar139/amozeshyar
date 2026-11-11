@@ -40,6 +40,8 @@ jobs:
       - run: pip install -r requirements/dev.txt
       - name: Lint
         run: ruff check .
+      - name: Known vulnerabilities in the production dependencies
+        run: pip-audit -r requirements/prod.txt --timeout 60
       - name: Migrations match the models
         run: python manage.py makemigrations --check --dry-run
         env:
@@ -62,5 +64,9 @@ jobs:
       - run: npm ci
       - name: Lint
         run: npm run lint
+      # FE-01. vue-tsc is pinned here instead of in package.json so adding it didn't need a
+      # new lockfile; `nuxt prepare` (npm ci's postinstall) has written .nuxt/tsconfig.json.
+      - name: Type check
+        run: npx --yes vue-tsc@3.3.14 --noEmit
       - name: Build
         run: npm run build

@@ -91,7 +91,7 @@ function applyPreset(preset: ThemeColors) {
           <div class="relative h-20 w-20 shrink-0">
             <img
               v-if="avatarPreview || authStore.user?.avatar"
-              :src="avatarPreview || (authStore.user as any)?.avatar"
+              :src="avatarPreview || authStore.user?.avatar || undefined"
               class="h-20 w-20 rounded-full object-cover"
               alt=""
             />

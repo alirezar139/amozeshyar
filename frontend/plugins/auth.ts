@@ -6,12 +6,23 @@
  * page rendered on first load already reflects the real auth state
  * (is_enrolled, progress, etc.) instead of always looking logged-out
  * until a client-side refetch. On the client we skip re-running this if
- * hydration already gave us a session (Pinia state ships in the SSR
- * payload), and otherwise fall back to it — e.g. for a client-only route
- * or if the SSR-side refresh attempt failed for some transient reason.
+ * hydration already gave us the user (Pinia state ships in the SSR
+ * payload) — then it only fetches a fresh access token — and otherwise
+ * restores the whole session, e.g. for a client-only route or if the
+ * SSR-side refresh attempt failed for some transient reason.
+ *
+ * The access token itself never goes into that payload (FE-02): the page's
+ * HTML would carry a bearer token, one cache layer (CDN, nginx) away from
+ * being served to someone else. The server drops it once the page is
+ * rendered; the browser gets its own from the httpOnly cookie before mount.
  */
-export default defineNuxtPlugin(async () => {
+export default defineNuxtPlugin(async (nuxtApp) => {
   const authStore = useAuthStore()
+  if (import.meta.server) {
+    nuxtApp.hook('app:rendered', () => {
+      authStore.accessToken = null
+    })
+  }
   if (import.meta.client && authStore.accessToken) return
 
   // During SSR we can see the request's cookies: a visitor without the
@@ -20,11 +31,18 @@ export default defineNuxtPlugin(async () => {
   if (import.meta.server && !useRequestHeaders(['cookie']).cookie?.includes('refresh_token=')) return
 
   const { request, refreshSession } = useApi()
+  const hydratedUser = import.meta.client ? authStore.user : null
   const refreshed = await refreshSession()
-  if (!refreshed) return
+  if (!refreshed) {
+    // The page was rendered signed in but the session is gone now: show it signed out
+    // rather than a user with no token whose every request fails.
+    if (hydratedUser) authStore.clearSession()
+    return
+  }
 
   try {
-    const user = await request<any>('/auth/me/')
+    // Already in the payload when the server rendered the page signed in: no second /me.
+    const user = hydratedUser ?? (await request<any>('/auth/me/'))
     authStore.setSession(authStore.accessToken!, user)
 
     // Sync the account's saved colors onto this device (client only —

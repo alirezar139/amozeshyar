@@ -7,6 +7,7 @@ interface AuthUser {
   last_name: string
   role: 'student' | 'instructor' | 'admin'
   is_developer?: boolean
+  avatar?: string | null
 }
 
 export const useAuthStore = defineStore('auth', {

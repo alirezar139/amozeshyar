@@ -412,7 +412,7 @@ const KIND_LABELS: Record<string, string> = {
                         question.answer.selected_choices.includes(c.id) ? 'border-primary-600 bg-primary-600 text-white' : 'border-gray-300 text-gray-500 dark:border-gray-600',
                       ]"
                     >
-                      {{ question.answer.selected_choices.includes(c.id) ? '✓' : toPersianDigits(ci + 1) }}
+                      {{ question.answer.selected_choices.includes(c.id) ? '✓' : toPersianDigits(Number(ci) + 1) }}
                     </span>
                     <span class="text-gray-900 dark:text-white" dir="auto">{{ c.text }}</span>
                   </button>

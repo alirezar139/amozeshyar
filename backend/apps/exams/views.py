@@ -11,6 +11,7 @@ from rest_framework.response import Response
 
 from apps.accounts.authentication import UploadJWTAuthentication
 from apps.accounts.permissions import IsAdminRole
+from apps.common.params import query_id
 
 from . import services
 from .models import Answer, AnswerFile, Attempt, Exam, Question, QuestionMedia
@@ -51,8 +52,8 @@ class ExamManageViewSet(viewsets.ModelViewSet):
         exams = Exam.objects.select_related("course").prefetch_related(
             Prefetch("questions", queryset=Question.objects.prefetch_related("choices", "media")), "attempts"
         )
-        course_id = self.request.query_params.get("course")
-        return exams.filter(course_id=course_id) if course_id else exams
+        course_id = query_id(self.request, "course")
+        return exams.filter(course_id=course_id) if course_id is not None else exams
 
     def get_serializer_class(self):
         return ExamManageDetailSerializer if self.action == "retrieve" else ExamManageSerializer
@@ -75,8 +76,8 @@ class QuestionManageViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         questions = Question.objects.prefetch_related("choices", "media")
-        exam_id = self.request.query_params.get("exam")
-        return questions.filter(exam_id=exam_id) if exam_id else questions
+        exam_id = query_id(self.request, "exam")
+        return questions.filter(exam_id=exam_id) if exam_id is not None else questions
 
     def perform_create(self, serializer):
         exam = serializer.validated_data["exam"]
@@ -168,8 +169,8 @@ class StudentExamViewSet(viewsets.ReadOnlyModelViewSet):
             .prefetch_related("questions", Prefetch("attempts", queryset=Attempt.objects.filter(student=user).select_related("exam")))
             .distinct()
         )
-        course_id = self.request.query_params.get("course")
-        return exams.filter(course_id=course_id) if course_id else exams
+        course_id = query_id(self.request, "course")
+        return exams.filter(course_id=course_id) if course_id is not None else exams
 
     @action(detail=True, methods=["post"])
     def start(self, request, pk=None):

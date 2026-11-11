@@ -1,0 +1,23 @@
+# The build context is the repository root (deploy/*.Dockerfile). Without this file a local build
+# copied the developer's own frontend/node_modules (Windows binaries) and backend/.venv into the
+# image over what npm ci / pip had just installed: the image ran different code than CI builds.
+**/node_modules
+**/.nuxt
+**/.output
+**/.venv
+**/venv
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/.ruff_cache
+.git
+backend/media
+backend/staticfiles
+backend/.env
+deploy/.env
+frontend/.env
+mobile
+*.apk
+*.mp4
+*.dump
+AUDIT_REPORT.md

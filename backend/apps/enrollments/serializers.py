@@ -14,9 +14,16 @@ class EnrollmentSerializer(serializers.ModelSerializer):
         model = Enrollment
         fields = ("id", "course", "access_granted_at", "is_active", "progress")
 
+    def to_representation(self, instance):
+        instance.course.user_enrolled = instance.is_active  # no query per course for is_enrolled
+        return super().to_representation(instance)
+
     def get_progress(self, obj) -> dict:
-        total = obj.course.lessons.count()
-        done = LessonProgress.objects.filter(student=obj.student, lesson__course=obj.course, completed=True).count()
+        if hasattr(obj, "total_lessons"):  # annotated by MyEnrollmentsViewSet (PERF-01)
+            total, done = obj.total_lessons, obj.completed_lessons
+        else:
+            total = obj.course.lessons.count()
+            done = LessonProgress.objects.filter(student=obj.student, lesson__course=obj.course, completed=True).count()
         return {"total_lessons": total, "completed_lessons": done, "percent": round(done * 100 / total) if total else 0}
 
 
