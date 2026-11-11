@@ -60,6 +60,38 @@ CACHES = {
     }
 }
 
+# Logs go to stdout; Docker keeps them (rotated: see x-logging in deploy/docker-compose.prod.yml)
+# and `docker compose logs backend worker worker-video` reads them. One line per event, with the
+# logger name, so payments/videos/db problems can be grepped for. Without this, Django drops
+# 500 tracebacks in production (they go to mail_admins, and ADMINS is empty).
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "line": {"format": "%(asctime)s %(levelname)s %(name)s [%(process)d] %(message)s"},
+    },
+    "handlers": {
+        "stdout": {"class": "logging.StreamHandler", "stream": "ext://sys.stdout", "formatter": "line"},
+    },
+    "root": {"handlers": ["stdout"], "level": "WARNING"},
+    "loggers": {
+        # Request errors with tracebacks (5xx), and 4xx at WARNING.
+        "django.request": {"level": "WARNING", "propagate": True},
+        # Database errors surface through django.request / the app loggers; this adds slow-query
+        # and connection-level warnings without logging every SQL statement.
+        "django.db.backends": {"level": "WARNING", "propagate": True},
+        "django.security": {"level": "WARNING", "propagate": True},
+        # Our code: payments (verify, refunds, unclear gateway answers), videos (transcode,
+        # retries, cleanup), notifications, monitoring. INFO keeps the payment trail.
+        "apps": {"level": "INFO", "propagate": True},
+        # The live-log middleware writes 4xx bodies here too; they're already in ErrorEvent.
+        "live": {"level": "ERROR", "propagate": True},
+        "celery": {"level": "INFO", "propagate": True},
+        "celery.task": {"level": "INFO", "propagate": True},
+        "gunicorn.error": {"level": "INFO", "propagate": True},
+    },
+}
+
 # Nuxt's SSR calls the backend directly on the Docker network (Host: backend:8000) and names the
 # public host in X-Forwarded-Host. nginx always overwrites that header for outside requests, and
 # the value is still checked against ALLOWED_HOSTS.

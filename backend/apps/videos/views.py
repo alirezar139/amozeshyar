@@ -35,6 +35,25 @@ class VideoDeleteView(generics.DestroyAPIView):
     lookup_url_kwarg = "video_id"
 
 
+class VideoRetryView(APIView):
+    """Admin: process a FAILED video again from its stored original, without uploading it again."""
+
+    permission_classes = (permissions.IsAuthenticated, IsAdminRole)
+
+    @extend_schema(request=None, responses={202: None})
+    def post(self, request, video_id):
+        from .tasks import enqueue_transcode
+
+        updated = VideoAsset.objects.filter(id=video_id, status=VideoAsset.Status.FAILED).update(
+            status=VideoAsset.Status.UPLOADING, processing_error="", attempts=0, processing_started_at=None
+        )
+        if not updated:
+            generics.get_object_or_404(VideoAsset, id=video_id)
+            return Response({"detail": "فقط ویدیوی ناموفق را می‌توان دوباره پردازش کرد."}, status=status.HTTP_400_BAD_REQUEST)
+        enqueue_transcode(video_id)
+        return Response({"status": VideoAsset.Status.UPLOADING}, status=status.HTTP_202_ACCEPTED)
+
+
 class PreviewStreamView(APIView):
     """Public endpoint: always resolves to the physically-truncated preview clip, never the full file.
 

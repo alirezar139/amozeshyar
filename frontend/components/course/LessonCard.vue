@@ -107,6 +107,20 @@ function onVideoInput(e: Event) {
   input.value = ''
 }
 
+// Processes the already-uploaded original again (e.g. after a storage hiccup), without uploading it again.
+async function retryVideo() {
+  busy.value = true
+  videoError.value = ''
+  try {
+    await request(`/videos/${props.lesson.video_id}/retry/`, { method: 'POST' })
+    emit('changed')
+  } catch (err) {
+    videoError.value = getErrorMessage(err, 'شروع دوباره‌ی پردازش ناموفق بود.')
+  } finally {
+    busy.value = false
+  }
+}
+
 async function deleteVideo() {
   if (!confirm('ویدیوی این جلسه حذف شود؟')) return
   busy.value = true
@@ -362,8 +376,9 @@ async function downloadFile(file: any) {
         <div v-else-if="videoState === 'failed'" class="rounded-xl bg-red-500/10 p-4 ring-1 ring-red-500/25">
           <p class="text-sm font-semibold text-red-700 dark:text-red-300">پردازش ویدیو ناموفق بود</p>
           <p v-if="lesson.video_error" class="mt-1 line-clamp-2 text-xs text-red-700/80 dark:text-red-300/70" dir="ltr">{{ lesson.video_error }}</p>
-          <div class="mt-3 flex gap-2">
-            <button type="button" class="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-500" @click="videoInput?.click()">آپلود دوباره</button>
+          <div class="mt-3 flex flex-wrap gap-2">
+            <button type="button" :disabled="busy" class="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-500 disabled:opacity-60" @click="retryVideo">پردازش دوباره</button>
+            <button type="button" class="rounded-lg px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-500/10" @click="videoInput?.click()">آپلود فایل دیگر</button>
             <button type="button" class="rounded-lg px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-500/10" @click="deleteVideo">حذف</button>
           </div>
         </div>

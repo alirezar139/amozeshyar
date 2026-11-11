@@ -185,11 +185,39 @@ CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
+# Two queues, each with its own worker (deploy/docker-compose.prod.yml): a transcode can run for
+# an hour, and payment reconciliation and cleanup must never wait behind it.
+#   default: payments, video cleanup, beat jobs — short tasks
+#   video:   transcoding only
+CELERY_TASK_DEFAULT_QUEUE = "default"
+CELERY_TASK_ROUTES = {
+    "apps.videos.tasks.transcode_video_asset_task": {"queue": "video"},
+}
+# Nothing reads task results; don't keep them in Redis.
+CELERY_TASK_IGNORE_RESULT = True
+# A task is acknowledged only once it finished, so a worker killed mid-task (OOM, deploy,
+# reboot) leaves it in Redis to run again instead of losing it; one task at a time per process.
+CELERY_TASK_ACKS_LATE = True
+CELERY_TASK_REJECT_ON_WORKER_LOST = True
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+# With acks_late, Redis hands an unacknowledged task to another worker after this long, so it
+# must exceed the longest transcode (videos.services.transcoder.MAX_TRANSCODE_SECONDS).
+CELERY_BROKER_TRANSPORT_OPTIONS = {"visibility_timeout": 7 * 3600}
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+# Redis restarting mid-transcode (tested): the transcode carries on instead of being thrown away;
+# if its lost ack makes Redis redeliver it later, claim() skips it because the video is READY.
+# Celery 6 flips this default, so it's pinned here.
+CELERY_WORKER_CANCEL_LONG_RUNNING_TASKS_ON_CONNECTION_LOSS = False
 CELERY_BEAT_SCHEDULE = {
     # Enrolls buyers whose browser never made it back to the payment callback.
     "reconcile-pending-payments": {
         "task": "apps.payments.tasks.reconcile_pending_payments",
         "schedule": 600.0,
+    },
+    # Re-queues videos whose transcode task was lost, gives up on ones that keep failing.
+    "recover-stuck-videos": {
+        "task": "apps.videos.tasks.recover_stuck_videos",
+        "schedule": 900.0,
     },
 }
 
@@ -210,11 +238,21 @@ AWS_S3_REGION_NAME = env("STORAGE_REGION", default="us-east-1")
 AWS_DEFAULT_ACL = "private"
 AWS_QUERYSTRING_EXPIRE = 600  # signed URLs expire after 10 minutes
 AWS_S3_ADDRESSING_STYLE = "path"
+# Reading a stored file buffers it in a SpooledTemporaryFile; django-storages' default (0) never
+# spills to disk, so opening a 2 GB original held all 2 GB in RAM and got the worker OOM-killed.
+# Above 8 MB the buffer goes to a temp file on disk instead.
+AWS_S3_MAX_MEMORY_SIZE = 8 * 1024 * 1024
 
 # --- Video preview / paywall defaults ---
 # Actual value is normally read from the singleton `videos.PreviewPolicy`
 # row so admins can tune it without a deploy; this is only the fallback.
 DEFAULT_PREVIEW_SECONDS = env.int("DEFAULT_PREVIEW_SECONDS", default=30)
+
+# --- Video transcoding (apps/videos/services/transcoder.py) ---
+# x264 preset: "medium" is the quality default; "veryfast" encodes ~3x faster (files ~20% larger).
+VIDEO_TRANSCODE_PRESET = env("VIDEO_TRANSCODE_PRESET", default="medium")
+# x264 threads: bounds ffmpeg's CPU and memory so the video worker stays within its memory limit.
+VIDEO_TRANSCODE_THREADS = env.int("VIDEO_TRANSCODE_THREADS", default=2)
 
 # --- Payments (ZarinPal) ---
 ZARINPAL_MERCHANT_ID = env("ZARINPAL_MERCHANT_ID", default="")
