@@ -1,10 +1,22 @@
-# One instructor site on a single small VPS (2 GB RAM). Run from the repository root:
+# One instructor site on a single small VPS. Run from the repository root:
 #   docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env up -d
 # The images come from GitHub Actions (.github/workflows/images.yml), not built here: the server
 # times out on PyPI and npm. deploy/.env holds the secrets (see deploy/README.md) and IMAGE_TAG,
 # the commit to run (deploy/release.sh sets it). nginx on the host terminates TLS and proxies to
-# the 127.0.0.1 ports below. Memory limits keep it from starving other apps on the box.
+# the 127.0.0.1 ports below.
+#
+# Memory: each service has a ceiling (mem_limit) so one runaway container can't take the whole
+# server down. They are ceilings, not reservations: measured peaks add up to ~1.3 GB, with the
+# transcode as the biggest (~430 MB). Minimum 2 GB RAM + 2 GB swap, 4 GB comfortable
+# (measurements: deploy/README.md, «منابع»). Each value can be overridden in deploy/.env (MEM_*).
 name: amozeshyar
+
+# Every container's log is rotated: at most 5 x 10 MB each, so logs can't fill the disk.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
 
 x-backend: &backend
   build:
@@ -12,12 +24,20 @@ x-backend: &backend
     dockerfile: deploy/backend.Dockerfile
   image: ghcr.io/alirezar139/amozeshyar-backend:${IMAGE_TAG:-main}
   env_file: .env
+  # env_file hands over every line of .env; MinIO's root account is not the app's business
+  # (it has its own bucket-only user, deploy/minio-init.sh).
+  environment:
+    MINIO_ROOT_USER: ""
+    MINIO_ROOT_PASSWORD: ""
   restart: unless-stopped
+  logging: *logging
   depends_on:
     postgres:
       condition: service_healthy
     redis:
-      condition: service_started
+      condition: service_healthy
+    minio-init:
+      condition: service_completed_successfully
 
 services:
   postgres:
@@ -26,6 +46,22 @@ services:
       POSTGRES_DB: amozeshyar
       POSTGRES_USER: amozeshyar
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    # Sized for the memory limit: Postgres's defaults assume it has the machine to itself.
+    # max_connections: gunicorn 2x4 threads + 2 workers + migrate/backup, with room to spare.
+    command:
+      - postgres
+      - -c
+      - shared_buffers=64MB
+      - -c
+      - effective_cache_size=192MB
+      - -c
+      - work_mem=4MB
+      - -c
+      - maintenance_work_mem=32MB
+      - -c
+      - max_connections=40
+      - -c
+      - log_min_duration_statement=2000
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -33,46 +69,127 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
-    mem_limit: 256m
+    mem_limit: ${MEM_POSTGRES:-256m}
     restart: unless-stopped
+    logging: *logging
 
   redis:
     image: redis:7-alpine
-    # Celery's queue and the Django cache (captcha, throttles) share this instance. volatile-lru only
-    # evicts keys with a TTL (cache entries), never the queued tasks, which have none.
-    command: ["redis-server", "--maxmemory", "64mb", "--maxmemory-policy", "volatile-lru", "--save", ""]
-    mem_limit: 96m
+    # Celery's queues and the Django cache (captcha, throttles) share this instance.
+    # Persistence: append-only file, fsync once a second, so a restart (deploy, reboot, crash)
+    # keeps queued transcodes and payment checks. volatile-lru only evicts keys with a TTL
+    # (cache entries), never the queued tasks, which have none.
+    command: ["redis-server", "--appendonly", "yes", "--appendfsync", "everysec", "--save", "",
+              "--maxmemory", "64mb", "--maxmemory-policy", "volatile-lru"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    # Above maxmemory: rewriting the AOF forks redis, which needs headroom.
+    mem_limit: ${MEM_REDIS:-128m}
     restart: unless-stopped
+    logging: *logging
 
   minio:
     image: minio/minio:RELEASE.2025-09-07T16-13-09Z
     command: server /data
+    # Root credentials: only MinIO itself and minio-init see them; the app has its own user.
     environment:
-      MINIO_ROOT_USER: ${STORAGE_ACCESS_KEY}
-      MINIO_ROOT_PASSWORD: ${STORAGE_SECRET_KEY}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-${STORAGE_ACCESS_KEY}}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-${STORAGE_SECRET_KEY}}
     volumes:
       - minio-data:/data
     ports:
       - "127.0.0.1:9200:9000"
-    mem_limit: 384m
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    mem_limit: ${MEM_MINIO:-256m}
     restart: unless-stopped
+    logging: *logging
+
+  # One-shot: bucket, app user and its bucket-only policy (deploy/minio-init.sh). Idempotent.
+  minio-init:
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
+    entrypoint: ["sh", "/minio-init.sh"]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-}
+      STORAGE_ACCESS_KEY: ${STORAGE_ACCESS_KEY}
+      STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY}
+      STORAGE_BUCKET_NAME: ${STORAGE_BUCKET_NAME}
+    volumes:
+      - ./minio-init.sh:/minio-init.sh:ro
+    depends_on:
+      minio:
+        condition: service_healthy
+    restart: "no"
+    logging: *logging
 
   backend:
     <<: *backend
+    # gthread: each worker process serves GUNICORN_THREADS requests at once. nginx buffers request
+    # bodies (deploy/nginx.conf), so a slow upload occupies a thread only for the fast local hop.
+    # Workers are recycled every ~1000 requests to cap memory growth.
+    command:
+      - gunicorn
+      - config.wsgi:application
+      - --bind=0.0.0.0:8000
+      - --worker-class=gthread
+      - --workers=${GUNICORN_WORKERS:-2}
+      - --threads=${GUNICORN_THREADS:-4}
+      - --timeout=600
+      - --graceful-timeout=30
+      - --keep-alive=5
+      - --max-requests=1000
+      - --max-requests-jitter=100
+      - --worker-tmp-dir=/dev/shm
+      - --access-logfile=-
+      - --access-logformat=%(h)s "%(r)s" %(s)s %(b)s %(M)sms
     ports:
       - "127.0.0.1:8100:8000"
-    mem_limit: 448m
+    healthcheck:
+      # The health endpoint as nginx would call it (allowed host, https).
+      test: ["CMD", "python", "-c", "import os, urllib.request as u; u.urlopen(u.Request('http://127.0.0.1:8000/api/v1/health/', headers={'Host': os.environ['DJANGO_ALLOWED_HOSTS'].split(',')[0], 'X-Forwarded-Proto': 'https'}), timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    mem_limit: ${MEM_BACKEND:-384m}
 
+  # Short tasks: payment reconciliation, video file cleanup, and the periodic scheduler (-B),
+  # which must run in exactly one place. Never waits behind a transcode. Also reads Celery's
+  # built-in "celery" queue: images from before the queue split send everything there, so after
+  # a rollback their tasks still run.
   worker:
     <<: *backend
     # Reuses the image the backend service builds; building it twice races on the same tag.
     build: !reset null
-    # One video at a time: ffmpeg is the heaviest thing on the box. -B runs the periodic
-    # scheduler (payment reconciliation) in this same container instead of a seventh service;
-    # its state file goes to /tmp because the app user can't write to /app.
-    command: ["celery", "-A", "config", "worker", "-B", "--schedule", "/tmp/celerybeat-schedule",
-              "-l", "info", "--concurrency", "1"]
-    mem_limit: 768m
+    command: ["celery", "-A", "config", "worker", "-Q", "default,celery", "-n", "default@%h", "-B",
+              "--schedule", "/tmp/celerybeat-schedule", "-l", "info", "--concurrency", "1",
+              "--max-memory-per-child", "200000"]
+    mem_limit: ${MEM_WORKER:-224m}
+
+  # Transcoding only, one video at a time: ffmpeg is the heaviest thing on the box. A new
+  # process per video returns ffmpeg's memory.
+  # Stopping (deploy, reboot): SIGQUIT is Celery's cold shutdown, which drops the transcode in
+  # progress and hands its message straight back to the queue (acks_late); the next worker
+  # starts it over. The default SIGTERM would wait for the transcode, get killed after the grace
+  # period, and leave the message parked in Redis for the 7-hour visibility timeout.
+  # Only a hard crash of the whole server still takes that long; recover_stuck_videos is the net.
+  worker-video:
+    <<: *backend
+    build: !reset null
+    command: ["celery", "-A", "config", "worker", "-Q", "video", "-n", "video@%h", "-l", "info",
+              "--concurrency", "1", "--max-tasks-per-child", "1"]
+    stop_signal: SIGQUIT
+    stop_grace_period: 30s
+    mem_limit: ${MEM_WORKER_VIDEO:-640m}
 
   frontend:
     build:
@@ -83,11 +200,21 @@ services:
       NUXT_PUBLIC_API_BASE: ${PUBLIC_URL}/api/v1
       NUXT_API_BASE_SERVER: http://backend:8000/api/v1
       NUXT_PUBLIC_SITE_URL: ${PUBLIC_URL}
+      # Node's default heap ceiling ignores the container limit; keep it inside.
+      NODE_OPTIONS: --max-old-space-size=${FRONTEND_HEAP_MB:-128}
     ports:
       - "127.0.0.1:3300:3000"
-    mem_limit: 256m
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/manifest.webmanifest').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    mem_limit: ${MEM_FRONTEND:-192m}
     restart: unless-stopped
+    logging: *logging
 
 volumes:
   postgres-data:
   minio-data:
+  redis-data:

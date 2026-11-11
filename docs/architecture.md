@@ -197,7 +197,7 @@ sequenceDiagram
 ```
 
 - پیش‌نمایش یک **فایل فیزیکی جدا** است، نه محدودیت زمانی سمت مرورگر ([ADR 0003](adr/0003-video-preview-gating.md)).
-- worker با `--concurrency 1` اجرا می‌شود: در هر لحظه فقط یک ویدیو ترنسکد می‌شود چون FFmpeg سنگین‌ترین بار سرور است. ویدیویی که منتظر نوبت است در پنل مدرس «در صف پردازش» با تعداد ویدیوهای جلوتر نشان داده می‌شود.
+- تبدیل ویدیو worker جدای خودش را دارد (`worker-video`، صف `video`، `--concurrency 1`): در هر لحظه فقط یک ویدیو ترنسکد می‌شود چون FFmpeg سنگین‌ترین بار سرور است، و بررسی پرداخت‌ها هرگز پشت آن منتظر نمی‌ماند. توقف worker، ری‌استارت Redis، ویدیوی گیرکرده و تلاش دوباره: [`deploy/README.md`](../deploy/README.md#صف‌ها-و-پردازش-ویدیو). ویدیویی که منتظر نوبت است در پنل مدرس «در صف پردازش» با تعداد ویدیوهای جلوتر نشان داده می‌شود.
 - ویدیوی کامل واترمارک متحرک (ایمیل بیننده) دارد که در تمام‌صفحه هم می‌ماند. این بازدارنده است، نه DRM.
 - `STORAGE_ENDPOINT_URL` عمداً آدرس عمومی سایت است تا لینک‌های امضاشده برای همان دامنه ساخته شوند.
 
@@ -237,12 +237,16 @@ sequenceDiagram
 
 | سرویس | سقف رم | توضیح |
 |---|---|---|
-| postgres | 256m | volume `amozeshyar_postgres-data` |
-| redis | 96m | صف Celery (db 0) + کش جنگو (db 1)؛ `volatile-lru`، بدون ذخیره روی دیسک |
-| minio | 384m | volume `amozeshyar_minio-data`، نسخه‌ی ثابت `RELEASE.2025-09-07T16-13-09Z` |
-| backend | 448m | gunicorn، ۲ worker × ۲ thread |
-| worker | 768m | Celery + FFmpeg + beat (`-B`، برای تسک‌های دوره‌ای)؛ از همان ایمیج backend |
-| frontend | 256m | Nuxt |
+| postgres | 256m | volume `amozeshyar_postgres-data`؛ تنظیم‌شده برای همین سقف |
+| redis | 128m | صف Celery (db 0) + کش جنگو (db 1)؛ `volatile-lru`؛ ذخیره‌ی AOF در volume `amozeshyar_redis-data` تا صف‌ها با ری‌استارت نروند |
+| minio | 256m | volume `amozeshyar_minio-data`، نسخه‌ی ثابت `RELEASE.2025-09-07T16-13-09Z` |
+| minio-init | — | یک‌باره: باکت خصوصی و کاربر محدود برنامه |
+| backend | 384m | gunicorn gthread، ۲ worker × ۴ thread |
+| worker | 224m | Celery روی صف `default` (پرداخت‌ها، پاک‌سازی فایل) + beat (`-B`) |
+| worker-video | 640m | Celery روی صف `video`: فقط FFmpeg، یکی‌یکی |
+| frontend | 192m | Nuxt |
+
+سقف‌ها حد بالا هستند، نه رزرو؛ مصرف اندازه‌گیری‌شده و دلیل هر عدد در [`deploy/README.md`](../deploy/README.md#منابع).
 
 ---
 
@@ -258,7 +262,7 @@ sequenceDiagram
 | HTTP | هدرهای امنیتی، `server_tokens off`، محدودیت نرخ nginx + throttle در DRF |
 | اپلیکیشن | پازل امنیتی ورود، JWT کوتاه‌عمر، کوکی Secure، CSRF، `check --deploy` بدون هشدار امنیتی |
 | رازها | ساخته‌شده روی خود سرور با `openssl rand`؛ فقط در `.env` با دسترسی root |
-| Docker | پورت‌ها فقط روی localhost؛ لاگ محدود (۳ × ۱۰ مگ)؛ میرور آروان |
+| Docker | پورت‌ها فقط روی localhost؛ لاگ چرخشی (۵ × ۱۰ مگ برای هر کانتینر، در compose)؛ میرور آروان؛ کلید root مینیو فقط در خود MinIO |
 
 **دسترسی به ادمین جنگو** (عمداً از اینترنت بسته است):
 
@@ -274,15 +278,14 @@ ssh -L 8100:127.0.0.1:8100 root@SERVER
 - هر شب ساعت ۳:۳۰: `pg_dump` (۱۴ نسخه‌ی آخر) + کپی rsync از فایل‌های MinIO (بدون حذف، تا فایل پاک‌شده‌ی اشتباهی بماند). لاگ: `/var/log/amozeshyar-backup.log`.
 - بعد از بکاپ محلی، اگر `OFFSITE_REMOTE` در `/etc/amozeshyar-backup.conf` تنظیم شده باشد، همان‌ها با rclone (از طریق یک remote رمزنگار `crypt`) به فضای بیرون از سرور فرستاده می‌شوند. راه‌اندازی و بازیابی: [`deploy/README.md`](../deploy/README.md#بکاپ).
 
-بازیابی دیتابیس:
+- هر انتشار قبل از migrate یک dump جدا می‌گیرد (`*_pre-<commit>.dump`).
+
+بازیابی (دیتابیس + فایل‌ها، با بررسی checksum؛ آزمایش‌شده، با زمان و حجم: [`deploy/README.md`](../deploy/README.md#آزمایش-بکاپ-و-بازیابی)):
 
 ```bash
 cd /srv/amozeshyar
-C="docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env"
-$C stop backend worker
-docker exec -i amozeshyar-postgres-1 pg_restore -U amozeshyar -d amozeshyar --clean --if-exists \
-    < /var/backups/amozeshyar/db/amozeshyar_YYYY-MM-DD_HHMM.dump
-$C start backend worker
+bash deploy/restore.sh                                   # آخرین بکاپ
+bash deploy/restore.sh --db /var/backups/amozeshyar/db/amozeshyar_YYYY-MM-DD_HHMMSS.dump --db-only
 ```
 
 ---

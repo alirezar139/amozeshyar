@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 # Release origin/main to the production server, from the laptop:
-#   bash deploy/release.sh                 # code + build + migrate + checks
+#   bash deploy/release.sh                 # code + backup + migrate + switch + health check
+#   bash deploy/release.sh --rollback      # back to the images that ran before (database unchanged)
 #   APK=path/to/app-release.apk bash deploy/release.sh   # ...and publish the Android app
+# The work on the server is deploy/server-release.sh (backup before migrating, migrations before
+# switching containers, automatic rollback if the new containers don't become healthy).
 # Every step is safe to repeat. Same steps as docs/architecture.md «انتشار نسخه‌ی جدید».
 set -euo pipefail
 SERVER=${SERVER:-root@modaresyar-org.site}
@@ -10,6 +13,13 @@ REMOTE_DIR=/srv/amozeshyar
 COMPOSE="docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env"
 
 cd "$(git rev-parse --show-toplevel)"
+
+if [ "${1:-}" = "--rollback" ]; then
+    ssh "$SERVER" "cd $REMOTE_DIR && bash deploy/server-release.sh rollback"
+    curl -fsS "$SITE/api/v1/health/" && echo
+    exit 0
+fi
+
 git fetch -q origin
 if [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/main)" ]; then
     echo "Stop: check out main at origin/main first (git checkout main && git pull)."; exit 1
@@ -33,9 +43,9 @@ gh run watch "$RUN_ID" --exit-status --interval 20 > /dev/null || { echo "Stop: 
 echo "== 1/4 uploading ${SHA:0:7}"
 git archive --format=tar HEAD | ssh "$SERVER" "tar -x -C $REMOTE_DIR"
 
-echo "== 2/4 settings, backup job, pull images, migrate"
+echo "== 2/4 settings, scheduled jobs, then backup, migrate, switch and health check"
 # ssh joins its arguments into one remote command line, so quote the values for that shell.
-ssh "$SERVER" "$(printf 'SITE=%q COMPOSE=%q REMOTE_DIR=%q SHA=%q bash -s' "$SITE" "$COMPOSE" "$REMOTE_DIR" "$SHA")" <<'REMOTE'
+ssh "$SERVER" "$(printf 'SITE=%q REMOTE_DIR=%q SHA=%q bash -s' "$SITE" "$REMOTE_DIR" "$SHA")" <<'REMOTE'
 set -euo pipefail
 cd "$REMOTE_DIR"
 E=deploy/.env
@@ -50,18 +60,11 @@ if ! grep -qx "ZARINPAL_CALLBACK_URL=$URL" "$E"; then
     fi
     echo "set ZARINPAL_CALLBACK_URL"
 fi
-# Pin the images to this commit, so a later plain `docker compose up` keeps running it.
-if grep -q '^IMAGE_TAG=' "$E"; then
-    sed -i "s|^IMAGE_TAG=.*|IMAGE_TAG=$SHA|" "$E"
-else
-    echo "IMAGE_TAG=$SHA" >> "$E"
-fi
 install -m 700 deploy/backup.sh /usr/local/bin/amozeshyar-backup
 echo '30 3 * * * root /usr/local/bin/amozeshyar-backup >> /var/log/amozeshyar-backup.log 2>&1' > /etc/cron.d/amozeshyar-backup
-$COMPOSE pull --quiet backend frontend
-$COMPOSE up -d --no-build
-$COMPOSE exec -T backend python manage.py migrate --noinput
-$COMPOSE ps --format '{{.Service}}: {{.Status}}'
+install -m 700 deploy/monitor.sh /usr/local/bin/amozeshyar-monitor
+echo '*/5 * * * * root /usr/local/bin/amozeshyar-monitor >> /var/log/amozeshyar-monitor.log 2>&1' > /etc/cron.d/amozeshyar-monitor
+bash deploy/server-release.sh deploy "$SHA"
 REMOTE
 
 echo "== 3/4 Android app"
@@ -72,10 +75,9 @@ else
 fi
 
 echo "== 4/4 checking the live site"
-sleep 10
 curl -fsS "$SITE/api/v1/health/" && echo
 for path in / /manifest.webmanifest "/checkout/callback?status=paid"; do
     curl -fsS -o /dev/null -w "%{http_code} $path\n" "$SITE$path"
 done
 curl -sS -o /dev/null -w "%{http_code} /api/v1/site/android.apk (302 = published, 404 = none yet)\n" "$SITE/api/v1/site/android.apk"
-echo "== done"
+echo "== done (undo with: bash deploy/release.sh --rollback)"
