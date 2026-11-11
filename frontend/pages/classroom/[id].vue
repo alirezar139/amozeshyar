@@ -21,8 +21,11 @@ const backTo = computed(() => {
 
 const status = ref<'loading' | 'ready' | 'error'>('loading')
 const errorMessage = ref('')
-const info = ref<{ room_name: string; display_name: string; title: string; course_title: string } | null>(null)
+// `domain` is meet.jit.si or the site's own Jitsi; `jwt` (own Jitsi only) is this person's
+// short-lived entry pass for this one room: kept in memory, never in the URL.
+const info = ref<{ domain?: string; room_name: string; jwt?: string; display_name: string; title: string; course_title: string } | null>(null)
 const containerRef = ref<HTMLDivElement | null>(null)
+const domain = computed(() => info.value?.domain || 'meet.jit.si')
 let jitsiApi: any = null
 
 function loadScript(src: string) {
@@ -50,7 +53,7 @@ onMounted(async () => {
   }
 
   try {
-    await loadScript('https://meet.jit.si/external_api.js')
+    await loadScript(`https://${domain.value}/external_api.js`)
   } catch {
     status.value = 'error'
     errorMessage.value = 'اتصال به سرویس دوره‌ی آنلاین ناموفق بود. اتصال اینترنت خود را بررسی کنید.'
@@ -61,8 +64,9 @@ onMounted(async () => {
   // Meet toolbar (mic/camera, screen share, chat, raise hand, reactions,
   // tile view, etc.) is exactly the "like Google Meet, every feature"
   // experience asked for, so there's nothing to trim or hide here.
-  jitsiApi = new (window as any).JitsiMeetExternalAPI('meet.jit.si', {
+  jitsiApi = new (window as any).JitsiMeetExternalAPI(domain.value, {
     roomName: info.value!.room_name,
+    ...(info.value!.jwt ? { jwt: info.value!.jwt } : {}),
     parentNode: containerRef.value,
     width: '100%',
     height: '100%',

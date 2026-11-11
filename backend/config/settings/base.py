@@ -260,6 +260,14 @@ AWS_S3_TRANSFER_CONFIG = TransferConfig(
 # row so admins can tune it without a deploy; this is only the fallback.
 DEFAULT_PREVIEW_SECONDS = env.int("DEFAULT_PREVIEW_SECONDS", default=30)
 
+# --- Live classes (Jitsi Meet) ---
+# Public meet.jit.si drops embedded calls after 5 minutes; a self-hosted Jitsi with JWT auth
+# (deploy/JITSI_SETUP.md) has no limit and only lets in who this site sends. With
+# JITSI_APP_SECRET empty the classroom stays on meet.jit.si exactly as before (the switch).
+JITSI_DOMAIN = env("JITSI_DOMAIN", default="meet.jit.si")
+JITSI_APP_ID = env("JITSI_APP_ID", default="")
+JITSI_APP_SECRET = env("JITSI_APP_SECRET", default="")
+
 # --- Video transcoding (apps/videos/services/transcoder.py) ---
 # x264 preset: "medium" is the quality default; "veryfast" encodes ~3x faster (files ~20% larger).
 VIDEO_TRANSCODE_PRESET = env("VIDEO_TRANSCODE_PRESET", default="medium")

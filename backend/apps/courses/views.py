@@ -224,12 +224,11 @@ class ClassSessionViewSet(viewsets.ModelViewSet):
         is_enrolled = session.course.enrollments.filter(student=user, is_active=True).exists()
         if not (user.role == "admin" or is_enrolled):
             raise PermissionDenied("شما به این دوره‌ی آنلاین دسترسی ندارید.")
-        return Response({
-            "room_name": session.room_slug,
-            "display_name": user.get_full_name() or user.email,
-            "title": session.title,
-            "course_title": session.course.title,
-        })
+        from . import live_class
+
+        # With a self-hosted Jitsi the answer also carries this person's entry token
+        # (live_class.py); the instructor (admin) enters as moderator.
+        return Response(live_class.join_details(session, user, moderator=user.role == "admin"))
 
 
 class MyScheduleView(generics.ListAPIView):

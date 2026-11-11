@@ -52,6 +52,9 @@ SMS_PROVIDER=
 THROTTLE_ANON_RATE=2000/hour     # درخواست‌های بدون ورود برای هر IP
 THROTTLE_AUTH_RATE=30/minute     # ورود و ثبت‌نام برای هر IP
 STORAGE_UPLOAD_THREADS=8         # موازی‌سازی ارسال فایل به MinIO
+JITSI_DOMAIN=meet.jit.si         # سرور کلاس زنده؛ برای سرور خودتان: deploy/JITSI_SETUP.md
+JITSI_APP_ID=
+JITSI_APP_SECRET=                # خالی = meet.jit.si عمومی (قطع بعد از ۵ دقیقه)
 ```
 
 یک کلاس روی یک Wi-Fi، یا کاربرانی که پشت NAT اپراتور موبایل‌اند، همه یک IP حساب می‌شوند. با مقادیر قبلی (۱۰۰ در ساعت و ۱۰ در دقیقه)، از ۳۰ دانشجویی که هم‌زمان وارد می‌شدند فقط ۴ نفر موفق شدند. با مقادیر فعلی هر ۳۰ نفر وارد شدند. جلوی حدس رمز را همچنان پازل امنیتی می‌گیرد، چون برای هر تلاش ورود لازم است.
@@ -274,7 +277,7 @@ nginx روی همه‌ی صفحه‌های Nuxt یک `Content-Security-Policy` �
 
 `Permissions-Policy` دوربین، میکروفون و اشتراک صفحه را فقط برای Jitsi باز می‌گذارد. مقدار قبلی (`camera=()`) دوربین کلاس زنده را هم خاموش می‌کرد.
 
-**کلاس زنده:** نسخه‌ی عمومی `meet.jit.si` از ۱۸ مه ۲۰۲۳ هر جلسه‌ی embed شده را بعد از ۵ دقیقه قطع می‌کند ([اعلام Jitsi](https://community.jitsi.org/t/important-embedding-meet-jit-si-in-your-web-app-will-no-longer-be-supported-please-use-jaas/123003)). صفحه‌ی کلاس زنده دقیقاً همین را embed می‌کند، پس تا جایگزین شدنش با JaaS، Jitsi روی سرور خودتان یا یک سرویس داخلی، کلاس زنده را در پایلوت عرضه نکنید.
+**کلاس زنده:** راه‌اندازی Jitsi روی سرور خودتان با JWT در [`JITSI_SETUP.md`](JITSI_SETUP.md) آمده است. در `nginx.conf` هم `JITSI_HOST` را جایگزین کنید. نسخه‌ی عمومی `meet.jit.si` از ۱۸ مه ۲۰۲۳ هر جلسه‌ی embed شده را بعد از ۵ دقیقه قطع می‌کند ([اعلام Jitsi](https://community.jitsi.org/t/important-embedding-meet-jit-si-in-your-web-app-will-no-longer-be-supported-please-use-jaas/123003)). صفحه‌ی کلاس زنده دقیقاً همین را embed می‌کند، پس تا جایگزین شدنش با JaaS، Jitsi روی سرور خودتان یا یک سرویس داخلی، کلاس زنده را در پایلوت عرضه نکنید.
 
 ## چک‌لیست استقرار این نسخه
 
@@ -284,6 +287,7 @@ nginx روی همه‌ی صفحه‌های Nuxt یک `Content-Security-Policy` �
 - [ ] یک بکاپ کامل دستی گرفته شده: `/usr/local/bin/amozeshyar-backup`
 - [ ] در `.env`، `DJANGO_ALLOWED_HOSTS` شامل `backend` است
 - [ ] در `.env`، مقادیر `MINIO_ROOT_USER` و `MINIO_ROOT_PASSWORD` همان root فعلی‌اند و `STORAGE_ACCESS_KEY` و `STORAGE_SECRET_KEY` کلیدهای تازه‌اند (بخش «کاربر جدا برای MinIO»)
+- [ ] در `nginx.conf`، `JITSI_HOST` با سرور کلاس زنده جایگزین شده (`meet.jit.si` یا سرور خودتان، `JITSI_SETUP.md`)
 - [ ] تنظیم nginx با `deploy/nginx.conf` مقایسه و `nginx -t && systemctl reload nginx` اجرا شده. تغییرهای این نسخه:
   - بافر آپلود و `limit_conn`؛
   - CSP و Permissions-Policy؛
