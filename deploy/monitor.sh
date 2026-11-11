@@ -32,6 +32,8 @@ QUEUE_MAX_VIDEO=${QUEUE_MAX_VIDEO:-10}
 BACKUP_MAX_AGE_HOURS=${BACKUP_MAX_AGE_HOURS:-26}
 REMIND_HOURS=${REMIND_HOURS:-6}
 SERVICES=${SERVICES:-"postgres redis minio backend worker worker-video frontend"}
+# Live classes on this server (deploy/jitsi/install.sh): watched too when installed.
+JITSI_DIR=${JITSI_DIR:-/srv/jitsi}
 ALERT_BOT_API=${ALERT_BOT_API:-https://tapi.bale.ai}
 
 mkdir -p "$STATE_DIR"
@@ -59,6 +61,14 @@ for svc in $SERVICES; do
     [ "${restarts:-0}" -gt "${prev_restarts:-0}" ] && problem "restart-$svc" "کانتینر $svc دوباره راه‌اندازی شد (احتمالاً کمبود حافظه)؛ $restarts بار تا الان"
     echo "${restarts:-0}" > "$STATE_DIR/restarts-$svc"
 done
+
+# --- live-class containers (only when Jitsi is installed here) ---
+if [ -f "$JITSI_DIR/.version" ]; then
+    for svc in web prosody jicofo jvb; do
+        status=$(docker inspect --format '{{.State.Status}}' "jitsi-$svc-1" 2>/dev/null || echo missing)
+        [ "$status" = running ] || problem "jitsi-$svc" "کلاس زنده: کانتینر jitsi-$svc در وضعیت $status است (کلاس‌ها برگزار نمی‌شوند)"
+    done
+fi
 
 # --- host disk and memory ---
 disk=$(df -P / | awk 'NR==2 {gsub("%",""); print $5}')

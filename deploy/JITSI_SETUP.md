@@ -30,64 +30,73 @@ Jitsi روی سرور خودتان این محدودیت‌ها را ندارد:
 
 **آزمایش‌نشده:** تماس واقعی صوت و تصویر در مرورگر، و کیفیت اتصال از اینترنت ایران. این دو در بخش «آزمایش نهایی» پایین آمده‌اند.
 
-## ۱. سرور
+## ۱. روی همان سرور سایت (پیشنهادی)
 
-| | حداقل | توصیه‌شده |
-|---|---|---|
-| CPU و رم | ۲ هسته، ۴GB (حدود ۲۰ تا ۳۰ نفر) | ۴ هسته، ۸GB |
-| پهنای باند | حدود ۳ تا ۵ مگابیت برای هر نفر با ویدیو؛ کلاسی که فقط ویدیوی استاد روشن است خیلی کمتر مصرف می‌کند | ۱Gbps با ترافیک کافی |
-| پورت‌ها | `443/tcp` و **`10000/udp`** (صوت و تصویر). بدون UDP، کلاس وصل می‌شود ولی تصویر نمی‌آید. | |
-| دامنه | مثلاً `meet.SITE_HOST`، با یک رکورد A به IP همین سرور | |
+دانشجو کلاس را داخل صفحه‌ی کلاس سایت می‌بیند. Jitsi فقط یک زیردامنه‌ی جدا روی همان سرور دارد، مثلاً `meet.SITE_HOST`.
 
-یک سرور Jitsi می‌تواند بین چند مدرس مشترک باشد. هر سایت فقط اتاق‌های خودش را با توکن خودش باز می‌کند.
+**منابع** (اندازه‌گیری‌شده):
+- Jitsi در حالت بیکار حدود ۵۲۰MB رم می‌گیرد: jvb ‏۲۴۳، jicofo ‏۲۲۰، prosody ‏۳۸ و web ‏۱۶.
+- اسکریپت سقف حافظه را ۱GB برای jvb و ۵۱۲MB برای jicofo می‌گذارد؛ پیش‌فرض خود Jitsi ۳GB برای هر کدام است.
+- با اوج سایت (حدود ۱٫۴GB) و سیستم‌عامل، **حداقل ۶GB و ترجیحاً ۸GB رم**، و ۴ هسته.
 
-## ۲. نصب
+| | |
+|---|---|
+| پهنای باند | حدود ۳ تا ۵ مگابیت برای هر نفر با ویدیو؛ کلاسی که فقط ویدیوی استاد روشن است خیلی کمتر مصرف می‌کند |
+| پورت‌ها | **`10000/udp`** برای صوت و تصویر (`ufw allow 10000/udp`). بدون آن کلاس وصل می‌شود ولی تصویر نمی‌آید. پورت 443 همان nginx سایت است. |
+| DNS | یک رکورد A برای `meet.SITE_HOST` به IP همین سرور |
+| تداخل | پردازش ویدیو هم CPU می‌گیرد. ویدیوهای طولانی را خارج از ساعت کلاس آپلود کنید. |
+
+نصب، با یک دستور از ریشه‌ی مخزن روی سرور:
 
 ```bash
-# نسخه‌ی ثابت؛ ایمیج‌ها از ghcr.io/jitsi کشیده می‌شوند (نه Docker Hub)
-curl -L -o djm.tgz https://github.com/jitsi/docker-jitsi-meet/archive/refs/tags/stable-11248-3.tar.gz
-tar xzf djm.tgz && cd docker-jitsi-meet-stable-11248-3
-cp env.example .env
-./gen-passwords.sh                              # رمزهای داخلی خود Jitsi
-mkdir -p ~/.jitsi-meet-cfg/{web,transcripts,prosody/config,prosody/prosody-plugins-custom,jicofo,jvb,jigasi,jibri}
-openssl rand -hex 32                            # JWT_APP_SECRET؛ آن را جای امنی نگه دارید
+bash deploy/jitsi/install.sh meet.SITE_HOST PUBLIC_IP_OF_THIS_SERVER
 ```
 
-این‌ها را به `.env` اضافه کنید یا مقدارشان را عوض کنید:
+اسکریپت این کارها را انجام می‌دهد:
+- نسخه‌ی ثابت `docker-jitsi-meet` (`stable-11248-3`) را در `/srv/jitsi` می‌گذارد؛
+- آن را برای ورود فقط با توکن سایت تنظیم می‌کند:
+  - مهمان ممنوع؛
+  - moderator فقط از روی توکن؛
+  - رابط وب فقط روی `127.0.0.1:8200`؛
+  - سقف حافظه؛
+- رمز مشترک را یک بار می‌سازد و در `deploy/.env` می‌نویسد (`JITSI_DOMAIN`، `JITSI_APP_ID`، `JITSI_APP_SECRET`) بدون نمایش آن؛
+- Jitsi را روشن می‌کند و صبر می‌کند تا جواب بدهد.
+
+اجرای دوباره (برای ارتقا یا تغییر تنظیمات) امن است و رمزها عوض نمی‌شوند. در آخر سه قدم باقی‌مانده را چاپ می‌کند:
+
+```bash
+# ۱. nginx برای زیردامنه (فایل آماده: deploy/nginx-jitsi.conf)
+sed 's/JITSI_HOST/meet.SITE_HOST/g' deploy/nginx-jitsi.conf > /etc/nginx/sites-available/jitsi
+ln -sf /etc/nginx/sites-available/jitsi /etc/nginx/sites-enabled/jitsi
+certbot --nginx -d meet.SITE_HOST
+# ۲. در nginx سایت: JITSI_HOST -> meet.SITE_HOST (CSP و اجازه‌ی دوربین)
+nginx -t && systemctl reload nginx
+# ۳. انتشار، تا سایت تنظیمات جدید را بخواند
+bash deploy/release.sh
+```
+
+`monitor.sh` وقتی Jitsi نصب باشد، کانتینرهای آن را هم بررسی می‌کند و اگر یکی از کار بیفتد هشدار می‌دهد. این رفتار آزمایش شده است.
+
+**آزمایش‌شده** روی همین اسکریپت و همین فایل nginx:
+- نصب و اجرای دوباره؛ رمز در اجرای دوم عوض نشد؛
+- `external_api.js` و WebSocket از طریق nginx (کد 101)؛
+- ۶ حالت جدول بالا، همه از طریق nginx؛
+- هشدار مانیتورینگ.
+
+## ۲. روی سرور جدا (برای چند مدرس با هم)
+
+یک سرور Jitsi می‌تواند بین چند سایت مدرس مشترک باشد. روی آن سرور هم همین اسکریپت کار می‌کند. یک کپی از مخزن بگیرید، یک `deploy/.env` خالی بسازید، اسکریپت را اجرا کنید، و سه مقدار `JITSI_*` را از آن فایل در `deploy/.env` هر سایت بگذارید. اگر روی آن سرور nginx ندارید، Let's Encrypt خود Jitsi را روشن کنید:
 
 ```env
-PUBLIC_URL=https://meet.SITE_HOST
-JVB_ADVERTISE_IPS=PUBLIC_IP_OF_THIS_SERVER
-TZ=Asia/Tehran
 HTTP_PORT=80
 HTTPS_PORT=443
+DISABLE_HTTPS=0
 ENABLE_LETSENCRYPT=1
-LETSENCRYPT_DOMAIN=meet.SITE_HOST
+LETSENCRYPT_DOMAIN=meet.example.ir
 LETSENCRYPT_EMAIL=you@example.com
-
-# ورود فقط با توکن سایت
-ENABLE_AUTH=1
-AUTH_TYPE=jwt
-ENABLE_GUESTS=0
-JWT_ALLOW_EMPTY=0
-JWT_APP_ID=amozeshyar
-JWT_APP_SECRET=<همان openssl rand -hex 32>
-JWT_ACCEPTED_ISSUERS=amozeshyar
-JWT_ACCEPTED_AUDIENCES=jitsi
-
-# moderator فقط از روی توکن (استاد)، نه «اولین نفری که وارد شد»
-XMPP_MUC_MODULES=token_affiliation
-ENABLE_AUTO_OWNER=0
 ```
 
-```bash
-docker compose up -d
-docker compose ps        # web، prosody، jicofo و jvb باید Up باشند
-```
-
-اگر روی همین سرور nginx دیگری پورت 443 را گرفته، `HTTP_PORT` و `HTTPS_PORT` را عوض کنید (مثلاً 8000 و 8443) و `ENABLE_LETSENCRYPT=0` بگذارید. بعد در nginx برای `meet.SITE_HOST` یک proxy به `http://127.0.0.1:8000` بسازید، با پشتیبانی WebSocket برای `/xmpp-websocket` و `/colibri-ws`.
-
-## ۳. اتصال سایت
+## ۳. اتصال سایت (اگر دستی نصب کرده‌اید)
 
 در `deploy/.env` سایت مدرس:
 
