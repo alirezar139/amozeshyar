@@ -1,4 +1,5 @@
-from django.db.models import Sum
+from django.db.models import Count, OuterRef, Subquery, Sum
+from django.db.models.functions import Coalesce
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import generics, permissions, status, viewsets
@@ -26,7 +27,19 @@ class MyEnrollmentsViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False):
             return Enrollment.objects.none()
-        return Enrollment.objects.filter(student=self.request.user, is_active=True).select_related("course__category")
+        # Lesson and completion counts as subqueries: one query for the whole list (PERF-01).
+        lessons = Lesson.objects.filter(course=OuterRef("course")).order_by().values("course")
+        done = LessonProgress.objects.filter(
+            student=OuterRef("student"), lesson__course=OuterRef("course"), completed=True
+        ).order_by().values("student")
+        return (
+            Enrollment.objects.filter(student=self.request.user, is_active=True)
+            .select_related("course__category")
+            .annotate(
+                total_lessons=Coalesce(Subquery(lessons.annotate(n=Count("id")).values("n")), 0),
+                completed_lessons=Coalesce(Subquery(done.annotate(n=Count("id")).values("n")), 0),
+            )
+        )
 
     @extend_schema(responses=DashboardSummarySerializer)
     @action(detail=False, methods=["get"])

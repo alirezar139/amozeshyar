@@ -64,5 +64,9 @@ jobs:
       - run: npm ci
       - name: Lint
         run: npm run lint
+      # FE-01. vue-tsc is pinned here instead of in package.json so adding it didn't need a
+      # new lockfile; `nuxt prepare` (npm ci's postinstall) has written .nuxt/tsconfig.json.
+      - name: Type check
+        run: npx --yes vue-tsc@3.3.14 --noEmit
       - name: Build
         run: npm run build

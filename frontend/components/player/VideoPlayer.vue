@@ -136,7 +136,8 @@ function onNativeVideoFullscreen() {
   const video = videoEl.value as (HTMLVideoElement & { webkitExitFullscreen?: () => void }) | null
   const frame = frameEl.value as (HTMLDivElement & { webkitRequestFullscreen?: () => void }) | null
   if (!video || !frame || !watermarkText.value) return
-  if (frame.requestFullscreen || frame.webkitRequestFullscreen) return
+  // The DOM typings say every element has requestFullscreen; iPhone Safari's divs don't.
+  if (typeof frame.requestFullscreen === 'function' || frame.webkitRequestFullscreen) return
   const wasPlaying = !video.paused
   video.webkitExitFullscreen?.()
   pageFullscreen.value = true

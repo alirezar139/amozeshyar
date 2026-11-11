@@ -3,9 +3,17 @@
 export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig()
   const apiBase = config.apiBaseServer || config.public.apiBase
-  const owner = await $fetch<{ site_name?: string; display_name?: string; headline?: string }>(`${apiBase}/site/`).catch(
-    () => null,
-  )
+  // Straight to the backend container over plain HTTP: without X-Forwarded-Proto Django's
+  // SSL redirect sends it to https://backend:8000, which hangs ~20 s and falls back to the
+  // default name (and fails the container's healthcheck, which fetches this route). Bounded,
+  // so a slow backend never makes the frontend look down.
+  // The visitor's IP (from nginx's X-Real-IP), as useApi.ts sends it: otherwise every
+  // visitor's manifest counts against the frontend container's one IP in the API throttle.
+  const realIp = getRequestHeader(event, 'x-real-ip')
+  const owner = await $fetch<{ site_name?: string; display_name?: string; headline?: string }>(`${apiBase}/site/`, {
+    headers: { 'X-Forwarded-Proto': 'https', ...(realIp ? { 'X-Forwarded-For': realIp } : {}) },
+    timeout: 3000,
+  }).catch(() => null)
   const name = owner?.site_name || owner?.display_name || 'مدرس‌یار'
 
   setResponseHeader(event, 'Content-Type', 'application/manifest+json; charset=utf-8')

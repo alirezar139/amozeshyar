@@ -8,6 +8,7 @@ from datetime import timedelta
 from pathlib import Path
 
 import environ
+from boto3.s3.transfer import TransferConfig
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -132,12 +133,17 @@ REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_THROTTLE_CLASSES": (
         "rest_framework.throttling.AnonRateThrottle",
-        "rest_framework.throttling.UserRateThrottle",
+        "apps.common.throttles.SignedInUserRateThrottle",
     ),
     "DEFAULT_THROTTLE_RATES": {
-        "anon": "100/hour",
+        # Per IP, over every anonymous API call (each server-rendered page makes a few, a login
+        # three). A classroom on one Wi-Fi or a mobile carrier's NAT is one IP: 100/hour locked
+        # a 30-student class out within minutes. Brute force is held by "auth" below and nginx.
+        "anon": env("THROTTLE_ANON_RATE", default="2000/hour"),
         "user": "1000/hour",
-        "auth": "10/minute",
+        # Login/sign-up per IP. Each login needs a freshly solved puzzle, which is the real
+        # brake on guessing; 10/minute kept a 30-student class on one Wi-Fi out for minutes.
+        "auth": env("THROTTLE_AUTH_RATE", default="30/minute"),
         "payment_callback": "30/minute",
         "video_manifest": "120/minute",
         "password_reset": "5/hour",
@@ -242,6 +248,12 @@ AWS_S3_ADDRESSING_STYLE = "path"
 # spills to disk, so opening a 2 GB original held all 2 GB in RAM and got the worker OOM-killed.
 # Above 8 MB the buffer goes to a temp file on disk instead.
 AWS_S3_MAX_MEMORY_SIZE = 8 * 1024 * 1024
+# Uploads to MinIO. Measured with a 470 MB video through nginx (pilot test): boto3's default
+# config peaked gunicorn at 405 MB (over its old 384 MB limit); 2/4/8 threads x 8 MB parts took
+# 105/77/53 s and peaked at 300/304/320 MB. 8 keeps a 2 GB video well inside gunicorn's 600 s.
+AWS_S3_TRANSFER_CONFIG = TransferConfig(
+    max_concurrency=env.int("STORAGE_UPLOAD_THREADS", default=8), multipart_chunksize=8 * 1024 * 1024
+)
 
 # --- Video preview / paywall defaults ---
 # Actual value is normally read from the singleton `videos.PreviewPolicy`

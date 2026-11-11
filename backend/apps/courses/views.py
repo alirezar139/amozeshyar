@@ -1,5 +1,5 @@
 from django.db import transaction
-from django.db.models import Count, Max, Q
+from django.db.models import Count, Exists, Max, OuterRef, Prefetch, Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, permissions, viewsets
@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from apps.accounts.authentication import UploadJWTAuthentication
 from apps.accounts.permissions import IsAdminRole
 from apps.common import public_cache
+from apps.common.params import query_id
 
 from .filters import CourseFilter
 from .models import Category, ClassSession, Course, Lesson, LessonFile
@@ -62,6 +63,27 @@ class PublicCourseViewSet(viewsets.ReadOnlyModelViewSet):
     filterset_class = CourseFilter
     queryset = Course.objects.filter(status=Course.Status.PUBLISHED).select_related("category")
 
+    def get_queryset(self):
+        """Everything the page shows in a fixed number of queries, whatever the course's size (PERF-01):
+        the student's enrollment as an annotation, and on the detail page the lessons with their
+        video, files and this student's progress prefetched."""
+        from apps.enrollments.models import Enrollment, LessonProgress
+
+        courses = super().get_queryset()
+        user = self.request.user
+        if user.is_authenticated:
+            courses = courses.annotate(
+                user_enrolled=Exists(Enrollment.objects.filter(student=user, course=OuterRef("pk"), is_active=True))
+            )
+        if self.action == "retrieve":
+            lessons = Lesson.objects.order_by("order").select_related("video_asset").prefetch_related("files")
+            if user.is_authenticated:
+                lessons = lessons.prefetch_related(
+                    Prefetch("progress_records", queryset=LessonProgress.objects.filter(student=user), to_attr="user_progress")
+                )
+            courses = courses.prefetch_related(Prefetch("lessons", queryset=lessons))
+        return courses
+
     def get_serializer_class(self):
         if self.action == "retrieve":
             return PublicCourseDetailSerializer
@@ -101,8 +123,8 @@ class LessonViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         lessons = Lesson.objects.select_related("video_asset").prefetch_related("files").order_by("course", "order")
-        course_id = self.request.query_params.get("course")
-        return lessons.filter(course_id=course_id) if course_id else lessons
+        course_id = query_id(self.request, "course")
+        return lessons.filter(course_id=course_id) if course_id is not None else lessons
 
     def perform_create(self, serializer):
         course = serializer.validated_data["course"]
@@ -149,11 +171,10 @@ class LessonFileViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         files = LessonFile.objects.select_related("lesson__course")
-        params = self.request.query_params
-        if params.get("lesson"):
-            files = files.filter(lesson_id=params["lesson"])
-        if params.get("course"):
-            files = files.filter(lesson__course_id=params["course"])
+        if (lesson_id := query_id(self.request, "lesson")) is not None:
+            files = files.filter(lesson_id=lesson_id)
+        if (course_id := query_id(self.request, "course")) is not None:
+            files = files.filter(lesson__course_id=course_id)
         return files
 
     @action(detail=True, methods=["get"], permission_classes=[permissions.IsAuthenticated])

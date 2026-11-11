@@ -28,7 +28,8 @@ useSeoMeta({
   title: () => `${course.value?.title ?? ''} | ${siteName.value}`,
   description: () => course.value?.subtitle || course.value?.description?.slice(0, 160),
   ogTitle: () => course.value?.title,
-  ogType: 'product',
+  // Facebook's "product" type; unhead's typings only list Open Graph's core types.
+  ogType: 'product' as unknown as 'website',
   ogImage: () => course.value?.cover_image,
 })
 

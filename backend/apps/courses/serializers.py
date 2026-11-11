@@ -124,6 +124,8 @@ class LessonSerializer(serializers.ModelSerializer):
         user = getattr(request, "user", None)
         if not user or not user.is_authenticated:
             return None
+        if hasattr(obj, "user_progress"):  # prefetched by the view (PERF-01)
+            return obj.user_progress[0] if obj.user_progress else None
         from apps.enrollments.models import LessonProgress
 
         return LessonProgress.objects.filter(student=user, lesson=obj).first()
@@ -154,6 +156,8 @@ class PublicCourseListSerializer(serializers.ModelSerializer):
         user = getattr(request, "user", None)
         if not user or not user.is_authenticated:
             return False
+        if hasattr(obj, "user_enrolled"):  # annotated by the view (PERF-01)
+            return obj.user_enrolled
         from apps.enrollments.models import Enrollment
 
         return Enrollment.objects.filter(student=user, course=obj, is_active=True).exists()
