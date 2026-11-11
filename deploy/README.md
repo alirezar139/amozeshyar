@@ -46,6 +46,16 @@ SMS_PROVIDER=
 
 `STORAGE_ENDPOINT_URL` عمداً آدرس عمومی سایت است: لینک‌های امضاشده‌ی ویدیو برای همین دامنه ساخته می‌شوند و nginx آن‌ها را به MinIO می‌رساند.
 
+متغیرهای اختیاری. پیش‌فرض‌ها در آزمایش پایلوت اندازه‌گیری شده‌اند و معمولاً لازم نیست آن‌ها را بنویسید:
+
+```env
+THROTTLE_ANON_RATE=2000/hour     # درخواست‌های بدون ورود برای هر IP
+THROTTLE_AUTH_RATE=30/minute     # ورود و ثبت‌نام برای هر IP
+STORAGE_UPLOAD_THREADS=8         # موازی‌سازی ارسال فایل به MinIO
+```
+
+یک کلاس روی یک Wi-Fi، یا کاربرانی که پشت NAT اپراتور موبایل‌اند، همه یک IP حساب می‌شوند. با مقادیر قبلی (۱۰۰ در ساعت و ۱۰ در دقیقه)، از ۳۰ دانشجویی که هم‌زمان وارد می‌شدند فقط ۴ نفر موفق شدند. با مقادیر فعلی هر ۳۰ نفر وارد شدند. جلوی حدس رمز را همچنان پازل امنیتی می‌گیرد، چون برای هر تلاش ورود لازم است.
+
 ## راه‌اندازی
 
 ایمیج‌ها را GitHub Actions می‌سازد ([`images.yml`](../.github/workflows/images.yml)) و سرور فقط از `ghcr.io` می‌کشد؛ build روی خود سرور به خاطر قطعی PyPI/npm قابل اعتماد نیست. `IMAGE_TAG` در `.env` مشخص می‌کند کدام commit اجرا شود (`release.sh` خودش تنظیمش می‌کند).
@@ -134,7 +144,7 @@ bash deploy/restore.sh          # آخرین dump + فایل‌ها؛ برای d
 | سرویس | معمول | بیشینه | سقف (`MEM_*`) |
 |---|---|---|---|
 | worker-video (حین ffmpeg) | ۴۲۰ | ۴۳۴ | ۶۴۰ (`MEM_WORKER_VIDEO`) |
-| backend (gunicorn ۲×۴) | ۱۵۵ | ۲۸۶ | ۳۸۴ (`MEM_BACKEND`) |
+| backend (gunicorn ۲×۴) | ۱۶۰ | ۳۲۰ (حین آپلود ویدیوی ۴۷۰MB) | ۵۱۲ (`MEM_BACKEND`) |
 | worker (صف default و beat) | ۱۱۴ | ۱۴۸ | ۲۲۴ (`MEM_WORKER`) |
 | minio | ۸۸ | ۲۳۸ | ۲۵۶ (`MEM_MINIO`) |
 | frontend | ۳۷ | ۸۶ | ۱۹۲ (`MEM_FRONTEND`) |
@@ -144,6 +154,8 @@ bash deploy/restore.sh          # آخرین dump + فایل‌ها؛ برای d
 - سقف‌ها حد بالا هستند و رزرو نمی‌شوند. جمع بیشینه‌ها حدود ۱٫۳GB است و بیشترش مال تبدیل ویدیوست. **حداقل سرور: ۲GB رم با ۲GB swap**. اندازه‌ی راحت ۴GB است.
 - ffmpeg حدود ۳۵۰MB می‌گیرد (720p، `VIDEO_TRANSCODE_THREADS=2`، preset `medium`). اگر رم کم است، `VIDEO_TRANSCODE_THREADS=1` بگذارید (کندتر و کم‌حافظه‌تر). اگر worker-video در `monitor.sh` نزدیک سقف دیده شد، `MEM_WORKER_VIDEO` را بالا ببرید.
 - **یک باگ پیدا و رفع شد:** خواندن فایل از MinIO کل فایل را در رم نگه می‌داشت (پیش‌فرض django-storages). ویدیوی ۲GB worker را با OOM می‌کشت و هیچ‌وقت پردازش نمی‌شد. الان بیش از ۸MB روی دیسک می‌رود (`AWS_S3_MAX_MEMORY_SIZE`)، و فایل اصلی ویدیو مستقیم روی دیسک دانلود می‌شود.
+- آپلود ویدیو (آزمایش پایلوت، فایل ۴۷۰MB از طریق nginx با TLS): سرور حدود ۵۳ ثانیه طول می‌کشد تا فایل را به MinIO برساند. backend در این مدت حداکثر ۳۲۰MB رم می‌گیرد. با تنظیم پیش‌فرض boto3 این عدد به ۴۰۵MB می‌رسید که از سقف قبلی (۳۸۴MB) بیشتر بود؛ برای همین سقف به ۵۱۲MB رسید، تا دو آپلود هم‌زمان هم جا شوند. در عمل سرعت اینترنت مدرس تعیین‌کننده است: با آپلود ۱۰ مگابیت، همین فایل حدود ۶٫۵ دقیقه طول می‌کشد. nginx کل فایل را اول خودش دریافت می‌کند، پس در این مدت هیچ thread از gunicorn اشغال نیست.
+- تبدیل ویدیو روی ۲ هسته حدود ۰٫۷ برابر طول ویدیو طول می‌کشد: ویدیوی ۱۰ دقیقه‌ای در ۴۱۲ ثانیه و جلسه‌ی ۹۰ دقیقه‌ای حدود یک ساعت. ویدیوها یکی‌یکی پردازش می‌شوند.
 - دیسک: تبدیل هر ویدیو موقتاً حدود دو برابر حجم فایل اصلی جا در `/tmp` کانتینر می‌خواهد. بکاپ محلی هم به اندازه‌ی کل فایل‌های MinIO جا می‌گیرد. `monitor.sh` بالای ۸۵٪ هشدار می‌دهد.
 - PostgreSQL برای سقفش تنظیم شده (`shared_buffers=64MB`، `max_connections=40`). کوئری‌های کندتر از ۲ ثانیه در لاگش ثبت می‌شوند.
 - گزارش منابع سرور واقعی (فقط‌خواندنی): `bash deploy/server-report.sh`. قبل از اولین انتشار این نسخه، خروجی‌اش را با جدول بالا مقایسه کنید.
@@ -252,6 +264,18 @@ ALERT_BOT_API=https://tapi.bale.ai     # برای تلگرام: https://api.tele
 $C logs --since 1h backend worker worker-video | grep -E "ERROR|WARNING"
 ```
 
+## CSP و هدرهای امنیتی
+
+nginx روی همه‌ی صفحه‌های Nuxt یک `Content-Security-Policy` می‌فرستد. اسکریپت، اتصال، iframe و فرم فقط از خود سایت مجازند؛ تنها استثنا Jitsi برای کلاس زنده است. `object-src` و `base-uri` بسته‌اند و سایت‌های دیگر نمی‌توانند صفحه‌ها را در iframe نشان دهند.
+
+این policy روی ۸ صفحه‌ی اصلی، هم برای بازدیدکننده و هم برای کاربر واردشده، بررسی شد: همه‌ی منابع از خود سایت می‌آیند. در فایل‌های JS هم آدرس خارجی‌ای که بارگذاری شود پیدا نشد.
+
+**محدودیت باقی‌مانده:** اسکریپت inline هنوز مجاز است (`'unsafe-inline'`). Nuxt تنظیمات زمان اجرا و اسکریپت تم را inline می‌گذارد، و اولی با هر انتشار تغییر می‌کند. قدم بعدی nonce با ماژول `nuxt-security` است. این policy هنوز در مرورگر واقعی امتحان نشده؛ چک‌لیست بعد از انتشار همین را می‌خواهد.
+
+`Permissions-Policy` دوربین، میکروفون و اشتراک صفحه را فقط برای Jitsi باز می‌گذارد. مقدار قبلی (`camera=()`) دوربین کلاس زنده را هم خاموش می‌کرد.
+
+**کلاس زنده:** نسخه‌ی عمومی `meet.jit.si` از ۱۸ مه ۲۰۲۳ هر جلسه‌ی embed شده را بعد از ۵ دقیقه قطع می‌کند ([اعلام Jitsi](https://community.jitsi.org/t/important-embedding-meet-jit-si-in-your-web-app-will-no-longer-be-supported-please-use-jaas/123003)). صفحه‌ی کلاس زنده دقیقاً همین را embed می‌کند، پس تا جایگزین شدنش با JaaS، Jitsi روی سرور خودتان یا یک سرویس داخلی، کلاس زنده را در پایلوت عرضه نکنید.
+
 ## چک‌لیست استقرار این نسخه
 
 قبل از انتشار:
@@ -260,7 +284,12 @@ $C logs --since 1h backend worker worker-video | grep -E "ERROR|WARNING"
 - [ ] یک بکاپ کامل دستی گرفته شده: `/usr/local/bin/amozeshyar-backup`
 - [ ] در `.env`، `DJANGO_ALLOWED_HOSTS` شامل `backend` است
 - [ ] در `.env`، مقادیر `MINIO_ROOT_USER` و `MINIO_ROOT_PASSWORD` همان root فعلی‌اند و `STORAGE_ACCESS_KEY` و `STORAGE_SECRET_KEY` کلیدهای تازه‌اند (بخش «کاربر جدا برای MinIO»)
-- [ ] تنظیم nginx با `deploy/nginx.conf` مقایسه و `nginx -t && systemctl reload nginx` اجرا شده (بافر آپلود و `limit_conn`)
+- [ ] تنظیم nginx با `deploy/nginx.conf` مقایسه و `nginx -t && systemctl reload nginx` اجرا شده. تغییرهای این نسخه:
+  - بافر آپلود و `limit_conn`؛
+  - CSP و Permissions-Policy؛
+  - مسیر `/modaresyar-media` بدون اسلش آخر (بدون آن فایل‌های ویدیوی حذف‌شده پاک نمی‌شوند)؛
+  - `/_ipx/`؛
+  - `burst=60` برای ورود.
 - [ ] فایل `/etc/amozeshyar-monitor.conf` با توکن ربات بله ساخته شده
 
 انتشار:
@@ -269,7 +298,10 @@ $C logs --since 1h backend worker worker-video | grep -E "ERROR|WARNING"
 - [ ] `$C logs minio-init`، که «app user limited to it» را نشان می‌دهد
 
 بعد از انتشار:
-- [ ] ورود، صفحه‌ی دوره و پخش یک ویدیو
+- [ ] ورود، صفحه‌ی دوره و پخش یک ویدیو، در مرورگر واقعی. Console مرورگر را باز کنید: نباید خطای `Content-Security-Policy` ببینید.
+- [ ] `curl -sI https://SITE_HOST/ | grep -i content-security-policy`، که باید هدر CSP را نشان دهد
+- [ ] نام سایت در `https://SITE_HOST/manifest.webmanifest` همان نام مدرس باشد، نه «مدرس‌یار»
+- [ ] یک پرداخت واقعی با مبلغ کم (فقط با تأیید مالک) که به «پرداخت موفق» و دسترسی به دوره برسد، و بعد استرداد آن از پنل مدرس
 - [ ] آپلود یک ویدیوی کوتاه که به `ready` برسد. حین تبدیل، `docker stats` را برای worker-video ببینید.
 - [ ] `$C exec redis redis-cli CONFIG GET appendonly`، که `yes` برمی‌گرداند
 - [ ] `/usr/local/bin/amozeshyar-monitor`، که «ok» بدهد (یا فقط هشدارهای قابل‌توضیح)
